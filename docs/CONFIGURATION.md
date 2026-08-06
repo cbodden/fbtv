@@ -1,0 +1,59 @@
+# Configuration
+
+## Environment variables
+
+Copy `.env.example` to `.env` and edit:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `FUBO_USER` | yes | — | Fubo account email |
+| `FUBO_PASS` | yes | — | Fubo account password |
+| `HOST` | no | `0.0.0.0` | Bind address for uvicorn |
+| `PORT` | no | `7777` | Listen port (compose maps host `PORT` → container `7777`) |
+| `CONFIG_DIR` | no | `./config` | Writable directory for device id |
+| `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
+| `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
+
+The process **refuses to start** if `FUBO_USER` or `FUBO_PASS` is missing.
+
+## Docker Compose
+
+`docker-compose.yml` passes credentials from `.env` and mounts `./config`:
+
+```yaml
+volumes:
+  - ./config:/app/config
+```
+
+Useful overrides:
+
+```bash
+PORT=7788 EPG_CACHE_SECONDS=7200 docker compose up -d
+```
+
+## Runtime files
+
+| Path | Purpose |
+| --- | --- |
+| `.env` | Local secrets (not committed) |
+| `config/device.json` | Stable Fubo `x-device-id` |
+| `config/.gitkeep` | Keeps empty config dir in git |
+
+Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction).
+
+## Reverse proxy tips
+
+If Emby reaches the bridge through a reverse proxy, forward these headers so playlist URLs use the public host:
+
+- `X-Forwarded-Host`
+- `X-Forwarded-Proto`
+
+The bridge prefers those headers when building absolute `/watch/…` URLs inside `playlist.m3u`.
+
+## Logging
+
+The service logs at INFO by default (sign-in, channel load counts, EPG source hits). Avoid enabling verbose HTTP body logging in production; responses can include tokens or stream URLs.

@@ -1,0 +1,20 @@
+---
+description: Load project context and maintain working memory for this repo
+alwaysApply: true
+---
+
+# Fubo Emby bridge — context & memory
+
+Before substantial work in this repository:
+
+1. Read [CONTEXT.md](CONTEXT.md) for durable architecture and locked decisions
+2. Read [WORKING_MEMORY.md](WORKING_MEMORY.md) for current focus, open questions, and next actions
+3. Prefer [CREDITS.md](CREDITS.md) when touching Fubo client patterns borrowed from community bridges
+
+While working:
+
+- Update `WORKING_MEMORY.md` when focus, blockers, field notes, or next actions change
+- Put lasting decisions in `CONTEXT.md` (and `CHANGELOG.md` / `docs/` when user-facing)
+- Never write secrets, tokens, or raw `.env` values into context or memory files
+
+This is a Python FastAPI sidecar for Emby M3U + XMLTV — not a native Emby plugin.

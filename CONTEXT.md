@@ -25,6 +25,8 @@ Built from an empty workspace (2026-08-06) after the user chose:
 
 Implementation patterns for Fubo auth/lineup/watch were informed by community vlc-bridge projects (see `CREDITS.md`).
 
+**Status at last save:** v1 implementation and documentation complete on local git `main`. Live Fubo/Emby smoke test not yet run. No git remote. Commit messages must not include Co-authored-by trailers (user preference).
+
 ## Non-goals (v1)
 
 - Native Emby `ITunerHost` plugin

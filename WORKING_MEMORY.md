@@ -2,59 +2,63 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-06 (saved full session snapshot)  
+**Last updated:** 2026-08-06 ~16:02 local (pause / continue-later save)  
 **Active version:** 1.0.0  
-**Phase:** v1 implementation + docs complete; git initial commit saved on `main`  
-**Git:** local repo initialized; working tree clean after initial commit (*Initial Fubo→Emby Python bridge with docs and agent context.*)
+**Phase:** **Paused.** v1 code + docs complete on local `main`; next session = live smoke test with Fubo credentials + Emby  
+**Git:** local `main`, working tree clean before this pause-note commit; Co-authored-by trailers already stripped from history; no remote configured
 
 ---
 
+## Resume here (next session)
+
+1. Read [CONTEXT.md](CONTEXT.md) then this file
+2. `cp .env.example .env` and set real `FUBO_USER` / `FUBO_PASS` (do not commit `.env`)
+3. Start bridge:
+   - `docker compose up -d --build` **or**
+   - `source .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 7777`
+4. Verify: `curl` `/health`, `/playlist.m3u`, `/epg.xml`
+5. Wire Emby M3U + XMLTV per `docs/EMBY_SETUP.md`
+6. Fill **Field notes** below; update this file with results
+
 ## Current focus
 
-- Persist all work (context + code + docs) so nothing lives only in chat
-- Next real work: user supplies Fubo credentials and validates against Emby
+- Hand off a clean pause point — no unfinished code edits
+- First unfinished product work: real-account validation and Emby playback
 
 ## Snapshot — what exists on disk
 
-Complete sidecar project under `/Users/cesarbodden/ai/fubotv_emby`:
+Path: `/Users/cesarbodden/ai/fubotv_emby`
 
-- App: `app/{main,fubo_client,m3u,epg,config}.py`
-- Ops: `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `requirements.txt`
-- Docs: `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/*`
-- Agent: `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc`
-- Tests: `tests/test_builders.py` (passed locally)
-- Local `.venv` present (not for commit)
+| Area | Contents |
+| --- | --- |
+| App | `app/{main,fubo_client,m3u,epg,config,__init__}.py` |
+| Ops | `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `requirements.txt` |
+| Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/*` |
+| Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
+| Tests | `tests/test_builders.py` (passed earlier) |
+| Local only | `.venv/` (gitignored); no `.env` with secrets expected in git |
 
-## Done this session
+## Done so far
 
-- [x] Chose architecture: Python sidecar (not Emby .NET plugin)
-- [x] FastAPI routes: `/`, `/playlist.m3u`, `/epg.xml`, `/watch/{id}`, `/health`
-- [x] Fubo client: device id, sign-in/token cache, subscriptions + plan-manager channels, DRM skip, watch, EPG probe
+- [x] Architecture: Python FastAPI sidecar (not Emby .NET plugin)
+- [x] Routes: `/`, `/playlist.m3u`, `/epg.xml`, `/watch/{id}`, `/health` (+ OpenAPI `/docs`)
+- [x] Fubo client: device id, token cache, subscriptions + plan-manager fallback, DRM skip, watch, EPG probe
 - [x] M3U + XMLTV builders; EPG TTL cache
 - [x] Docker / compose scaffolding
-- [x] Full documentation suite
-- [x] `CREDITS.md` (vlc-bridge prior art + deps)
-- [x] Context + working memory + Cursor rule
-- [x] Builder unit tests (`PYTHONPATH=. python tests/test_builders.py` → ok)
-- [x] Saved durable context + this memory snapshot
+- [x] Full docs + CREDITS + CONTEXT/WORKING_MEMORY + Cursor rule
+- [x] Builder unit tests
+- [x] Git init + commits on `main` (no Co-authored-by trailers)
+- [x] Pause save for continue-later
 
 ## Open questions / blockers
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Live Fubo sign-in | Not run | Needs `.env` with real credentials |
-| Usable EPG endpoint in production | Unknown | Probe logic in place; may be channel-only |
-| Emby ↔ bridge network topology | Unknown | 302 model needs shared egress IP |
-| Docker image build | Unverified in agent env | `docker` was missing there |
-
-## Next actions (suggested)
-
-1. ~~Ensure git repo initialized and this tree committed~~ → done (local `main`)
-2. `cp .env.example .env` → set `FUBO_USER` / `FUBO_PASS`
-3. `docker compose up -d --build` **or** `uvicorn app.main:app --host 0.0.0.0 --port 7777`
-4. `curl` `/health`, `/playlist.m3u`, `/epg.xml`
-5. Wire Emby per `docs/EMBY_SETUP.md`
-6. Record field notes below (channel count, EPG path, playback)
+| Live Fubo sign-in | Not run | Needs `.env` |
+| Usable EPG endpoint | Unknown | Probe logic present; may be channel-only XMLTV |
+| Emby ↔ bridge topology | Unknown | HLS 302 needs shared public egress IP |
+| Docker build | Unverified in original agent env | `docker` was missing there |
+| Remote / push | None | Local-only repo |
 
 ## Field notes (fill in during smoke test)
 
@@ -70,26 +74,24 @@ DRM skips observed:
 Issues:
 ```
 
-## Decisions log (session)
+## Decisions log
 
 | When | Decision | Why |
 | --- | --- | --- |
-| 2026-08-06 | Sidecar + Python, not Emby .NET plugin | User chose #1 + Python; matches M3U/EPG ask |
-| 2026-08-06 | HLS 302 only in v1 | Avoid streamlink/ffmpeg complexity |
+| 2026-08-06 | Sidecar + Python, not Emby .NET plugin | User chose #1 + Python |
+| 2026-08-06 | HLS 302 only in v1 | Avoid streamlink/ffmpeg for now |
 | 2026-08-06 | Call sign as tvg-id | Emby XMLTV auto-map |
-| 2026-08-06 | Full docs + CREDITS + CONTEXT/WORKING_MEMORY | Attribution, operability, agent continuity |
-| 2026-08-06 | Save all work to disk + git | User requested persist everything |
+| 2026-08-06 | Docs + CREDITS + context/memory | Attribution + continuity |
+| 2026-08-06 | Strip Co-authored-by from commits | User request |
+| 2026-08-06 | Pause with memory update | Continue later |
 
 ## Do not forget
 
-- Update `CREDITS.md` if patterns are copied from other bridges
-- Do not commit secrets (`.env`, tokens)
-- Prefer editing `WORKING_MEMORY.md` over scattering status only in chat
-- Planned later (changelog Unreleased): MPEG-TS remux, richer EPG, configurable DRM lists
+- Do not commit secrets
+- Update `CREDITS.md` if borrowing more bridge patterns
+- Planned later (`CHANGELOG` Unreleased): MPEG-TS remux, richer EPG, configurable DRM lists
+- Prefer updating this file over leaving status only in chat
 
 ## Scratch
 
-_Session closed for “save all work” — clear/replace when next coding session starts._
-
-- Chat built empty repo → full v1 bridge + docs
-- No live Fubo validation yet
+_Paused for later. Next agent/human: start at **Resume here**._

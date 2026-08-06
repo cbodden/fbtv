@@ -4,8 +4,8 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 **Last updated:** 2026-08-06 (saved full session snapshot)  
 **Active version:** 1.0.0  
-**Phase:** v1 implementation + docs complete; git initial commit saved  
-**Git:** `main` @ `1553836` — *Initial Fubo→Emby Python bridge with docs and agent context.*
+**Phase:** v1 implementation + docs complete; git initial commit saved on `main`  
+**Git:** local repo initialized; working tree clean after initial commit (*Initial Fubo→Emby Python bridge with docs and agent context.*)
 
 ---
 
@@ -49,7 +49,7 @@ Complete sidecar project under `/Users/cesarbodden/ai/fubotv_emby`:
 
 ## Next actions (suggested)
 
-1. ~~Ensure git repo initialized and this tree committed~~ → done (`1553836`)
+1. ~~Ensure git repo initialized and this tree committed~~ → done (local `main`)
 2. `cp .env.example .env` → set `FUBO_USER` / `FUBO_PASS`
 3. `docker compose up -d --build` **or** `uvicorn app.main:app --host 0.0.0.0 --port 7777`
 4. `curl` `/health`, `/playlist.m3u`, `/epg.xml`

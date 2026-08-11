@@ -16,6 +16,7 @@
 | Region / plan | Confirm the account still has live TV packages |
 | Logs | Look for `Sign-in failed` or channel path warnings |
 | API drift | Fubo may have changed endpoints; update `app/fubo_client.py` |
+| Status | `curl -sS http://127.0.0.1:7777/status.json` — look at `fubo.signed_in` / errors after a playlist attempt |
 
 ---
 
@@ -27,6 +28,7 @@
 4. If VLC fails with the redirected CDN URL, you likely hit **IP binding**:
    - Run the bridge on the same machine as Emby/Jellyfin, or
    - Ensure they use the same public egress (no split VPN)
+5. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
 
 v1 uses HTTP 302 redirects only (no local remux).
 
@@ -42,12 +44,34 @@ Workarounds:
 - **Emby:** use Emby Guide Data’s Fubo lineup and map manually
 - **Jellyfin:** use Schedules Direct **or** another XMLTV source (not both with bridge XMLTV at once) and map under **Live TV → Channels**
 - Increase logging and inspect which EPG paths return data (`Loaded N programmes from …`)
+- Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
+
+---
+
+## Using status to diagnose
+
+Before digging through logs, check the in-process snapshot:
+
+```bash
+curl -sS http://127.0.0.1:7777/status.json
+curl -sS http://127.0.0.1:7777/metrics | head
+```
+
+| Observation | Likely meaning |
+| --- | --- |
+| `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — fix credentials / hit playlist |
+| `channel_count` set, `drm_skipped_count` high | Expected for DRM packages; those channels stay out of the M3U |
+| `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (schedule probe empty) |
+| `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |
+| Status routes return 404 | Process predates metrics — restart uvicorn / Compose |
+
+Guide: [STATUS.md](STATUS.md).
 
 ---
 
 ## Emby or Jellyfin cannot reach the bridge
 
-- From that host: `curl -sS http://<bridge>:7777/health`
+- From that host: `curl -sS http://<bridge>:7777/health` (or `/status.json`)
 - If Emby or Jellyfin is in Docker and the bridge is on the host, use `host.docker.internal` or the host LAN IP — not `localhost` inside the container
 - Check firewall / published ports (`7777:7777` or your `PORT`)
 
@@ -78,6 +102,8 @@ Delete `config/device.json` only as a last resort, then restart so a new device 
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/status.json
+curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head
 curl -sSI http://127.0.0.1:7777/watch/<stationId>

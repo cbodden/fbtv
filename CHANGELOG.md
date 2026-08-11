@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded `README.md` into a full user guide (install, Emby & Jellyfin wiring, day-to-day use)
 - Explicit **Emby and Jellyfin** support as equal first-class targets: `docs/JELLYFIN_SETUP.md`, `docs/MEDIA_SERVERS.md`; README / Architecture / Troubleshooting / Configuration / API / landing page / OpenAPI title rebalanced for dual-server language
 - Runtime metrics: live snapshot on `/`, HTML `/status`, JSON `/status.json`, Prometheus `/metrics` (channel/DRM/EPG/request counters from in-process caches)
+- `docs/STATUS.md` plus README / Architecture / Troubleshooting / Configuration / Media servers / Emby & Jellyfin setup / Security / Contributing updates for metrics
 
 ### Planned
 

@@ -2,15 +2,16 @@
 
 | Document | Contents |
 | --- | --- |
-| [../README.md](../README.md) | **Primary guide:** what it does, install, Emby & Jellyfin setup, day-to-day use |
+| [../README.md](../README.md) | **Primary guide:** what it does, install, Emby & Jellyfin setup, status/metrics, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching, metrics |
 | [CONFIGURATION.md](CONFIGURATION.md) | Environment variables and runtime files |
 | [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both |
 | [EMBY_SETUP.md](EMBY_SETUP.md) | Emby Live TV wiring |
 | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
+| [STATUS.md](STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`) |
 | [API.md](API.md) | HTTP endpoints and example payloads |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common failures and curl checks |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common failures, status diagnostics, curl checks |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup and contribution guidelines |
 | [../SECURITY.md](../SECURITY.md) | Credentials and threat model |
 | [../CREDITS.md](../CREDITS.md) | Attribution for prior art and dependencies |

@@ -25,11 +25,12 @@ This is **not** a native Emby plugin or Jellyfin plugin. Both servers already su
 4. [Configure](#configure)
 5. [Wire Emby and Jellyfin](#wire-emby-and-jellyfin)
 6. [How to use day-to-day](#how-to-use-day-to-day)
-7. [Verify with curl](#verify-with-curl)
-8. [How it works](#how-it-works)
-9. [Limitations](#limitations)
-10. [Troubleshooting](#troubleshooting)
-11. [Further documentation](#further-documentation)
+7. [Status and metrics](#status-and-metrics)
+8. [Verify with curl](#verify-with-curl)
+9. [How it works](#how-it-works)
+10. [Limitations](#limitations)
+11. [Troubleshooting](#troubleshooting)
+12. [Further documentation](#further-documentation)
 
 ---
 
@@ -97,7 +98,7 @@ curl -sS http://127.0.0.1:7777/health
 # → {"status":"ok","version":"1.0.0"}
 ```
 
-Open `http://localhost:7777/` in a browser for copy-paste URLs for Emby and Jellyfin.
+Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
 
 Logs:
 
@@ -224,10 +225,28 @@ Once installed and wired:
 3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
 4. **Credential / device changes:** update `.env` and restart the container/process. Only delete `config/device.json` as a last resort.
 5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
-6. **Status / metrics:** browse `http://<host>:7777/` for a snapshot, `/status` for details, `/status.json` for JSON, `/metrics` for Prometheus.
+6. **Status / metrics:** see [Status and metrics](#status-and-metrics) below.
 7. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
 
 Do not paste raw Fubo CDN URLs into Emby or Jellyfin. Always use the bridge playlist so each tune goes through a fresh `/watch/{id}` resolve.
+
+---
+
+## Status and metrics
+
+Operators can inspect runtime state without scraping logs:
+
+| URL | Purpose |
+| --- | --- |
+| `http://<host>:7777/` | HTML index + live snapshot cards (channels, signed-in, DRM skips, EPG programmes, uptime, watch counters) |
+| `http://<host>:7777/status` | Full HTML status table |
+| `http://<host>:7777/status.json` | Same snapshot as JSON |
+| `http://<host>:7777/metrics` | Prometheus text metrics (`fubo_bridge_*`) |
+| `http://<host>:7777/health` | Liveness only (`status` + `version`) — does **not** verify Fubo |
+
+Counts reflect **in-process caches**. After a restart, hit `/playlist.m3u` (or `/epg.xml`) once so channel/DRM/EPG fields populate. Snapshots do not include passwords or bearer tokens.
+
+Guide: [docs/STATUS.md](docs/STATUS.md). API details: [docs/API.md](docs/API.md).
 
 ---
 
@@ -237,6 +256,8 @@ Run these from a machine that can reach the bridge (ideally each Emby / Jellyfin
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/status.json
+curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head
 curl -sSI http://127.0.0.1:7777/watch/<stationId>   # expect 302 + Location: …m3u8
@@ -281,7 +302,8 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
 | Channels import but will not play | Confirm non-DRM; test watch URL in VLC on the Emby/Jellyfin host; fix shared egress |
 | Guide has channels but no programmes | Often expected; Emby Guide Data Fubo lineup or Jellyfin Schedules Direct as backup |
-| Emby or Jellyfin cannot reach bridge | `curl` health from that host; fix Docker networking / firewall / published port |
+| Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
+| Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
 | Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |
 
 More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
@@ -296,6 +318,7 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 | [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md) | Emby & Jellyfin comparison; one bridge for both |
 | [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md) | Emby Live TV wiring |
 | [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
+| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`) |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files |
 | [docs/API.md](docs/API.md) | HTTP API reference |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design and data flow |
@@ -315,6 +338,7 @@ app/
   fubo_client.py   # Auth, channels, watch, schedule
   m3u.py           # Playlist builder
   epg.py           # XMLTV builder + cache
+  status.py        # Status snapshot + HTML/Prometheus
   config.py        # Env settings
 docs/              # Deep-dive documentation
 tests/             # Unit checks (no live Fubo calls)

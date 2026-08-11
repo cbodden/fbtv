@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-11 (Emby & Jellyfin equal-target docs pass).
+**Synced from:** `docs/` + root docs on 2026-08-11 (status/metrics docs pass).
 
 ## What this is
 
@@ -14,11 +14,14 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
   - `GET /playlist.m3u` → M3U Tuner
   - `GET /epg.xml` → XMLTV guide
   - `GET /watch/{id}` → 302 to live HLS
-  - `GET /` → HTML index with copy-paste URLs
+  - `GET /` → HTML index with copy-paste URLs + live snapshot
+  - `GET /status` → HTML status table
+  - `GET /status.json` → JSON status snapshot
+  - `GET /metrics` → Prometheus metrics
   - `GET /health` → `{"status":"ok","version":"…"}` (liveness only; does not verify Fubo credentials)
   - `GET /docs` / `/openapi.json` → FastAPI OpenAPI UI
 
-**Emby:** Premiere required for Live TV. **Jellyfin:** Live TV included. One bridge instance can feed either or both — see `docs/MEDIA_SERVERS.md`.
+**Emby:** Premiere required for Live TV. **Jellyfin:** Live TV included. One bridge instance can feed either or both — see `docs/MEDIA_SERVERS.md`. Operator metrics: `docs/STATUS.md`.
 
 ## Origin / session summary
 
@@ -66,6 +69,7 @@ docs/                       # full documentation (source for this file)
 docs/MEDIA_SERVERS.md       # Emby & Jellyfin equal targets
 docs/EMBY_SETUP.md
 docs/JELLYFIN_SETUP.md
+docs/STATUS.md              # status / metrics operator guide
 CREDITS.md                  # attribution (required when borrowing patterns)
 CONTEXT.md                  # this file
 WORKING_MEMORY.md           # session / next actions
@@ -224,6 +228,7 @@ Compose mounts `./config:/app/config` and loads credentials from `.env`.
 | Emby & Jellyfin | `docs/MEDIA_SERVERS.md` |
 | Emby wiring | `docs/EMBY_SETUP.md` |
 | Jellyfin wiring | `docs/JELLYFIN_SETUP.md` |
+| Status / metrics | `docs/STATUS.md` |
 | Env vars | `docs/CONFIGURATION.md` |
 | HTTP API | `docs/API.md` |
 | Design | `docs/ARCHITECTURE.md` |

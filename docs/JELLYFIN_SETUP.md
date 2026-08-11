@@ -8,8 +8,9 @@ This bridge is not a Jellyfin plugin. Jellyfin and Emby are equal consumers of t
 
 1. Bridge is running and reachable from the **Jellyfin Server** host
 2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`
-3. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
-4. Prefer **same machine or same public egress IP** for Jellyfin and the bridge
+3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / channel counts after warming `/playlist.m3u` — see [STATUS.md](STATUS.md)
+4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
+5. Prefer **same machine or same public egress IP** for Jellyfin and the bridge
 
 Use a hostname/IP Jellyfin can resolve (LAN IP or `host.docker.internal` if Jellyfin is in Docker and the bridge is on the host). Do not put `localhost` in the M3U unless Jellyfin and the bridge share that loopback.
 

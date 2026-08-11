@@ -57,3 +57,17 @@ The bridge prefers those headers when building absolute `/watch/…` URLs inside
 ## Logging
 
 The service logs at INFO by default (sign-in, channel load counts, EPG source hits). Avoid enabling verbose HTTP body logging in production; responses can include tokens or stream URLs.
+
+## Status and metrics
+
+No extra environment variables are required. When the process is running:
+
+| Path | Purpose |
+| --- | --- |
+| `/` | HTML index + live snapshot |
+| `/status` | HTML status table |
+| `/status.json` | JSON snapshot |
+| `/metrics` | Prometheus text |
+| `/health` | Liveness only |
+
+See [STATUS.md](STATUS.md).

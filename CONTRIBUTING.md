@@ -30,6 +30,7 @@ PYTHONPATH=. python tests/test_builders.py
 - Do not commit `.env`, tokens, or real credentials
 - Match existing style in `app/` (type hints, dataclasses, clear error messages)
 - When Fubo endpoints change, update `app/fubo_client.py` and note it in `CHANGELOG.md`
+- When status/metrics fields change, update `docs/STATUS.md` and `docs/API.md`
 - Document user-facing behavior in `README.md` and the relevant file under `docs/`
 - Treat **Emby and Jellyfin** as equal first-class targets in copy (avoid Emby-only framing)
 - Credit new prior art or dependencies in `CREDITS.md`
@@ -39,7 +40,7 @@ PYTHONPATH=. python tests/test_builders.py
 
 - [ ] `PYTHONPATH=. python tests/test_builders.py` passes
 - [ ] `CHANGELOG.md` updated under `[Unreleased]`
-- [ ] Docs updated if endpoints, env vars, or Emby/Jellyfin setup steps changed
+- [ ] Docs updated if endpoints, env vars, status/metrics, or Emby/Jellyfin setup steps changed
 - [ ] `CREDITS.md` updated if new dependencies or borrowed approaches were introduced
 - [ ] No secrets in the diff
 

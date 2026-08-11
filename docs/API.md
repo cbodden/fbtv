@@ -2,6 +2,8 @@
 
 Base URL examples assume `http://192.168.1.10:7777`.
 
+Operator-oriented status/metrics overview: [STATUS.md](STATUS.md).
+
 Interactive OpenAPI docs are also available when the server is running:
 
 - Swagger UI: `/docs`

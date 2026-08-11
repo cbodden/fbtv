@@ -2,9 +2,9 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~15:30 local (status/metrics endpoints)  
+**Last updated:** 2026-08-11 ~15:50 local (status/metrics docs synced across tree)  
 **Active version:** 1.0.0  
-**Phase:** Status/metrics on `/`, `/status`, `/status.json`, `/metrics`; next product work = continue live smoke test / Emby-Jellyfin wiring  
+**Phase:** Metrics implemented + docs synced (`docs/STATUS.md`); next = continue smoke test / Emby-Jellyfin wiring  
 **Git:** `main` (may be ahead of `origin/main`)
 
 ---
@@ -16,8 +16,9 @@ Short-lived project state for the current effort. Agents and humans should **upd
 3. Start bridge:
    - `docker compose up -d --build` **or**
    - `source .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 7777`
-4. Verify per `docs/TROUBLESHOOTING.md`:
+4. Verify per `docs/TROUBLESHOOTING.md` / `docs/STATUS.md`:
    - `curl -sS http://127.0.0.1:7777/health`
+   - `curl -sS http://127.0.0.1:7777/status.json`
    - `curl -sS http://127.0.0.1:7777/playlist.m3u | head`
    - `curl -sS http://127.0.0.1:7777/epg.xml | head`
 5. Wire M3U + XMLTV:
@@ -40,7 +41,7 @@ Path: `/Users/cesarbodden/git/work/fubo_emby`
 | --- | --- |
 | App | `app/{main,fubo_client,m3u,epg,config,__init__}.py` |
 | Ops | `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `requirements.txt` |
-| Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/{README,API,ARCHITECTURE,CONFIGURATION,MEDIA_SERVERS,EMBY_SETUP,JELLYFIN_SETUP,TROUBLESHOOTING}` |
+| Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/{README,API,ARCHITECTURE,CONFIGURATION,MEDIA_SERVERS,EMBY_SETUP,JELLYFIN_SETUP,STATUS,TROUBLESHOOTING}` |
 | Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
 | Tests | `tests/test_builders.py` |
 | Local only | `.venv/` (gitignored); secrets must stay in `.env` only |
@@ -48,7 +49,7 @@ Path: `/Users/cesarbodden/git/work/fubo_emby`
 ## Done so far
 
 - [x] Architecture: Python FastAPI sidecar (not Emby/Jellyfin native plugin)
-- [x] Routes: `/`, `/playlist.m3u`, `/epg.xml`, `/watch/{id}`, `/health` (+ OpenAPI `/docs`)
+- [x] Routes: `/`, `/playlist.m3u`, `/epg.xml`, `/watch/{id}`, `/health`, `/status`, `/status.json`, `/metrics` (+ OpenAPI `/docs`)
 - [x] Fubo client: device id, token cache, subscriptions + plan-manager fallback, DRM skip, watch, EPG probe
 - [x] M3U + XMLTV builders; EPG TTL cache
 - [x] Docker / compose scaffolding
@@ -62,6 +63,7 @@ Path: `/Users/cesarbodden/git/work/fubo_emby`
 - [x] Recreated `.venv` for this checkout path (was stale from `ai/fubotv_emby`)
 - [x] Rebalanced README + all docs for equal Emby & Jellyfin framing (2026-08-11)
 - [x] Runtime metrics: `/` snapshot, `/status`, `/status.json`, `/metrics` (2026-08-11)
+- [x] Docs synced for metrics across README + `docs/` + SECURITY/CONTRIBUTING/CONTEXT (2026-08-11)
 
 ## Open questions / blockers
 
@@ -101,6 +103,7 @@ Issues:
 | 2026-08-11 | Document Jellyfin + dual-server use | User: add Emby && Jellyfin specific bits; same HTTP surface |
 | 2026-08-11 | Rebalance all docs for equal Emby/Jellyfin framing | User: README still Emby-heavy |
 | 2026-08-11 | Add `/`, `/status`, `/status.json`, `/metrics` | User: show metrics three ways |
+| 2026-08-11 | Sync all docs for metrics | User: update documentation for metrics additions |
 
 ## Do not forget
 

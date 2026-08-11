@@ -21,7 +21,13 @@ Replace `<bridge-host>` and port as needed (`PORT`, default `7777`):
 | M3U tuner | `http://<bridge-host>:7777/playlist.m3u` |
 | XMLTV guide | `http://<bridge-host>:7777/epg.xml` |
 | Watch (in playlist) | `http://<bridge-host>:7777/watch/<stationId>` |
-| Copy-paste index | `http://<bridge-host>:7777/` |
+| Copy-paste index + snapshot | `http://<bridge-host>:7777/` |
+| Status (HTML) | `http://<bridge-host>:7777/status` |
+| Status (JSON) | `http://<bridge-host>:7777/status.json` |
+| Prometheus metrics | `http://<bridge-host>:7777/metrics` |
+| Health (liveness) | `http://<bridge-host>:7777/health` |
+
+Status / metrics details: [STATUS.md](STATUS.md).
 
 ## Running Emby and Jellyfin against one bridge
 
@@ -42,4 +48,4 @@ Supported. Each server imports channels independently.
 
 ## Historical package names
 
-Repo/image names (`fubotv_emby`, Compose service/image `fubo-emby`) predate dual-server docs. Product copy treats **Emby and Jellyfin** equally; the HTTP surface is unchanged.
+Repo/image names (`fubotv_emby`, Compose service/image `fubo-emby`) predate dual-server docs. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).

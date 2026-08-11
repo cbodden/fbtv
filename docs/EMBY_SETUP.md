@@ -8,8 +8,9 @@ This bridge is not an Emby .NET plugin. Emby and Jellyfin are equal consumers of
 
 1. Bridge is running and reachable from the Emby Server host
 2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`
-3. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
-4. Prefer **same machine or same public egress IP** for Emby and the bridge
+3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / channel counts after warming `/playlist.m3u` — see [STATUS.md](STATUS.md)
+4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
+5. Prefer **same machine or same public egress IP** for Emby and the bridge
 
 ## Add the M3U tuner
 

@@ -76,6 +76,20 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin,
 | Channel list | 30 minutes | Process memory |
 | XMLTV body | `EPG_CACHE_SECONDS` (default 1h) | Process memory |
 | Device id | Permanent until deleted | `CONFIG_DIR/device.json` |
+| Request counters / uptime | Process lifetime | Process memory (`app/status.py` / `main`) |
+
+## Status and metrics
+
+Operators can read the same in-process snapshot as:
+
+| Path | Format |
+| --- | --- |
+| `/` | HTML summary on the index page |
+| `/status` | HTML detail table |
+| `/status.json` | JSON |
+| `/metrics` | Prometheus text (`fubo_bridge_*`) |
+
+`/health` stays liveness-only. Status fields are cache-backed (playlist/EPG/watch warm them); they do not embed secrets. See [STATUS.md](STATUS.md) and [API.md](API.md).
 
 ## Design choices
 
@@ -83,3 +97,4 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin,
 - **Redirect over remux (v1)** — lower CPU; requires shared egress IP
 - **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
+- **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar

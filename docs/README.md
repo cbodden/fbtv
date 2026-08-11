@@ -2,7 +2,7 @@
 
 | Document | Contents |
 | --- | --- |
-| [../README.md](../README.md) | Overview, quick start, limitations |
+| [../README.md](../README.md) | **Primary guide:** what it does, install, Emby setup, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching |
 | [CONFIGURATION.md](CONFIGURATION.md) | Environment variables and runtime files |

@@ -2,27 +2,30 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-06 ~16:02 local (pause / continue-later save)  
+**Last updated:** 2026-08-11 ~10:21 local (README expanded to full user guide)  
 **Active version:** 1.0.0  
-**Phase:** **Paused.** v1 code + docs complete on local `main`; next session = live smoke test with Fubo credentials + Emby  
-**Git:** local `main`, working tree clean before this pause-note commit; Co-authored-by trailers already stripped from history; no remote configured
+**Phase:** **Resumed.** Docs/README user guide updated; next product work = live smoke test with Fubo + Emby  
+**Git:** local `main`; uncommitted doc edits possible; no remote; no Co-authored-by trailers
 
 ---
 
-## Resume here (next session)
+## Resume here (this session)
 
-1. Read [CONTEXT.md](CONTEXT.md) then this file
+1. Read [CONTEXT.md](CONTEXT.md) (synced from `docs/` on 2026-08-11) then this file
 2. `cp .env.example .env` and set real `FUBO_USER` / `FUBO_PASS` (do not commit `.env`)
 3. Start bridge:
    - `docker compose up -d --build` **or**
-   - `source .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 7777`
-4. Verify: `curl` `/health`, `/playlist.m3u`, `/epg.xml`
-5. Wire Emby M3U + XMLTV per `docs/EMBY_SETUP.md`
+   - `source .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 7777`
+4. Verify per `docs/TROUBLESHOOTING.md`:
+   - `curl -sS http://127.0.0.1:7777/health`
+   - `curl -sS http://127.0.0.1:7777/playlist.m3u | head`
+   - `curl -sS http://127.0.0.1:7777/epg.xml | head`
+5. Wire Emby M3U + XMLTV per `docs/EMBY_SETUP.md` (same host / same egress)
 6. Fill **Field notes** below; update this file with results
 
 ## Current focus
 
-- Hand off a clean pause point — no unfinished code edits
+- README is now the primary end-user guide (install / Emby / usage)
 - First unfinished product work: real-account validation and Emby playback
 
 ## Snapshot — what exists on disk
@@ -33,10 +36,10 @@ Path: `/Users/cesarbodden/ai/fubotv_emby`
 | --- | --- |
 | App | `app/{main,fubo_client,m3u,epg,config,__init__}.py` |
 | Ops | `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `requirements.txt` |
-| Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/*` |
-| Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
-| Tests | `tests/test_builders.py` (passed earlier) |
-| Local only | `.venv/` (gitignored); no `.env` with secrets expected in git |
+| Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/{README,API,ARCHITECTURE,CONFIGURATION,EMBY_SETUP,TROUBLESHOOTING}` |
+| Agent | `CONTEXT.md` (from docs), `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
+| Tests | `tests/test_builders.py` |
+| Local only | `.venv/` (gitignored); secrets must stay in `.env` only |
 
 ## Done so far
 
@@ -48,15 +51,17 @@ Path: `/Users/cesarbodden/ai/fubotv_emby`
 - [x] Full docs + CREDITS + CONTEXT/WORKING_MEMORY + Cursor rule
 - [x] Builder unit tests
 - [x] Git init + commits on `main` (no Co-authored-by trailers)
-- [x] Pause save for continue-later
+- [x] Pause save (2026-08-06)
+- [x] CONTEXT re-sync from `docs/` (2026-08-11)
+- [x] Expand README into detailed user guide (2026-08-11)
 
 ## Open questions / blockers
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Live Fubo sign-in | Not run | Needs `.env` |
-| Usable EPG endpoint | Unknown | Probe logic present; may be channel-only XMLTV |
-| Emby ↔ bridge topology | Unknown | HLS 302 needs shared public egress IP |
+| Live Fubo sign-in | Not run | Needs `.env` — see `docs/CONFIGURATION.md` |
+| Usable EPG endpoint | Unknown | Probe logic present; may be channel-only XMLTV (`docs/TROUBLESHOOTING.md`) |
+| Emby ↔ bridge topology | Unknown | HLS 302 needs shared public egress IP (`docs/EMBY_SETUP.md`) |
 | Docker build | Unverified in original agent env | `docker` was missing there |
 | Remote / push | None | Local-only repo |
 
@@ -84,6 +89,7 @@ Issues:
 | 2026-08-06 | Docs + CREDITS + context/memory | Attribution + continuity |
 | 2026-08-06 | Strip Co-authored-by from commits | User request |
 | 2026-08-06 | Pause with memory update | Continue later |
+| 2026-08-11 | Re-sync CONTEXT from `docs/` | User: update from docs folder |
 
 ## Do not forget
 
@@ -91,7 +97,8 @@ Issues:
 - Update `CREDITS.md` if borrowing more bridge patterns
 - Planned later (`CHANGELOG` Unreleased): MPEG-TS remux, richer EPG, configurable DRM lists
 - Prefer updating this file over leaving status only in chat
+- When public behavior changes, update matching `docs/` page and re-sync `CONTEXT.md`
 
 ## Scratch
 
-_Paused for later. Next agent/human: start at **Resume here**._
+_Resumed 2026-08-11. CONTEXT now mirrors architecture/API/config/Emby/troubleshooting docs. Ready for smoke-test steps above._

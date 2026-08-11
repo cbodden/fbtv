@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
 - `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
 - Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files
+- Expanded `README.md` into a full user guide (what it does, install, Emby implement, day-to-day use)
 
 ### Planned
 

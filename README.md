@@ -262,7 +262,10 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 - **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress as Emby and Jellyfin is strongly recommended.
 - **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse.
 - **No remux in v1** — Redirect only (no streamlink/ffmpeg MPEG-TS proxy yet; see CHANGELOG Unreleased).
-- **Personal use** — Your own paid account only.
+
+> **Personal use — Your own paid account only.**
+>
+> This bridge is for personal / home-LAN use with **your own** paid Fubo subscription. Do not redistribute streams or share accounts. See [SECURITY.md](SECURITY.md).
 
 ---
 

@@ -98,22 +98,23 @@ class FuboClient:
             "content-type": "application/json",
             "origin": "https://www.fubo.tv",
             "referer": "https://www.fubo.tv/",
-            "x-client-version": "4.75.0",
+            "x-client-version": "5.40.0",
             "x-device-app": "android_tv",
             "x-device-group": "tenfoot",
             "x-device-id": self._device_id,
             "x-device-model": "onn. 4K Streaming Box",
             "x-device-platform": "android_tv",
             "x-device-type": "puck",
-            "x-player-version": "v1.34.0",
+            "x-player-version": "v1.106.0",
             "x-preferred-language": "en-US",
             "x-supported-hdrmodes-list": "hdr10,hlg",
-            "x-supported-streaming-protocols": "hls",
+            "x-supported-streaming-protocols": "hls,mpeg",
             "x-supported-codecs-list": "vp9,avc,hevc",
+            "x-drm-scheme": "widevine",
             "x-timezone-offset": "-420",
             "user-agent": (
-                "fuboTV/4.75.0 (Linux;Android 12; onn. 4K Streaming Box "
-                "Build/SGZ1.221127.063.A1.9885170) FuboPlayer/v1.34.0"
+                "FuboTV/5.40.0 (Linux; U: ANDROID; en-us; onn. 4K Streaming Box "
+                "Build/SGZ1.221127.063.A1.9885170) FuboPlayer/v1.106.0"
             ),
         }
         if authorized and self._token:

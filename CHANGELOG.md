@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Image/app version **1.0.1**
+- Fubo client headers aligned to current community bridge (`x-client-version` 5.40.0 / FuboPlayer 1.106.0)
 - `load_dotenv(interpolate=False)` so `$` in local `.env` passwords is left alone
 - Wrapping `'` / `"` around `FUBO_USER` / `FUBO_PASS` are stripped
 

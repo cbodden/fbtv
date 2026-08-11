@@ -114,6 +114,7 @@ Issues:
 | 2026-08-11 | Compose pulls GHCR; no env_file — host env for secrets | User request |
 | 2026-08-11 | Portainer auth troubleshooting (`$` mangling) | User: 401 in Portainer |
 | 2026-08-11 | credentials.env/json file wins over env; strip wrapping quotes | User: quotes/$$ still 401 in Portainer |
+| 2026-08-11 | Bump Fubo client headers to 5.40.0 | User: 401 persists with correct email + pass_len=14 / `$` |
 
 ## Do not forget
 

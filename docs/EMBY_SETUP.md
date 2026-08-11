@@ -2,6 +2,8 @@
 
 Emby Premiere is required for Live TV.
 
+This bridge is not an Emby .NET plugin. Emby and Jellyfin are equal consumers of the same **M3U** + **XMLTV** feeds — see [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) and [MEDIA_SERVERS.md](MEDIA_SERVERS.md).
+
 ## Prerequisites
 
 1. Bridge is running and reachable from the Emby Server host
@@ -62,3 +64,7 @@ Same host (best for v1 redirect model)
 ```
 
 Remote Emby over Tailscale/VPN with the bridge elsewhere often breaks HLS redirects because the stream URL was minted for a different IP.
+
+## Using Emby and Jellyfin together
+
+Point both at the same bridge URLs. Cap combined simultaneous streams to your Fubo limit. Details: [MEDIA_SERVERS.md](MEDIA_SERVERS.md).

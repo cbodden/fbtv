@@ -2,25 +2,26 @@
 
 ## Role
 
-`fubotv-emby` is a **sidecar HTTP service**, not an Emby plugin. Emby Server consumes:
+`fubotv-emby` is a **sidecar HTTP service**, not a native Emby or Jellyfin plugin. **Emby and Jellyfin** are equal consumers of:
 
 1. An **M3U tuner** URL for channel discovery and tune URLs
 2. An **XMLTV** URL for guide data
 
-The bridge authenticates to Fubo with the subscriber’s credentials and translates Fubo’s private API into those two formats.
+The bridge authenticates to Fubo with the subscriber’s credentials and translates Fubo’s private API into those two formats. One process can feed Emby, Jellyfin, or both — see [MEDIA_SERVERS.md](MEDIA_SERVERS.md).
 
 ```text
-┌─────────────┐     playlist.m3u / epg.xml     ┌──────────────────┐
-│ Emby Server │ ─────────────────────────────► │ Fubo Emby Bridge │
-│  Live TV    │ ◄───────────────────────────── │   (FastAPI)      │
-└─────────────┘     M3U rows + XMLTV           └────────┬─────────┘
-       │                                                │
-       │  GET /watch/{id}                               │ sign-in, lineup,
-       └────────────────────────────────────────────────┤ schedule, stream
-                         302 → HLS URL                  ▼
-                                                 ┌─────────────┐
-                                                 │ api.fubo.tv │
-                                                 └─────────────┘
+┌────────────────────┐   playlist.m3u / epg.xml   ┌──────────────────────────┐
+│ Emby Live TV       │ ─────────────────────────► │ Fubo → Emby & Jellyfin   │
+│ and/or             │ ◄───────────────────────── │ Bridge (FastAPI)         │
+│ Jellyfin Live TV   │                            └────────────┬─────────────┘
+└────────────────────┘                                         │
+       │                                                       │ sign-in, lineup,
+       │  GET /watch/{id}                                      │ schedule, stream
+       └───────────────────────────────────────────────────────┤
+                         302 → HLS URL                         ▼
+                                                        ┌─────────────┐
+                                                        │ api.fubo.tv │
+                                                        └─────────────┘
 ```
 
 ## Components
@@ -51,16 +52,16 @@ Channels from known DRM sources/call signs are dropped before playlist generatio
 
 ## Tune path
 
-1. Emby opens `http://bridge/watch/{stationId}` from the M3U
+1. Emby or Jellyfin opens `http://bridge/watch/{stationId}` from the M3U
 2. Bridge calls `vapi/asset/v1?channelId=…&type=live`
 3. If `drmProtected` is true → HTTP 502
 4. Otherwise **302** to the HLS URL
 
-Fubo often binds stream URLs to the **requester’s public IP**. Emby and the bridge should share the same egress (typically same host / Docker network path).
+Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin, and the bridge should share the same egress (typically same host / Docker network path).
 
 ## Guide path
 
-1. Emby fetches `/epg.xml`
+1. Emby and/or Jellyfin fetch `/epg.xml`
 2. Bridge loads channels, then probes authenticated schedule endpoints
 3. Listings are mapped to playlist `tvg-id` (= Fubo call sign)
 4. Result is cached for `EPG_CACHE_SECONDS`
@@ -77,6 +78,7 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby and the br
 
 ## Design choices
 
-- **Sidecar over Emby plugin** — uses built-in M3U/XMLTV; simpler to deploy and debug
+- **Sidecar over native plugins** — uses built-in M3U/XMLTV on Emby and Jellyfin; simpler to deploy and debug
 - **Redirect over remux (v1)** — lower CPU; requires shared egress IP
-- **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for Emby auto-mapping
+- **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
+- **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)

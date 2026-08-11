@@ -1,10 +1,10 @@
-# Fubo → Emby Bridge
+# Fubo → Emby & Jellyfin Bridge
 
-**Version 1.0.0** — Python sidecar that signs into your personal Fubo account and exposes Emby-ready Live TV feeds (M3U playlist + XMLTV guide + per-channel watch redirects).
+**Version 1.0.0** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
 
-This is **not** an Emby .NET plugin. Emby Premiere already supports M3U tuners and XMLTV natively; this service sits beside Emby and translates Fubo’s private API into those formats.
+This is **not** a native Emby plugin or Jellyfin plugin. Both servers already support M3U tuners and XMLTV; this service sits beside them and translates Fubo’s private API into those formats. **One bridge instance** can feed Emby, Jellyfin, or both — see [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md).
 
-| Endpoint | What Emby uses it for |
+| Endpoint | Emby / Jellyfin use |
 | --- | --- |
 | `http://<host>:7777/playlist.m3u` | Live TV → **M3U Tuner** (channel list + tune URLs) |
 | `http://<host>:7777/epg.xml` | Live TV → **XMLTV** guide data |
@@ -20,7 +20,7 @@ This is **not** an Emby .NET plugin. Emby Premiere already supports M3U tuners a
 2. [Requirements](#requirements)
 3. [Install](#install)
 4. [Configure](#configure)
-5. [Implement in Emby](#implement-in-emby)
+5. [Wire Emby and Jellyfin](#wire-emby-and-jellyfin)
 6. [How to use day-to-day](#how-to-use-day-to-day)
 7. [Verify with curl](#verify-with-curl)
 8. [How it works](#how-it-works)
@@ -32,38 +32,41 @@ This is **not** an Emby .NET plugin. Emby Premiere already supports M3U tuners a
 
 ## What this does
 
-Fubo does not offer an official Emby plugin. This bridge fills that gap for **personal use** with your own paid subscription:
+Fubo does not offer an official Emby or Jellyfin plugin. This bridge fills that gap for **personal use** with your own paid subscription:
 
 1. **Signs in** to `api.fubo.tv` with your email/password and a stable device id (`config/device.json`).
 2. **Discovers your lineup** from Fubo subscription / plan APIs and **skips known DRM packages** (Disney, Starz, Showtime, Max/HBO, and similar).
 3. **Serves an M3U** whose each channel points at this bridge (`/watch/<stationId>`), not at a raw CDN URL.
-4. **On tune**, resolves a live HLS URL from Fubo and **HTTP 302 redirects** Emby (or VLC) to that stream.
-5. **Builds XMLTV** when Fubo schedule endpoints respond; otherwise still emits channel rows so Emby can map by call sign (`tvg-id`).
+4. **On tune**, resolves a live HLS URL from Fubo and **HTTP 302 redirects** the media server (or VLC) to that stream.
+5. **Builds XMLTV** when Fubo schedule endpoints respond; otherwise still emits channel rows so Emby and Jellyfin can map by call sign (`tvg-id`).
 
 ```text
-┌─────────────┐     playlist.m3u / epg.xml     ┌──────────────────┐
-│ Emby Server │ ─────────────────────────────► │ Fubo Emby Bridge │
-│  Live TV    │ ◄───────────────────────────── │   (FastAPI)      │
-└─────────────┘                                └────────┬─────────┘
-       │                                                │
-       │  GET /watch/{id}                               │ auth, lineup,
-       └────────────────────────────────────────────────┤ schedule, stream
-                         302 → HLS URL                  ▼
-                                                 ┌─────────────┐
-                                                 │ api.fubo.tv │
-                                                 └─────────────┘
+┌────────────────────┐   playlist.m3u / epg.xml   ┌──────────────────────────┐
+│ Emby Live TV       │ ─────────────────────────► │ Fubo → Emby & Jellyfin   │
+│ and/or             │ ◄───────────────────────── │ Bridge (FastAPI)         │
+│ Jellyfin Live TV   │                            └────────────┬─────────────┘
+└────────────────────┘                                         │
+       │                                                       │ auth, lineup,
+       │  GET /watch/{id}                                      │ schedule, stream
+       └───────────────────────────────────────────────────────┤
+                         302 → HLS URL                         ▼
+                                                        ┌─────────────┐
+                                                        │ api.fubo.tv │
+                                                        └─────────────┘
 ```
 
-**Best topology for v1:** run the bridge on the **same machine (or same public egress IP)** as Emby. Fubo often binds stream URLs to the IP that requested them; a redirect minted on one network and fetched from another commonly fails.
+**Best topology for v1:** run the bridge on the **same machine (or same public egress IP)** as Emby and/or Jellyfin. Fubo often binds stream URLs to the IP that requested them; a redirect minted on one network and fetched from another commonly fails.
 
 ---
 
 ## Requirements
 
 - A valid **Fubo** subscription (use **your own** credentials only)
-- **Emby Server** with **Premiere** (Live TV)
+- At least one media server:
+  - **Emby Server** with **Premiere** (required for Live TV), and/or
+  - **Jellyfin** (Live TV included; no Premiere equivalent)
 - **Docker** (recommended) **or** Python **3.11+**
-- Network path so Emby can reach the bridge on port `7777` (or your chosen `PORT`)
+- Network path so Emby and/or Jellyfin can reach the bridge on port `7777` (or your chosen `PORT`)
 
 Personal / home-LAN use only. Respect Fubo’s terms of service. Do not redistribute streams or share accounts. See [SECURITY.md](SECURITY.md).
 
@@ -82,7 +85,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Compose builds image `fubo-emby`, maps host `${PORT:-7777}` → container `7777`, loads `.env`, and mounts `./config` for the persistent device id.
+Compose builds image `fubo-emby` (historical name), maps host `${PORT:-7777}` → container `7777`, loads `.env`, and mounts `./config` for the persistent device id.
 
 Check it:
 
@@ -91,7 +94,7 @@ curl -sS http://127.0.0.1:7777/health
 # → {"status":"ok","version":"1.0.0"}
 ```
 
-Open `http://localhost:7777/` in a browser for copy-paste Emby URLs.
+Open `http://localhost:7777/` in a browser for copy-paste URLs for Emby and Jellyfin.
 
 Logs:
 
@@ -146,37 +149,26 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`.
 
 Delete `config/device.json` only if you intentionally want a new device identity (can trigger extra sign-in friction).
 
-**Reverse proxy:** if Emby reaches the bridge through a proxy, forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use the public hostname Emby can resolve.
+**Reverse proxy:** if Emby or Jellyfin reaches the bridge through a proxy, forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use a hostname both servers can resolve.
 
 Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ---
 
-## Implement in Emby
+## Wire Emby and Jellyfin
 
-Emby Premiere is required for Live TV.
+Emby and Jellyfin use the **same** bridge URLs. Differences are mostly license (Emby Premiere vs Jellyfin included Live TV) and guide fallbacks. Full comparison: [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md).
 
-### Prerequisites
+### Shared prerequisites
 
 1. Bridge is running.
-2. From the **Emby Server host**, `http://<bridge-host>:7777/health` returns OK.
+2. From each **media server host**, `http://<bridge-host>:7777/health` returns OK.
 3. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist.
-4. Prefer **same machine or same public egress IP** for Emby and the bridge.
+4. Prefer **same machine or same public egress IP** for the bridge and every server that will tune.
 
-Use a hostname/IP Emby can resolve (LAN IP or `host.docker.internal` if Emby is in Docker and the bridge is on the host). Avoid putting `localhost` in the M3U unless Emby and the bridge share that loopback.
+Use a hostname/IP Emby and Jellyfin can resolve (LAN IP or `host.docker.internal` if the media server runs in Docker and the bridge is on the host). Avoid `localhost` in the M3U unless that loopback is shared.
 
-### 1. Add the M3U tuner
-
-1. **Emby Dashboard → Live TV**
-2. Under **Tuner Devices**, click **+**
-3. Select **M3U Tuner**
-4. Set:
-   - **File or URL:** `http://<bridge-host>:7777/playlist.m3u`
-   - A clear name (e.g. `Fubo`)
-   - Simultaneous stream limit matching your Fubo plan
-5. Save and allow Emby to import channels
-
-Playlist fields Emby cares about:
+### Shared playlist fields
 
 | M3U attribute | Meaning |
 | --- | --- |
@@ -186,24 +178,37 @@ Playlist fields Emby cares about:
 | `group-title` | Package / plan grouping (tags) |
 | URL line | `http://<bridge>/watch/<stationId>` |
 
-### 2. Add XMLTV guide data
+### Emby
 
-1. Under **TV Guide Data Providers**, click **+**
-2. Select **XMLTV**
-3. URL: `http://<bridge-host>:7777/epg.xml`
-4. Choose a refresh interval (daily is typical; the bridge caches EPG for `EPG_CACHE_SECONDS`)
-5. Save and refresh guide data
+1. **Dashboard → Live TV → Tuner Devices → +** → **M3U Tuner** → `http://<bridge-host>:7777/playlist.m3u`
+2. **TV Guide Data Providers → +** → **XMLTV** → `http://<bridge-host>:7777/epg.xml`
+3. Set simultaneous streams to match your Fubo plan (lower if Jellyfin also uses this bridge)
+4. Tune a non-DRM channel; if playback fails after redirect, fix shared egress
 
-When `tvg-id` matches XMLTV channel ids, Emby often maps automatically. If programme rows are sparse, keep the bridge XMLTV for identity and optionally add Emby Guide Data’s **FuboTV** lineup for your ZIP, then map manually by name/call sign.
+Premiere is required. Full walkthrough: [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md).
 
-### 3. Playback check
+### Jellyfin
 
-1. Tune a non-DRM channel (news/basic sports usually fare better than premium movie nets).
-2. If tune fails immediately → check bridge logs for DRM or HTTP errors.
-3. If tune starts then fails → suspect **IP binding**; co-locate bridge and Emby egress.
-4. Optional: on the Emby host, open a `/watch/<id>` URL from the M3U in VLC and confirm it redirects to an `.m3u8`.
+1. **Dashboard → Live TV → Tuner Devices → +** → **M3U Tuner** → `http://<bridge-host>:7777/playlist.m3u`
+2. **TV Guide Data Providers → +** → **XMLTV** → `http://<bridge-host>:7777/epg.xml`
+3. Set simultaneous streams to match your Fubo plan (lower if Emby also uses this bridge)
+4. If guide rows do not auto-map, edit channels under **Live TV → Channels**
+5. Tune a non-DRM channel; if playback fails after redirect, fix shared egress
 
-Longer walkthrough: [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md).
+Live TV needs no Premiere equivalent. Full walkthrough: [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md).
+
+### Sparse EPG fallbacks
+
+When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If programme rows are sparse, keep bridge XMLTV for identity where possible:
+
+| Server | Optional denser guide |
+| --- | --- |
+| Emby | Emby Guide Data **FuboTV** lineup + manual map (can complement bridge identity) |
+| Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
+
+### Using Emby and Jellyfin together
+
+Point both at the same `playlist.m3u` / `epg.xml`. Cap **combined** simultaneous streams to your Fubo plan. Every host that tunes must share egress with the bridge.
 
 ---
 
@@ -212,19 +217,19 @@ Longer walkthrough: [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md).
 Once installed and wired:
 
 1. **Leave the bridge running** (Compose `restart: unless-stopped`, or a systemd/user service for uvicorn).
-2. Use Emby Live TV as usual — channel change hits `/watch/{id}`, which redirects to Fubo HLS.
-3. **Guide refresh** happens on Emby’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
+2. Use **Emby** and/or **Jellyfin** Live TV as usual — channel change hits `/watch/{id}`, which redirects to Fubo HLS.
+3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
 4. **Credential / device changes:** update `.env` and restart the container/process. Only delete `config/device.json` as a last resort.
-5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh the Emby tuner if channel counts look wrong.
+5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
 6. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
 
-You do not paste raw Fubo CDN URLs into Emby. Always use the bridge playlist so each tune goes through a fresh `/watch/{id}` resolve.
+Do not paste raw Fubo CDN URLs into Emby or Jellyfin. Always use the bridge playlist so each tune goes through a fresh `/watch/{id}` resolve.
 
 ---
 
 ## Verify with curl
 
-Run these from a machine that can reach the bridge (ideally the Emby host):
+Run these from a machine that can reach the bridge (ideally each Emby / Jellyfin host):
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
@@ -254,7 +259,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 
 - **Unofficial API** — Fubo does not document this for third-party use. Endpoints/headers can change without notice.
 - **DRM** — Protected packages are skipped; they will not appear or play.
-- **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress as Emby is strongly recommended.
+- **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress as Emby and Jellyfin is strongly recommended.
 - **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse.
 - **No remux in v1** — Redirect only (no streamlink/ffmpeg MPEG-TS proxy yet; see CHANGELOG Unreleased).
 - **Personal use** — Your own paid account only.
@@ -267,10 +272,10 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | --- | --- |
 | Process exits mentioning `FUBO_USER` / `FUBO_PASS` | Create `.env` from `.env.example`; Compose must load it |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
-| Channels import but will not play | Confirm non-DRM; test watch URL in VLC on Emby host; fix shared egress |
-| Guide has channels but no programmes | Often expected; use Emby Guide Data Fubo lineup as backup |
-| Emby cannot reach bridge | `curl` health from Emby host; fix Docker networking / firewall / published port |
-| Playlist URLs say `localhost` but Emby is elsewhere | Fetch playlist via LAN IP Emby can use, or set forwarded host headers |
+| Channels import but will not play | Confirm non-DRM; test watch URL in VLC on the Emby/Jellyfin host; fix shared egress |
+| Guide has channels but no programmes | Often expected; Emby Guide Data Fubo lineup or Jellyfin Schedules Direct as backup |
+| Emby or Jellyfin cannot reach bridge | `curl` health from that host; fix Docker networking / firewall / published port |
+| Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |
 
 More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
@@ -281,7 +286,9 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 | Doc | Description |
 | --- | --- |
 | [docs/README.md](docs/README.md) | Documentation index |
-| [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md) | Detailed Emby Live TV wiring |
+| [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md) | Emby & Jellyfin comparison; one bridge for both |
+| [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md) | Emby Live TV wiring |
+| [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files |
 | [docs/API.md](docs/API.md) | HTTP API reference |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design and data flow |

@@ -1,6 +1,6 @@
 # Credits and attribution
 
-This project is an independent Emby-oriented sidecar. It does **not** redistribute Fubo content and is not affiliated with FuboTV, Emby, or the authors of the projects below. Credit is due to the communities and libraries that made the approach practical.
+This project is an independent Emby/Jellyfin-oriented sidecar. It does **not** redistribute Fubo content and is not affiliated with FuboTV, Emby, Jellyfin, or the authors of the projects below. Credit is due to the communities and libraries that made the approach practical.
 
 ## Prior art and inspiration
 
@@ -14,18 +14,19 @@ Fubo authentication headers, device-id persistence, channel-lineup discovery, DR
 | [Fubo TV project (Channels Community)](https://community.getchannels.com/t/fubo-tv-project/37533) | Community thread participants | Practical notes on DRM limits, IP-bound streams, playlists, and guide mapping |
 | Earlier vlc-bridge / IPTV bridge work (e.g. miibeez lineage referenced in that thread) | Respective authors | General playlist/watch proxy structure for live TV players |
 
-This repository reimplements those ideas for **Emby** (native M3U tuner + XMLTV) with FastAPI. It is not a fork of the projects above; please consult each project for its own license and terms.
+This repository reimplements those ideas for **Emby and Jellyfin** (native M3U tuner + XMLTV) with FastAPI. It is not a fork of the projects above; please consult each project for its own license and terms.
 
 ## Platforms and formats
 
 | Name | Role |
 | --- | --- |
-| [Emby](https://emby.media/) | Target media server; Live TV M3U tuner and XMLTV guide providers |
+| [Emby](https://emby.media/) | First-class target; Live TV M3U tuner and XMLTV guide providers |
+| [Jellyfin](https://jellyfin.org/) | First-class target; Live TV M3U tuner and XMLTV guide providers |
 | [Fubo](https://www.fubo.tv/) | Live TV service accessed via the subscriber’s own account (unofficial/private API) |
 | [XMLTV](http://wiki.xmltv.org/) | EPG file format used by `/epg.xml` |
-| M3U / HLS | Playlist and stream formats consumed by Emby |
+| M3U / HLS | Playlist and stream formats consumed by Emby and Jellyfin |
 
-Emby and Fubo are trademarks of their respective owners.
+Emby, Jellyfin, and Fubo are trademarks of their respective owners.
 
 ## Third-party Python dependencies
 

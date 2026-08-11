@@ -9,7 +9,7 @@ Interactive OpenAPI docs are also available when the server is running:
 
 ## `GET /`
 
-HTML index listing playlist and EPG URLs for copy/paste.
+HTML index listing playlist and EPG URLs for Emby and/or Jellyfin copy/paste.
 
 **Response:** `200 text/html`
 
@@ -91,4 +91,4 @@ Resolves a live stream for the Fubo station id and redirects.
 | `502` | DRM protected, missing URL, or Fubo API error |
 | `503` | Service not initialized |
 
-Emby (or VLC) must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream.
+Emby, Jellyfin, or VLC must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream.

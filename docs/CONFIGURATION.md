@@ -47,7 +47,7 @@ Delete `config/device.json` only if you intentionally want a new device identity
 
 ## Reverse proxy tips
 
-If Emby reaches the bridge through a reverse proxy, forward these headers so playlist URLs use the public host:
+If Emby or Jellyfin reaches the bridge through a reverse proxy, forward these headers so playlist URLs use a public host both servers can resolve:
 
 - `X-Forwarded-Host`
 - `X-Forwarded-Proto`

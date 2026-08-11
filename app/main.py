@@ -1,4 +1,4 @@
-"""Fubo → Emby bridge: M3U tuner + XMLTV guide endpoints."""
+"""Fubo → Emby & Jellyfin bridge: M3U tuner + XMLTV guide endpoints."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     client = FuboClient(settings)
     epg_cache = EpgCache(settings.epg_cache_seconds)
     logger.info(
-        "Fubo Emby bridge v%s ready on %s:%s",
+        "Fubo Emby & Jellyfin bridge v%s ready on %s:%s",
         __version__,
         settings.host,
         settings.port,
@@ -46,7 +46,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="Fubo Emby Bridge",
+    title="Fubo Emby & Jellyfin Bridge",
+    description="M3U + XMLTV sidecar for Emby and Jellyfin Live TV (equal first-class targets; personal Fubo account).",
     version=__version__,
     lifespan=lifespan,
 )
@@ -76,7 +77,7 @@ def index(request: Request) -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fubo Emby Bridge</title>
+  <title>Fubo Emby &amp; Jellyfin Bridge</title>
   <style>
     body {{ font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; line-height: 1.5; }}
     code, a {{ word-break: break-all; }}
@@ -84,13 +85,15 @@ def index(request: Request) -> str:
   </style>
 </head>
 <body>
-  <h1>Fubo Emby Bridge <small>v{__version__}</small></h1>
-  <p>Point Emby Live TV at these URLs:</p>
+  <h1>Fubo Emby &amp; Jellyfin Bridge <small>v{__version__}</small></h1>
+  <p>Point <strong>Emby</strong> and/or <strong>Jellyfin</strong> Live TV at these URLs (one bridge can feed both):</p>
   <ul>
     <li>M3U Tuner: <a href="{base}/playlist.m3u"><code>{base}/playlist.m3u</code></a></li>
     <li>XMLTV Guide: <a href="{base}/epg.xml"><code>{base}/epg.xml</code></a></li>
   </ul>
   <p>Streams resolve through <code>{base}/watch/&lt;channel_id&gt;</code>.</p>
+  <p><strong>Emby:</strong> Premiere required for Live TV.<br>
+     <strong>Jellyfin:</strong> Live TV included (no Premiere equivalent).</p>
 </body>
 </html>
 """

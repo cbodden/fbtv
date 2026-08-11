@@ -2,11 +2,13 @@
 
 | Document | Contents |
 | --- | --- |
-| [../README.md](../README.md) | **Primary guide:** what it does, install, Emby setup, day-to-day use |
+| [../README.md](../README.md) | **Primary guide:** what it does, install, Emby & Jellyfin setup, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching |
 | [CONFIGURATION.md](CONFIGURATION.md) | Environment variables and runtime files |
-| [EMBY_SETUP.md](EMBY_SETUP.md) | Step-by-step Emby Live TV wiring |
+| [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both |
+| [EMBY_SETUP.md](EMBY_SETUP.md) | Emby Live TV wiring |
+| [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
 | [API.md](API.md) | HTTP endpoints and example payloads |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common failures and curl checks |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup and contribution guidelines |

@@ -19,14 +19,14 @@
 
 ---
 
-## Channels import in Emby but will not play
+## Channels import but will not play (Emby or Jellyfin)
 
 1. Confirm the channel is not DRM-filtered (premium movie nets often are)
-2. On the **Emby host**, open the watch URL from the M3U in VLC
-3. If VLC works on the Emby host but not through Emby, review Emby Live TV transcoder / network settings
+2. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC
+3. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
 4. If VLC fails with the redirected CDN URL, you likely hit **IP binding**:
-   - Run bridge and Emby on the same machine, or
-   - Ensure both use the same public egress (no split VPN)
+   - Run the bridge on the same machine as Emby/Jellyfin, or
+   - Ensure they use the same public egress (no split VPN)
 
 v1 uses HTTP 302 redirects only (no local remux).
 
@@ -39,25 +39,32 @@ Expected when Fubo schedule endpoints are unavailable or changed. The bridge sti
 Workarounds:
 
 - Retry later / lower `EPG_CACHE_SECONDS` after a code/API fix
-- Use Emby Guide Data’s Fubo lineup and map manually
+- **Emby:** use Emby Guide Data’s Fubo lineup and map manually
+- **Jellyfin:** use Schedules Direct **or** another XMLTV source (not both with bridge XMLTV at once) and map under **Live TV → Channels**
 - Increase logging and inspect which EPG paths return data (`Loaded N programmes from …`)
 
 ---
 
-## Emby cannot reach the bridge
+## Emby or Jellyfin cannot reach the bridge
 
-- From the Emby host: `curl -sS http://<bridge>:7777/health`
-- If Emby is in Docker and the bridge is on the host, use `host.docker.internal` or the host LAN IP — not `localhost` inside the Emby container
-- Check firewall / published ports (`7777:7777`)
+- From that host: `curl -sS http://<bridge>:7777/health`
+- If Emby or Jellyfin is in Docker and the bridge is on the host, use `host.docker.internal` or the host LAN IP — not `localhost` inside the container
+- Check firewall / published ports (`7777:7777` or your `PORT`)
 
 ---
 
-## Playlist URLs point at `localhost` but Emby is elsewhere
+## Playlist URLs point at `localhost` but Emby/Jellyfin is elsewhere
 
-Emby must fetch watch URLs as written in the M3U. Generate the playlist using the hostname Emby can resolve:
+Emby and Jellyfin must fetch watch URLs as written in the M3U. Generate the playlist using a hostname they can resolve:
 
 - Browse/fetch `playlist.m3u` via `http://<lan-ip>:7777/playlist.m3u`, or
 - Put a reverse proxy in front and set `X-Forwarded-Host` / `X-Forwarded-Proto`
+
+---
+
+## Emby and Jellyfin both tuned / stream limits
+
+Each server has its own “simultaneous streams” setting. Cap them so the **sum** stays within your Fubo plan. Shared egress still applies to every host that tunes. See [MEDIA_SERVERS.md](MEDIA_SERVERS.md).
 
 ---
 

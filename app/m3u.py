@@ -1,4 +1,4 @@
-"""M3U playlist builder for Emby Live TV."""
+"""M3U playlist builder for Emby and Jellyfin Live TV."""
 
 from __future__ import annotations
 

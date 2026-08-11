@@ -1,4 +1,4 @@
-"""XMLTV EPG builder for Emby."""
+"""XMLTV EPG builder for Emby and Jellyfin."""
 
 from __future__ import annotations
 

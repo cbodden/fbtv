@@ -67,6 +67,9 @@ class FuboClient:
         self._http = httpx.Client(timeout=30.0, follow_redirects=True)
         self._channels_cache: list[Channel] | None = None
         self._channels_cache_at = 0.0
+        self._channels_source: str | None = None
+        self._drm_skipped_count = 0
+        self._drm_skipped_ids: set[str] = set()
 
     def close(self) -> None:
         self._http.close()
@@ -174,6 +177,7 @@ class FuboClient:
         if not station_id:
             return
         if self._is_drm_channel(raw):
+            self._drm_skipped_ids.add(str(station_id))
             return
 
         sid = str(station_id)
@@ -341,9 +345,12 @@ class FuboClient:
 
         stations: dict[str, Channel] = {}
         errors: list[str] = []
+        source_used: str | None = None
+        self._drm_skipped_ids = set()
 
         try:
             stations = self._channels_from_subscriptions()
+            source_used = "subscriptions"
             logger.info("Loaded %s channels via subscriptions API", len(stations))
         except FuboError as exc:
             errors.append(str(exc))
@@ -352,6 +359,7 @@ class FuboClient:
         if not stations:
             try:
                 stations = self._channels_from_plan_manager()
+                source_used = "plan-manager"
                 logger.info("Loaded %s channels via plan-manager API", len(stations))
             except FuboError as exc:
                 errors.append(str(exc))
@@ -371,8 +379,33 @@ class FuboClient:
         with self._lock:
             self._channels_cache = list(sorted_channels)
             self._channels_cache_at = time.time()
+            self._channels_source = source_used
+            self._drm_skipped_count = len(self._drm_skipped_ids)
 
         return sorted_channels
+
+    def runtime_stats(self) -> dict[str, Any]:
+        with self._lock:
+            now = time.time()
+            token_age: int | None = None
+            token_ttl: int | None = None
+            if self._token:
+                token_age = max(0, int(now - self._token_at))
+                token_ttl = max(0, int(4 * 60 * 60 - (now - self._token_at)))
+            channels_age: int | None = None
+            channel_count: int | None = None
+            if self._channels_cache is not None:
+                channel_count = len(self._channels_cache)
+                channels_age = max(0, int(now - self._channels_cache_at))
+            return {
+                "signed_in": bool(self._token),
+                "token_age_seconds": token_age,
+                "token_ttl_remaining_seconds": token_ttl,
+                "channel_count": channel_count,
+                "channels_cache_age_seconds": channels_age,
+                "channels_source": self._channels_source,
+                "drm_skipped_count": self._drm_skipped_count,
+            }
 
     def watch(self, channel_id: str) -> str:
         payload = self.api_get("vapi/asset/v1", params={"channelId": channel_id, "type": "live"})

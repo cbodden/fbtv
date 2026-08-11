@@ -59,6 +59,7 @@ app/main.py                 # routes, lifespan, base URL detection
 app/fubo_client.py          # auth, channels, watch, schedule probe
 app/m3u.py                  # playlist builder
 app/epg.py                  # XMLTV + TTL cache
+app/status.py               # status snapshot + HTML/Prometheus helpers
 app/config.py               # Settings
 app/__init__.py             # __version__
 docs/                       # full documentation (source for this file)
@@ -79,7 +80,10 @@ docker-compose.yml
 
 | Path | Behavior |
 | --- | --- |
-| `/` | HTML index; copy-paste playlist/EPG URLs for Emby & Jellyfin |
+| `/` | HTML index; copy-paste playlist/EPG URLs + live snapshot; links to status/metrics |
+| `/status` | Human HTML status page (in-process caches/counters) |
+| `/status.json` | JSON status (same snapshot) |
+| `/metrics` | Prometheus text metrics |
 | `/playlist.m3u` | Subscribed non-DRM channels; stream URLs → `/watch/{stationId}`; absolute URLs from request host or `X-Forwarded-*` |
 | `/epg.xml` | XMLTV; `channel id` = call sign; cached `EPG_CACHE_SECONDS`; programmes when schedule probe succeeds |
 | `/watch/{id}` | Resolve live URL; reject DRM; **302** to HLS |

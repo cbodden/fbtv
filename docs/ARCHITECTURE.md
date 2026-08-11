@@ -33,6 +33,7 @@ The bridge authenticates to Fubo with the subscriber’s credentials and transla
 | `app/fubo_client.py` | Device id, auth, channel list, watch URL, schedule probe |
 | `app/m3u.py` | EXTINF playlist generation |
 | `app/epg.py` | XMLTV generation + TTL cache |
+| `app/status.py` | Status snapshot + HTML/Prometheus rendering |
 
 ## Auth flow
 

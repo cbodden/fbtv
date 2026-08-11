@@ -2,9 +2,10 @@
 
 from datetime import datetime, timezone
 
-from app.epg import build_xmltv
+from app.epg import EpgCache, build_xmltv
 from app.fubo_client import Channel, Programme
 from app.m3u import build_m3u
+from app.status import RuntimeState, build_snapshot, render_prometheus
 
 
 def test_build_m3u() -> None:
@@ -41,7 +42,51 @@ def test_build_xmltv() -> None:
     assert "20260806120000 +0000" in xml
 
 
+def test_epg_cache_stats() -> None:
+    cache = EpgCache(ttl_seconds=60)
+    assert cache.runtime_stats()["cached"] is False
+    cache.set("<tv/>", programme_count=3, channel_count=2)
+    stats = cache.runtime_stats()
+    assert stats["cached"] is True
+    assert stats["programme_count"] == 3
+    assert stats["channel_count"] == 2
+
+
+def test_prometheus_snapshot() -> None:
+    runtime = RuntimeState()
+    runtime.counters.watch_ok = 2
+    snap = build_snapshot(
+        version="1.0.0",
+        runtime=runtime,
+        fubo_stats={
+            "signed_in": True,
+            "channel_count": 10,
+            "drm_skipped_count": 4,
+            "token_age_seconds": 1,
+            "token_ttl_remaining_seconds": 100,
+            "channels_cache_age_seconds": 1,
+            "channels_source": "subscriptions",
+        },
+        epg_stats={
+            "cached": True,
+            "age_seconds": 5,
+            "ttl_seconds": 3600,
+            "programme_count": 7,
+            "channel_count": 10,
+        },
+        host="0.0.0.0",
+        port=7777,
+    )
+    text = render_prometheus(snap)
+    assert "fubo_bridge_up 1" in text
+    assert "fubo_bridge_channels 10" in text
+    assert "fubo_bridge_watch_ok_total 2" in text
+    assert 'fubo_bridge_info{version="1.0.0"} 1' in text
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
+    test_epg_cache_stats()
+    test_prometheus_snapshot()
     print("ok")

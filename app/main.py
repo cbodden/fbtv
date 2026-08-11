@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
@@ -14,6 +14,13 @@ from app.config import Settings, load_settings
 from app.epg import EpgCache, build_epg
 from app.fubo_client import FuboClient, FuboError
 from app.m3u import build_m3u
+from app.status import (
+    RuntimeState,
+    build_snapshot,
+    render_index_html,
+    render_prometheus,
+    render_status_html,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,14 +31,16 @@ logger = logging.getLogger(__name__)
 settings: Settings | None = None
 client: FuboClient | None = None
 epg_cache: EpgCache | None = None
+runtime = RuntimeState()
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    global settings, client, epg_cache
+    global settings, client, epg_cache, runtime
     settings = load_settings()
     client = FuboClient(settings)
     epg_cache = EpgCache(settings.epg_cache_seconds)
+    runtime = RuntimeState()
     logger.info(
         "Fubo Emby & Jellyfin bridge v%s ready on %s:%s",
         __version__,
@@ -69,34 +78,47 @@ def _base_url(request: Request) -> str:
     return str(request.base_url).rstrip("/")
 
 
+def _snapshot() -> dict[str, Any]:
+    cfg, fubo, cache = _require_client()
+    return build_snapshot(
+        version=__version__,
+        runtime=runtime,
+        fubo_stats=fubo.runtime_stats(),
+        epg_stats=cache.runtime_stats(),
+        host=cfg.host,
+        port=cfg.port,
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> str:
     base = _base_url(request)
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fubo Emby &amp; Jellyfin Bridge</title>
-  <style>
-    body {{ font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; line-height: 1.5; }}
-    code, a {{ word-break: break-all; }}
-    li {{ margin: 0.5rem 0; }}
-  </style>
-</head>
-<body>
-  <h1>Fubo Emby &amp; Jellyfin Bridge <small>v{__version__}</small></h1>
-  <p>Point <strong>Emby</strong> and/or <strong>Jellyfin</strong> Live TV at these URLs (one bridge can feed both):</p>
-  <ul>
-    <li>M3U Tuner: <a href="{base}/playlist.m3u"><code>{base}/playlist.m3u</code></a></li>
-    <li>XMLTV Guide: <a href="{base}/epg.xml"><code>{base}/epg.xml</code></a></li>
-  </ul>
-  <p>Streams resolve through <code>{base}/watch/&lt;channel_id&gt;</code>.</p>
-  <p><strong>Emby:</strong> Premiere required for Live TV.<br>
-     <strong>Jellyfin:</strong> Live TV included (no Premiere equivalent).</p>
-</body>
-</html>
-"""
+    try:
+        snap = _snapshot()
+    except HTTPException:
+        snap = {
+            "uptime_seconds": 0,
+            "fubo": {},
+            "epg": {},
+            "requests": {},
+        }
+    return render_index_html(base, __version__, snap)
+
+
+@app.get("/status", response_class=HTMLResponse)
+def status_page(request: Request) -> str:
+    return render_status_html(_base_url(request), _snapshot())
+
+
+@app.get("/status.json")
+def status_json() -> dict[str, Any]:
+    return _snapshot()
+
+
+@app.get("/metrics")
+def metrics() -> PlainTextResponse:
+    body = render_prometheus(_snapshot())
+    return PlainTextResponse(body, media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
 @app.get("/playlist.m3u")
@@ -104,10 +126,12 @@ def playlist(request: Request) -> PlainTextResponse:
     _, fubo, _ = _require_client()
     try:
         channels = fubo.channels()
+        body = build_m3u(channels, _base_url(request))
     except FuboError as exc:
+        runtime.counters.playlist_error += 1
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    body = build_m3u(channels, _base_url(request))
+    runtime.counters.playlist_ok += 1
     return PlainTextResponse(body, media_type="audio/x-mpegurl")
 
 
@@ -118,8 +142,10 @@ def epg() -> PlainTextResponse:
         channels = fubo.channels()
         xml = build_epg(fubo, channels, cache)
     except FuboError as exc:
+        runtime.counters.epg_error += 1
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    runtime.counters.epg_ok += 1
     return PlainTextResponse(xml, media_type="application/xml")
 
 
@@ -129,8 +155,10 @@ def watch(channel_id: str) -> RedirectResponse:
     try:
         url = fubo.watch(channel_id)
     except FuboError as exc:
+        runtime.counters.watch_error += 1
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    runtime.counters.watch_ok += 1
     return RedirectResponse(url=url, status_code=302)
 
 

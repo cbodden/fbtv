@@ -9,7 +9,10 @@ This is **not** a native Emby plugin or Jellyfin plugin. Both servers already su
 | `http://<host>:7777/playlist.m3u` | Live TV → **M3U Tuner** (channel list + tune URLs) |
 | `http://<host>:7777/epg.xml` | Live TV → **XMLTV** guide data |
 | `http://<host>:7777/watch/<id>` | Stream URL inside the playlist (302 → live HLS) |
-| `http://<host>:7777/` | HTML index with copy-paste URLs |
+| `http://<host>:7777/` | HTML index with copy-paste URLs + live snapshot |
+| `http://<host>:7777/status` | Human status page |
+| `http://<host>:7777/status.json` | JSON status |
+| `http://<host>:7777/metrics` | Prometheus metrics |
 | `http://<host>:7777/health` | Liveness check (`{"status":"ok","version":"…"}`) |
 
 ---
@@ -221,7 +224,8 @@ Once installed and wired:
 3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
 4. **Credential / device changes:** update `.env` and restart the container/process. Only delete `config/device.json` as a last resort.
 5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
-6. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
+6. **Status / metrics:** browse `http://<host>:7777/` for a snapshot, `/status` for details, `/status.json` for JSON, `/metrics` for Prometheus.
+7. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
 
 Do not paste raw Fubo CDN URLs into Emby or Jellyfin. Always use the bridge playlist so each tune goes through a fresh `/watch/{id}` resolve.
 

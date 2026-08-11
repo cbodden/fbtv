@@ -2,10 +2,10 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~14:35 local (Emby & Jellyfin equal-target docs rebalance)  
+**Last updated:** 2026-08-11 ~15:30 local (status/metrics endpoints)  
 **Active version:** 1.0.0  
-**Phase:** Docs treat Emby and Jellyfin as equal first-class targets; next product work = live smoke test with Fubo + Emby and/or Jellyfin  
-**Git:** `main` (tracks `origin/main` in this checkout); unpushed dual-server docs commit
+**Phase:** Status/metrics on `/`, `/status`, `/status.json`, `/metrics`; next product work = continue live smoke test / Emby-Jellyfin wiring  
+**Git:** `main` (may be ahead of `origin/main`)
 
 ---
 
@@ -29,7 +29,8 @@ Short-lived project state for the current effort. Agents and humans should **upd
 ## Current focus
 
 - Emby and Jellyfin documented as equal first-class targets (shared HTTP surface; no API fork)
-- First unfinished product work: real-account validation and playback on Emby and/or Jellyfin
+- Added HTML/JSON/Prometheus runtime metrics endpoints
+- Field validation / Emby-Jellyfin wiring still in progress
 
 ## Snapshot — what exists on disk
 
@@ -60,6 +61,7 @@ Path: `/Users/cesarbodden/git/work/fubo_emby`
 - [x] Jellyfin setup + MEDIA_SERVERS + dual branding (2026-08-11)
 - [x] Recreated `.venv` for this checkout path (was stale from `ai/fubotv_emby`)
 - [x] Rebalanced README + all docs for equal Emby & Jellyfin framing (2026-08-11)
+- [x] Runtime metrics: `/` snapshot, `/status`, `/status.json`, `/metrics` (2026-08-11)
 
 ## Open questions / blockers
 
@@ -98,6 +100,7 @@ Issues:
 | 2026-08-11 | Re-sync CONTEXT from `docs/` | User: update from docs folder |
 | 2026-08-11 | Document Jellyfin + dual-server use | User: add Emby && Jellyfin specific bits; same HTTP surface |
 | 2026-08-11 | Rebalance all docs for equal Emby/Jellyfin framing | User: README still Emby-heavy |
+| 2026-08-11 | Add `/`, `/status`, `/status.json`, `/metrics` | User: show metrics three ways |
 
 ## Do not forget
 

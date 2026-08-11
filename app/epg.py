@@ -17,6 +17,8 @@ class EpgCache:
         self._lock = Lock()
         self._xml: str | None = None
         self._built_at = 0.0
+        self._programme_count: int | None = None
+        self._channel_count: int | None = None
 
     def get(self) -> str | None:
         with self._lock:
@@ -24,15 +26,40 @@ class EpgCache:
                 return self._xml
             return None
 
-    def set(self, xml: str) -> None:
+    def set(
+        self,
+        xml: str,
+        *,
+        programme_count: int | None = None,
+        channel_count: int | None = None,
+    ) -> None:
         with self._lock:
             self._xml = xml
             self._built_at = time.time()
+            self._programme_count = programme_count
+            self._channel_count = channel_count
 
     def clear(self) -> None:
         with self._lock:
             self._xml = None
             self._built_at = 0.0
+            self._programme_count = None
+            self._channel_count = None
+
+    def runtime_stats(self) -> dict[str, int | bool | None]:
+        with self._lock:
+            age: int | None = None
+            cached = False
+            if self._xml is not None:
+                age = max(0, int(time.time() - self._built_at))
+                cached = age < self.ttl_seconds
+            return {
+                "cached": cached,
+                "age_seconds": age if self._xml is not None else None,
+                "ttl_seconds": self.ttl_seconds,
+                "programme_count": self._programme_count,
+                "channel_count": self._channel_count,
+            }
 
 
 def build_xmltv(channels: list[Channel], programmes: list[Programme]) -> str:
@@ -82,7 +109,7 @@ def build_epg(client: FuboClient, channels: list[Channel], cache: EpgCache) -> s
 
     programmes = client.schedule(channels)
     xml = build_xmltv(channels, programmes)
-    cache.set(xml)
+    cache.set(xml, programme_count=len(programmes), channel_count=len(channels))
     return xml
 
 

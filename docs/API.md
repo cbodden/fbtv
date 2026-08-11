@@ -9,9 +9,63 @@ Interactive OpenAPI docs are also available when the server is running:
 
 ## `GET /`
 
-HTML index listing playlist and EPG URLs for Emby and/or Jellyfin copy/paste.
+HTML index with Emby/Jellyfin copy-paste URLs plus a live snapshot (channel count, sign-in, DRM skips, EPG programmes, uptime, watch counters) and links to status/metrics.
 
 **Response:** `200 text/html`
+
+## `GET /status`
+
+Human-readable HTML status page for the same in-process snapshot.
+
+**Response:** `200 text/html`
+
+## `GET /status.json`
+
+Machine-readable JSON status (same payload as the HTML page).
+
+**Response:** `200 application/json`
+
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "uptime_seconds": 120,
+  "started_at": "2026-08-11T19:00:00Z",
+  "listen": {"host": "0.0.0.0", "port": 7777},
+  "fubo": {
+    "signed_in": true,
+    "token_age_seconds": 30,
+    "token_ttl_remaining_seconds": 14370,
+    "channel_count": 198,
+    "channels_cache_age_seconds": 20,
+    "channels_source": "subscriptions",
+    "drm_skipped_count": 12
+  },
+  "epg": {
+    "cached": true,
+    "age_seconds": 10,
+    "ttl_seconds": 3600,
+    "programme_count": 0,
+    "channel_count": 198
+  },
+  "requests": {
+    "watch_ok": 3,
+    "watch_error": 0,
+    "playlist_ok": 2,
+    "playlist_error": 0,
+    "epg_ok": 1,
+    "epg_error": 0
+  }
+}
+```
+
+Channel / DRM / EPG fields reflect **cached** state (warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`). They do not force a Fubo refresh.
+
+## `GET /metrics`
+
+Prometheus text exposition of key gauges/counters from the same snapshot.
+
+**Response:** `200 text/plain; version=0.0.4`
 
 ## `GET /health`
 

@@ -1,6 +1,6 @@
 # HTTP API reference
 
-Base URL examples assume `http://192.168.1.10:7777`.
+Project: [`cbodden/fbtv`](https://github.com/cbodden/fbtv). Base URL examples assume `http://192.168.1.10:7777`.
 
 Operator-oriented status/metrics overview: [STATUS.md](STATUS.md).
 

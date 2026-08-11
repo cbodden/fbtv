@@ -1,7 +1,8 @@
 services:
-  fubo-emby:
+  fbtv:
     build: .
-    container_name: fubo-emby
+    image: fbtv
+    container_name: fbtv
     restart: unless-stopped
     ports:
       - "${PORT:-7777}:7777"

@@ -2,7 +2,7 @@
 
 Jellyfin Live TV is included with the server (no Premiere-style license). Official overview: [Jellyfin Live TV setup](https://jellyfin.org/docs/general/server/live-tv/setup-guide/).
 
-This bridge is not a Jellyfin plugin. Jellyfin and Emby are equal consumers of the same **M3U** + **XMLTV** feeds. See [MEDIA_SERVERS.md](MEDIA_SERVERS.md) for comparison and dual-server notes.
+This bridge (**fbtv**) is not a Jellyfin plugin. Jellyfin and Emby are equal consumers of the same **M3U** + **XMLTV** feeds. See [MEDIA_SERVERS.md](MEDIA_SERVERS.md) for comparison and dual-server notes.
 
 ## Prerequisites
 
@@ -68,7 +68,7 @@ If programmes are missing or channels are unmatched:
 
 ```text
 Same host (best for v1 redirect model)
-  Jellyfin Server  ──LAN──►  fubo-emby:7777  ──►  api.fubo.tv / CDN
+  Jellyfin Server  ──LAN──►  fbtv:7777  ──►  api.fubo.tv / CDN
 ```
 
 Remote Jellyfin over Tailscale/VPN with the bridge elsewhere often breaks HLS redirects because the stream URL was minted for a different IP.

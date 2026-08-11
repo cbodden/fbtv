@@ -2,13 +2,15 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-11 (status/metrics docs pass).
+**Synced from:** `docs/` + root docs on 2026-08-11 (fbtv rename + public repo + GHCR/Compose image naming).
 
 ## What this is
 
-- **Name:** Fubo → Emby & Jellyfin Bridge (GitHub/`ghcr`: `cbodden/fbtv`; Compose service/image `fubo-emby` and older names `fubotv_emby` / `fubotv-emby` are historical)
-- **Workspace:** `/home/cbodden/git/mine/fubo_emby` (also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
+- **Name:** Fubo → Emby & Jellyfin Bridge — short name **`fbtv`**
 - **GitHub:** https://github.com/cbodden/fbtv (public)
+- **Docker:** Compose service/container/local image `fbtv`; GHCR `ghcr.io/cbodden/fbtv` (CI: `.github/workflows/docker.yml`)
+- **Workspace:** `/home/cbodden/git/mine/fubo_emby` (local folder may still use the old path; also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
+- **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
 - **Version:** 1.0.0 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
@@ -54,7 +56,7 @@ Implementation patterns for Fubo auth/lineup/watch were informed by community vl
 | HTTP | FastAPI + Uvicorn |
 | Fubo HTTP | httpx |
 | Config | python-dotenv / env vars |
-| Deploy | Docker + docker-compose; GHCR image via `.github/workflows/docker.yml` |
+| Deploy | Docker + docker-compose (`fbtv`); GHCR `ghcr.io/cbodden/fbtv` via `.github/workflows/docker.yml` |
 
 ## Key paths
 
@@ -78,7 +80,7 @@ WORKING_MEMORY.md           # session / next actions
 tests/test_builders.py
 Dockerfile
 docker-compose.yml
-.github/workflows/docker.yml   # build + push ghcr.io/<owner>/<repo>
+.github/workflows/docker.yml   # build + push ghcr.io/cbodden/fbtv
 .env.example
 ```
 
@@ -175,6 +177,7 @@ Known DRM sources/call signs are dropped before playlist generation.
 8. **Credit prior art** — see `CREDITS.md` (vlc-bridge-fubo lineage, deps).
 9. **Context files** — durable facts here; mutable status in `WORKING_MEMORY.md`.
 10. **Emby and Jellyfin are equal first-class targets** — one HTTP surface; quirks only in docs (`docs/MEDIA_SERVERS.md`).
+11. **Short name `fbtv`** — GitHub repo, Compose service/image, GHCR package, and XMLTV `generator-info-name`; public visibility.
 
 ## Environment (from `docs/CONFIGURATION.md`)
 
@@ -194,7 +197,7 @@ Runtime files: `.env` (secrets, not committed), `config/device.json`, `config/.g
 
 Reverse proxy: forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use the public host.
 
-Compose mounts `./config:/app/config` and loads credentials from `.env`.
+Compose mounts `./config:/app/config`, loads credentials from `.env`, and uses service/image name **`fbtv`**. Pre-built: `ghcr.io/cbodden/fbtv`.
 
 ## Media server wiring summary
 

@@ -4,7 +4,7 @@
 
 **Symptom:** process exits immediately mentioning `FUBO_USER` / `FUBO_PASS`.
 
-**Fix:** create `.env` from `.env.example` and set both values. Compose must load that file (default `env_file: .env`).
+**Fix:** create `.env` from `.env.example` and set both values. Compose must load that file (default `env_file: .env`). Service name is `fbtv` (`docker compose logs -f fbtv`).
 
 ---
 

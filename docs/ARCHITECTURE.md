@@ -2,7 +2,7 @@
 
 ## Role
 
-`fbtv` (historically `fubotv-emby`) is a **sidecar HTTP service**, not a native Emby or Jellyfin plugin. **Emby and Jellyfin** are equal consumers of:
+`fbtv` is a **sidecar HTTP service**, not a native Emby or Jellyfin plugin. **Emby and Jellyfin** are equal consumers of:
 
 1. An **M3U tuner** URL for channel discovery and tune URLs
 2. An **XMLTV** URL for guide data
@@ -98,3 +98,4 @@ Operators can read the same in-process snapshot as:
 - **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
 - **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar
+- **Deploy as `fbtv`** — Compose service/image and GHCR package `ghcr.io/cbodden/fbtv` (CI: `.github/workflows/docker.yml`)

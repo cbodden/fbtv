@@ -46,6 +46,13 @@ Supported. Each server imports channels independently.
 | Docker reachability | LAN IP or `host.docker.internal` from the Emby container to a host-side bridge | LAN IP or `host.docker.internal` from the Jellyfin container to a host-side bridge |
 | Optional M3U User-Agent | Rarely needed for this bridge | Rarely needed for this bridge (streams are Fubo CDN after 302) |
 
-## Historical package names
+## Naming
 
-GitHub/GHCR repo is `cbodden/fbtv`. Compose service/image `fubo-emby` and older names (`fubotv_emby`, `fubotv-emby`) are historical. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).
+| Kind | Current name |
+| --- | --- |
+| GitHub repo | [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) |
+| Compose service / container / local image | `fbtv` |
+| GHCR image | `ghcr.io/cbodden/fbtv` |
+| XMLTV `generator-info-name` | `fbtv` |
+
+Older labels (`fubo-emby`, `fubo_emby`, `fubotv_emby`, `fubotv-emby`) are historical only. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).

@@ -1,6 +1,6 @@
 # Credits and attribution
 
-This project is an independent Emby/Jellyfin-oriented sidecar. It does **not** redistribute Fubo content and is not affiliated with FuboTV, Emby, Jellyfin, or the authors of the projects below. Credit is due to the communities and libraries that made the approach practical.
+**fbtv** ([cbodden/fbtv](https://github.com/cbodden/fbtv)) is an independent Emby/Jellyfin-oriented sidecar. It does **not** redistribute Fubo content and is not affiliated with FuboTV, Emby, Jellyfin, or the authors of the projects below. Credit is due to the communities and libraries that made the approach practical.
 
 ## Prior art and inspiration
 

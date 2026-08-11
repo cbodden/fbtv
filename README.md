@@ -1,6 +1,8 @@
-# Fubo → Emby & Jellyfin Bridge
+# Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
 **Version 1.0.0** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
+
+**Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
 This is **not** a native Emby plugin or Jellyfin plugin. Both servers already support M3U tuners and XMLTV; this service sits beside them and translates Fubo’s private API into those formats. **One bridge instance** can feed Emby, Jellyfin, or both — see [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md).
 
@@ -89,9 +91,17 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Compose builds image `fubo-emby` (historical name), maps host `${PORT:-7777}` → container `7777`, loads `.env`, and mounts `./config` for the persistent device id.
+Compose service/container/image name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, loads `.env`, and mounts `./config` for the persistent device id.
 
-On pushes to `main` that touch the `Dockerfile` (or app build context), GitHub Actions builds and publishes `ghcr.io/cbodden/fbtv` (tags: `latest` and `sha-<commit>`).
+**Pull a pre-built image** (published by GitHub Actions to GHCR):
+
+```bash
+docker pull ghcr.io/cbodden/fbtv:latest
+```
+
+Or point Compose at it by setting `image: ghcr.io/cbodden/fbtv:latest` (and omit `build`) in `docker-compose.yml`.
+
+On pushes to `main` that touch the `Dockerfile` (or app build context), GitHub Actions builds and publishes `ghcr.io/cbodden/fbtv` (tags: `latest` and `sha-<commit>`). See `.github/workflows/docker.yml`.
 
 Check it:
 
@@ -105,7 +115,7 @@ Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status
 Logs:
 
 ```bash
-docker compose logs -f fubo-emby
+docker compose logs -f fbtv
 ```
 
 Stop:
@@ -344,6 +354,9 @@ app/
   config.py        # Env settings
 docs/              # Deep-dive documentation
 tests/             # Unit checks (no live Fubo calls)
+.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv
+Dockerfile
+docker-compose.yml # Service/image name: fbtv
 ```
 
 ```bash

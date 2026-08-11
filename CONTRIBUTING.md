@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for improving the Fubo → Emby & Jellyfin bridge. This project is a personal-use sidecar around Fubo’s unofficial API — keep changes focused and defensive.
+Thanks for improving **fbtv** (Fubo → Emby & Jellyfin bridge). Public repo: [cbodden/fbtv](https://github.com/cbodden/fbtv). This project is a personal-use sidecar around Fubo’s unofficial API — keep changes focused and defensive.
 
 ## Development setup
 
@@ -18,6 +18,13 @@ Run the server:
 uvicorn app.main:app --host 0.0.0.0 --port 7777 --reload
 ```
 
+Or with Compose (service/image name **`fbtv`**):
+
+```bash
+docker compose up -d --build
+docker compose logs -f fbtv
+```
+
 Run builder tests (no Fubo credentials required):
 
 ```bash
@@ -33,6 +40,7 @@ PYTHONPATH=. python tests/test_builders.py
 - When status/metrics fields change, update `docs/STATUS.md` and `docs/API.md`
 - Document user-facing behavior in `README.md` and the relevant file under `docs/`
 - Treat **Emby and Jellyfin** as equal first-class targets in copy (avoid Emby-only framing)
+- Keep the short name **`fbtv`** for the GitHub repo, Compose service/image, and GHCR package (`ghcr.io/cbodden/fbtv`); CI lives in `.github/workflows/docker.yml`
 - Credit new prior art or dependencies in `CREDITS.md`
 - Keep `CONTEXT.md` accurate for lasting decisions; refresh `WORKING_MEMORY.md` for current focus/blockers
 
@@ -40,7 +48,7 @@ PYTHONPATH=. python tests/test_builders.py
 
 - [ ] `PYTHONPATH=. python tests/test_builders.py` passes
 - [ ] `CHANGELOG.md` updated under `[Unreleased]`
-- [ ] Docs updated if endpoints, env vars, status/metrics, or Emby/Jellyfin setup steps changed
+- [ ] Docs updated if endpoints, env vars, status/metrics, naming, or Emby/Jellyfin setup steps changed
 - [ ] `CREDITS.md` updated if new dependencies or borrowed approaches were introduced
 - [ ] No secrets in the diff
 

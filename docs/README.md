@@ -1,12 +1,14 @@
 # Documentation index
 
+Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker image: `fbtv` / `ghcr.io/cbodden/fbtv`
+
 | Document | Contents |
 | --- | --- |
-| [../README.md](../README.md) | **Primary guide:** what it does, install, Emby & Jellyfin setup, status/metrics, day-to-day use |
+| [../README.md](../README.md) | **Primary guide:** what it does, install (Compose + GHCR), Emby & Jellyfin setup, status/metrics, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching, metrics |
-| [CONFIGURATION.md](CONFIGURATION.md) | Environment variables and runtime files |
-| [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both |
+| [CONFIGURATION.md](CONFIGURATION.md) | Environment variables, Compose/`fbtv` image, runtime files |
+| [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both; naming |
 | [EMBY_SETUP.md](EMBY_SETUP.md) | Emby Live TV wiring |
 | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
 | [STATUS.md](STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`) |

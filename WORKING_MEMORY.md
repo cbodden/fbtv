@@ -2,9 +2,9 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~18:00 local (repo renamed to fbtv + public)  
+**Last updated:** 2026-08-11 ~18:10 local (docs synced for fbtv rename + public + image)  
 **Active version:** 1.0.0  
-**Phase:** Repo is `cbodden/fbtv` (public); next = smoke test / Emby-Jellyfin wiring  
+**Phase:** Docs/context synced to `fbtv`; next = smoke test / Emby-Jellyfin wiring  
 **Git:** `main` → `origin` `git@github.com:cbodden/fbtv.git`
 
 ---
@@ -14,7 +14,8 @@ Short-lived project state for the current effort. Agents and humans should **upd
 1. Read [CONTEXT.md](CONTEXT.md) then this file
 2. `cp .env.example .env` and set real `FUBO_USER` / `FUBO_PASS` (do not commit `.env`; quote passwords with symbols in single quotes)
 3. Start bridge:
-   - `docker compose up -d --build` **or**
+   - `docker compose up -d --build` (service/image **`fbtv`**) **or**
+   - `docker pull ghcr.io/cbodden/fbtv:latest` then run with Compose/`docker run` **or**
    - `source .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 7777`
 4. Verify per `docs/TROUBLESHOOTING.md` / `docs/STATUS.md`:
    - `curl -sS http://127.0.0.1:7777/health`
@@ -29,18 +30,18 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Current focus
 
-- GHCR Docker build/push via `.github/workflows/docker.yml` (path-filtered on Dockerfile/app context)
-- Emby and Jellyfin documented as equal first-class targets (shared HTTP surface; no API fork)
+- Docs + naming aligned to public **`cbodden/fbtv`** / image **`fbtv`** / `ghcr.io/cbodden/fbtv`
 - Field validation / Emby-Jellyfin wiring still in progress
 
 ## Snapshot — what exists on disk
 
-Path: `/Users/cesarbodden/git/work/fubo_emby`
+Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`)
 
 | Area | Contents |
 | --- | --- |
-| App | `app/{main,fubo_client,m3u,epg,config,__init__}.py` |
-| Ops | `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `requirements.txt` |
+| App | `app/{main,fubo_client,m3u,epg,status,config,__init__}.py` |
+| Ops | `Dockerfile`, `docker-compose.yml` (service/image `fbtv`), `.env.example`, `.gitignore`, `requirements.txt` |
+| CI | `.github/workflows/docker.yml` → `ghcr.io/cbodden/fbtv` |
 | Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/{README,API,ARCHITECTURE,CONFIGURATION,MEDIA_SERVERS,EMBY_SETUP,JELLYFIN_SETUP,STATUS,TROUBLESHOOTING}` |
 | Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
 | Tests | `tests/test_builders.py` |
@@ -65,6 +66,8 @@ Path: `/Users/cesarbodden/git/work/fubo_emby`
 - [x] Runtime metrics: `/` snapshot, `/status`, `/status.json`, `/metrics` (2026-08-11)
 - [x] Docs synced for metrics across README + `docs/` + SECURITY/CONTRIBUTING/CONTEXT (2026-08-11)
 - [x] GitHub Actions Docker build → GHCR (2026-08-11)
+- [x] Repo renamed to `fbtv` + public; Compose/GHCR image `fbtv` (2026-08-11)
+- [x] Docs tree synced for fbtv naming / public / GHCR (2026-08-11)
 
 ## Open questions / blockers
 
@@ -107,6 +110,8 @@ Issues:
 | 2026-08-11 | Sync all docs for metrics | User: update documentation for metrics additions |
 | 2026-08-11 | GH Actions build/push to GHCR on Dockerfile context changes | User: auto-build image when Dockerfile pushed |
 | 2026-08-11 | GitHub repo renamed `fubo_emby` → `fbtv`, visibility public | User request |
+| 2026-08-11 | Compose + GHCR image name `fbtv` (not `fubo-emby`) | User request |
+| 2026-08-11 | Full docs sync for fbtv / public / GHCR | User: update all documentation |
 
 ## Do not forget
 
@@ -118,4 +123,4 @@ Issues:
 
 ## Scratch
 
-_Emby and Jellyfin are peer consumers of the M3U/XMLTV API. Docs rebalanced 2026-08-11. Ready for smoke test._
+_Scratch: Docs/context aligned to public `cbodden/fbtv` and image `fbtv`. Ready for smoke test._

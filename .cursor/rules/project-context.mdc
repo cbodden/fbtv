@@ -3,7 +3,7 @@ description: Load project context and maintain working memory for this repo
 alwaysApply: true
 ---
 
-# Fubo Emby & Jellyfin bridge — context & memory
+# fbtv (Fubo → Emby & Jellyfin bridge) — context & memory
 
 Before substantial work in this repository:
 
@@ -17,4 +17,4 @@ While working:
 - Put lasting decisions in `CONTEXT.md` (and `CHANGELOG.md` / `docs/` when user-facing)
 - Never write secrets, tokens, or raw `.env` values into context or memory files
 
-This is a Python FastAPI sidecar for Emby and Jellyfin M3U + XMLTV (equal first-class targets) — not a native Emby or Jellyfin plugin.
+This is a Python FastAPI sidecar for Emby and Jellyfin M3U + XMLTV (equal first-class targets) — not a native Emby or Jellyfin plugin. Short name / GitHub / Compose / GHCR image: **`fbtv`** (`https://github.com/cbodden/fbtv`, `ghcr.io/cbodden/fbtv`).

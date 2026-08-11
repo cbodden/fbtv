@@ -98,4 +98,4 @@ Operators can read the same in-process snapshot as:
 - **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
 - **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar
-- **Deploy as `fbtv`** — Compose service/image and GHCR package `ghcr.io/cbodden/fbtv` (CI: `.github/workflows/docker.yml`)
+- **Deploy as `fbtv`** — Compose pulls `ghcr.io/cbodden/fbtv:latest` with host-env credentials (CI: `.github/workflows/docker.yml`)

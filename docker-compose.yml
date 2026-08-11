@@ -1,14 +1,14 @@
 services:
   fbtv:
-    build: .
-    image: fbtv
+    image: ghcr.io/cbodden/fbtv:latest
+    pull_policy: always
     container_name: fbtv
     restart: unless-stopped
     ports:
       - "${PORT:-7777}:7777"
     environment:
-      FUBO_USER: ${FUBO_USER}
-      FUBO_PASS: ${FUBO_PASS}
+      FUBO_USER: ${FUBO_USER:?set FUBO_USER in the environment}
+      FUBO_PASS: ${FUBO_PASS:?set FUBO_PASS in the environment}
       HOST: 0.0.0.0
       PORT: 7777
       CONFIG_DIR: /app/config
@@ -16,5 +16,3 @@ services:
       EPG_DAYS: ${EPG_DAYS:-2}
     volumes:
       - ./config:/app/config
-    env_file:
-      - .env

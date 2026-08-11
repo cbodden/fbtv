@@ -2,13 +2,13 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-11 (fbtv rename + public repo + GHCR/Compose image naming).
+**Synced from:** `docs/` + root docs on 2026-08-11 (Compose pull-from-GHCR + host-env credentials).
 
 ## What this is
 
 - **Name:** Fubo → Emby & Jellyfin Bridge — short name **`fbtv`**
 - **GitHub:** https://github.com/cbodden/fbtv (public)
-- **Docker:** Compose service/container/local image `fbtv`; GHCR `ghcr.io/cbodden/fbtv` (CI: `.github/workflows/docker.yml`)
+- **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); credentials via host env (no `env_file` / `.env`); CI: `.github/workflows/docker.yml`
 - **Workspace:** `/home/cbodden/git/mine/fubo_emby` (local folder may still use the old path; also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
 - **Version:** 1.0.0 (`app/__version__`; see `CHANGELOG.md`)
@@ -56,7 +56,7 @@ Implementation patterns for Fubo auth/lineup/watch were informed by community vl
 | HTTP | FastAPI + Uvicorn |
 | Fubo HTTP | httpx |
 | Config | python-dotenv / env vars |
-| Deploy | Docker + docker-compose (`fbtv`); GHCR `ghcr.io/cbodden/fbtv` via `.github/workflows/docker.yml` |
+| Deploy | Docker Compose pulls `ghcr.io/cbodden/fbtv:latest` (host env for secrets); CI builds GHCR via `.github/workflows/docker.yml` |
 
 ## Key paths
 
@@ -197,7 +197,7 @@ Runtime files: `.env` (secrets, not committed), `config/device.json`, `config/.g
 
 Reverse proxy: forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use the public host.
 
-Compose mounts `./config:/app/config`, loads credentials from `.env`, and uses service/image name **`fbtv`**. Pre-built: `ghcr.io/cbodden/fbtv`.
+Compose mounts `./config:/app/config`, pulls `ghcr.io/cbodden/fbtv:latest`, and injects `FUBO_USER` / `FUBO_PASS` from the **host environment** (no Compose `env_file`). Local Python may still use `.env` via dotenv.
 
 ## Media server wiring summary
 

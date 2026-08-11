@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub repository renamed to [`cbodden/fbtv`](https://github.com/cbodden/fbtv) and made public
 - Docker Compose service/image and GHCR package name set to `fbtv` (was `fubo-emby` / `fubo_emby`)
 - Documentation tree rebalanced for public `cbodden/fbtv`, Compose/`ghcr` image `fbtv`, and GHCR pull notes
+- Compose pulls `ghcr.io/cbodden/fbtv:latest` (no local build) and takes credentials from the host environment (no `env_file` / `.env`)
 - `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
 - `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
 - Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files

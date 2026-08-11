@@ -82,26 +82,28 @@ Personal / home-LAN use only. Respect Fubo’s terms of service. Do not redistri
 
 ### Option A — Docker (recommended)
 
-From the project root:
+Compose **pulls** `ghcr.io/cbodden/fbtv:latest` (no local build) and does **not** load a `.env` file. Pass credentials in the shell environment:
 
 ```bash
-cp .env.example .env
-# edit .env — set FUBO_USER and FUBO_PASS
+export FUBO_USER='you@example.com'
+export FUBO_PASS='your-password'
 
-docker compose up -d --build
+docker compose up -d
 ```
 
-Compose service/container/image name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, loads `.env`, and mounts `./config` for the persistent device id.
-
-**Pull a pre-built image** (published by GitHub Actions to GHCR):
+Or one-shot:
 
 ```bash
-docker pull ghcr.io/cbodden/fbtv:latest
+FUBO_USER='you@example.com' FUBO_PASS='your-password' docker compose up -d
 ```
 
-Or point Compose at it by setting `image: ghcr.io/cbodden/fbtv:latest` (and omit `build`) in `docker-compose.yml`.
+Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config` for the persistent device id, and sets `pull_policy: always` so `compose up` refreshes the image.
 
-On pushes to `main` that touch the `Dockerfile` (or app build context), GitHub Actions builds and publishes `ghcr.io/cbodden/fbtv` (tags: `latest` and `sha-<commit>`). See `.github/workflows/docker.yml`.
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_DAYS` (same pattern — export or prefix the command).
+
+GitHub Actions publishes the image on relevant pushes to `main` (tags: `latest`, `sha-<commit>`). See `.github/workflows/docker.yml`.
+
+If the GHCR package is private, authenticate once: `echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin`.
 
 Check it:
 
@@ -143,7 +145,13 @@ The process **will not start** if `FUBO_USER` or `FUBO_PASS` is missing.
 
 ## Configure
 
-Copy `.env.example` → `.env` and edit. Never commit `.env`.
+### Docker Compose
+
+Export `FUBO_USER` / `FUBO_PASS` (and optional overrides) in the environment before `docker compose up`. Compose does not use `env_file` / `.env` for the container.
+
+### Local Python
+
+Copy `.env.example` → `.env` and edit. Never commit `.env`. The app loads it via python-dotenv when running outside Compose.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
@@ -159,7 +167,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`.
 
 | Path | Purpose |
 | --- | --- |
-| `.env` | Secrets (gitignored) |
+| `.env` | Optional local-Python secrets (gitignored); not used by Compose |
 | `config/device.json` | Stable Fubo `x-device-id` (created on first run) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
@@ -235,7 +243,7 @@ Once installed and wired:
 1. **Leave the bridge running** (Compose `restart: unless-stopped`, or a systemd/user service for uvicorn).
 2. Use **Emby** and/or **Jellyfin** Live TV as usual — channel change hits `/watch/{id}`, which redirects to Fubo HLS.
 3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
-4. **Credential / device changes:** update `.env` and restart the container/process. Only delete `config/device.json` as a last resort.
+4. **Credential / device changes:** update the environment (Compose) or `.env` (local Python) and restart. Only delete `config/device.json` as a last resort.
 5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
 6. **Status / metrics:** see [Status and metrics](#status-and-metrics) below.
 7. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
@@ -310,7 +318,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 
 | Symptom | What to try |
 | --- | --- |
-| Process exits mentioning `FUBO_USER` / `FUBO_PASS` | Create `.env` from `.env.example`; Compose must load it |
+| Process exits mentioning `FUBO_USER` / `FUBO_PASS` | Export both in the shell for Compose, or create `.env` for local Python |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
 | Channels import but will not play | Confirm non-DRM; test watch URL in VLC on the Emby/Jellyfin host; fix shared egress |
 | Guide has channels but no programmes | Often expected; Emby Guide Data Fubo lineup or Jellyfin Schedules Direct as backup |
@@ -355,8 +363,8 @@ app/
 docs/              # Deep-dive documentation
 tests/             # Unit checks (no live Fubo calls)
 .github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv
-Dockerfile
-docker-compose.yml # Service/image name: fbtv
+Dockerfile                    # Used by CI (Compose pulls the published image)
+docker-compose.yml            # Service fbtv → ghcr.io/cbodden/fbtv:latest
 ```
 
 ```bash

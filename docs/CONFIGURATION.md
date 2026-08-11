@@ -2,12 +2,6 @@
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and edit:
-
-```bash
-cp .env.example .env
-```
-
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `FUBO_USER` | yes | — | Fubo account email |
@@ -20,22 +14,40 @@ cp .env.example .env
 
 The process **refuses to start** if `FUBO_USER` or `FUBO_PASS` is missing.
 
+### Docker Compose
+
+Pass variables in the **host environment** (Compose does **not** use `env_file` / a project `.env`):
+
+```bash
+export FUBO_USER='you@example.com'
+export FUBO_PASS='your-password'
+docker compose up -d
+```
+
+### Local Python
+
+Copy `.env.example` to `.env` and edit (loaded by python-dotenv):
+
+```bash
+cp .env.example .env
+```
+
 ## Docker Compose
 
-Project short name / Compose **service**, **container**, and local **image** are all **`fbtv`**.
-
-`docker-compose.yml` builds (or can pull) that image, passes credentials from `.env`, and mounts `./config`:
+Service/container name is **`fbtv`**. Image is pulled from GHCR (no local `build`):
 
 ```yaml
 services:
   fbtv:
-    build: .
-    image: fbtv
+    image: ghcr.io/cbodden/fbtv:latest
+    pull_policy: always
     container_name: fbtv
+    environment:
+      FUBO_USER: ${FUBO_USER:?set FUBO_USER in the environment}
+      FUBO_PASS: ${FUBO_PASS:?set FUBO_PASS in the environment}
+      # …
     volumes:
       - ./config:/app/config
-    env_file:
-      - .env
 ```
 
 Useful overrides:
@@ -45,21 +57,13 @@ PORT=7788 EPG_CACHE_SECONDS=7200 docker compose up -d
 docker compose logs -f fbtv
 ```
 
-### Pre-built image (GHCR)
-
-GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to `main` (see `.github/workflows/docker.yml`):
-
-```bash
-docker pull ghcr.io/cbodden/fbtv:latest
-```
-
-Tags: `latest` (default branch) and `sha-<commit>`.
+GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to `main` (see `.github/workflows/docker.yml`). Tags: `latest`, `sha-<commit>`.
 
 ## Runtime files
 
 | Path | Purpose |
 | --- | --- |
-| `.env` | Local secrets (not committed) |
+| `.env` | Optional local-Python secrets (gitignored); **not** used by Compose |
 | `config/device.json` | Stable Fubo `x-device-id` |
 | `config/.gitkeep` | Keeps empty config dir in git |
 

@@ -2,9 +2,9 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~18:10 local (docs synced for fbtv rename + public + image)  
+**Last updated:** 2026-08-11 ~18:15 local (Compose pulls GHCR; no env_file)  
 **Active version:** 1.0.0  
-**Phase:** Docs/context synced to `fbtv`; next = smoke test / Emby-Jellyfin wiring  
+**Phase:** Compose = pull `ghcr.io/cbodden/fbtv` + host env secrets; next = smoke test / Emby-Jellyfin wiring  
 **Git:** `main` → `origin` `git@github.com:cbodden/fbtv.git`
 
 ---
@@ -12,10 +12,9 @@ Short-lived project state for the current effort. Agents and humans should **upd
 ## Resume here (this session)
 
 1. Read [CONTEXT.md](CONTEXT.md) then this file
-2. `cp .env.example .env` and set real `FUBO_USER` / `FUBO_PASS` (do not commit `.env`; quote passwords with symbols in single quotes)
+2. Export `FUBO_USER` / `FUBO_PASS` (Compose) **or** `cp .env.example .env` for local Python only (do not commit `.env`)
 3. Start bridge:
-   - `docker compose up -d --build` (service/image **`fbtv`**) **or**
-   - `docker pull ghcr.io/cbodden/fbtv:latest` then run with Compose/`docker run` **or**
+   - `docker compose up -d` (pulls `ghcr.io/cbodden/fbtv:latest`) **or**
    - `source .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 7777`
 4. Verify per `docs/TROUBLESHOOTING.md` / `docs/STATUS.md`:
    - `curl -sS http://127.0.0.1:7777/health`
@@ -30,7 +29,7 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Current focus
 
-- Docs + naming aligned to public **`cbodden/fbtv`** / image **`fbtv`** / `ghcr.io/cbodden/fbtv`
+- Compose pulls GHCR image and uses host env for credentials (no `.env` / build)
 - Field validation / Emby-Jellyfin wiring still in progress
 
 ## Snapshot — what exists on disk
@@ -40,12 +39,12 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 | Area | Contents |
 | --- | --- |
 | App | `app/{main,fubo_client,m3u,epg,status,config,__init__}.py` |
-| Ops | `Dockerfile`, `docker-compose.yml` (service/image `fbtv`), `.env.example`, `.gitignore`, `requirements.txt` |
+| Ops | `Dockerfile`, `docker-compose.yml` (pull `ghcr.io/cbodden/fbtv:latest`, host env), `.env.example` (local Python), `.gitignore`, `requirements.txt` |
 | CI | `.github/workflows/docker.yml` → `ghcr.io/cbodden/fbtv` |
 | Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/{README,API,ARCHITECTURE,CONFIGURATION,MEDIA_SERVERS,EMBY_SETUP,JELLYFIN_SETUP,STATUS,TROUBLESHOOTING}` |
 | Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
 | Tests | `tests/test_builders.py` |
-| Local only | `.venv/` (gitignored); secrets must stay in `.env` only |
+| Local only | `.venv/` (gitignored); secrets via shell env (Compose) or `.env` (local Python) |
 
 ## Done so far
 
@@ -73,7 +72,7 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Live Fubo sign-in | Not run | Needs `.env` — see `docs/CONFIGURATION.md` |
+| Live Fubo sign-in | Not run | Needs `FUBO_USER`/`FUBO_PASS` in env — see `docs/CONFIGURATION.md` |
 | Usable EPG endpoint | Unknown | Probe logic present; may be channel-only XMLTV (`docs/TROUBLESHOOTING.md`) |
 | Emby/Jellyfin ↔ bridge topology | Unknown | HLS 302 needs shared public egress IP |
 | Docker build | Unverified in original agent env | `docker` was missing there |
@@ -112,6 +111,7 @@ Issues:
 | 2026-08-11 | GitHub repo renamed `fubo_emby` → `fbtv`, visibility public | User request |
 | 2026-08-11 | Compose + GHCR image name `fbtv` (not `fubo-emby`) | User request |
 | 2026-08-11 | Full docs sync for fbtv / public / GHCR | User: update all documentation |
+| 2026-08-11 | Compose pulls GHCR; no env_file — host env for secrets | User request |
 
 ## Do not forget
 

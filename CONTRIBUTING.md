@@ -18,10 +18,12 @@ Run the server:
 uvicorn app.main:app --host 0.0.0.0 --port 7777 --reload
 ```
 
-Or with Compose (service/image name **`fbtv`**):
+Or with Compose (pulls `ghcr.io/cbodden/fbtv:latest`; pass credentials in the environment — no `.env` / `env_file`):
 
 ```bash
-docker compose up -d --build
+export FUBO_USER='…'
+export FUBO_PASS='…'
+docker compose up -d
 docker compose logs -f fbtv
 ```
 

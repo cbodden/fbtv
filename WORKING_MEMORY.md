@@ -2,9 +2,9 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~15:50 local (status/metrics docs synced across tree)  
+**Last updated:** 2026-08-11 ~17:55 local (GHCR Docker build workflow added)  
 **Active version:** 1.0.0  
-**Phase:** Metrics implemented + docs synced (`docs/STATUS.md`); next = continue smoke test / Emby-Jellyfin wiring  
+**Phase:** CI image publish on Dockerfile/context changes; next = smoke test / Emby-Jellyfin wiring  
 **Git:** `main` (may be ahead of `origin/main`)
 
 ---
@@ -29,8 +29,8 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Current focus
 
+- GHCR Docker build/push via `.github/workflows/docker.yml` (path-filtered on Dockerfile/app context)
 - Emby and Jellyfin documented as equal first-class targets (shared HTTP surface; no API fork)
-- Added HTML/JSON/Prometheus runtime metrics endpoints
 - Field validation / Emby-Jellyfin wiring still in progress
 
 ## Snapshot — what exists on disk
@@ -64,6 +64,7 @@ Path: `/Users/cesarbodden/git/work/fubo_emby`
 - [x] Rebalanced README + all docs for equal Emby & Jellyfin framing (2026-08-11)
 - [x] Runtime metrics: `/` snapshot, `/status`, `/status.json`, `/metrics` (2026-08-11)
 - [x] Docs synced for metrics across README + `docs/` + SECURITY/CONTRIBUTING/CONTEXT (2026-08-11)
+- [x] GitHub Actions Docker build → GHCR (2026-08-11)
 
 ## Open questions / blockers
 
@@ -104,6 +105,7 @@ Issues:
 | 2026-08-11 | Rebalance all docs for equal Emby/Jellyfin framing | User: README still Emby-heavy |
 | 2026-08-11 | Add `/`, `/status`, `/status.json`, `/metrics` | User: show metrics three ways |
 | 2026-08-11 | Sync all docs for metrics | User: update documentation for metrics additions |
+| 2026-08-11 | GH Actions build/push to GHCR on Dockerfile context changes | User: auto-build image when Dockerfile pushed |
 
 ## Do not forget
 

@@ -53,7 +53,7 @@ Implementation patterns for Fubo auth/lineup/watch were informed by community vl
 | HTTP | FastAPI + Uvicorn |
 | Fubo HTTP | httpx |
 | Config | python-dotenv / env vars |
-| Deploy | Docker + docker-compose |
+| Deploy | Docker + docker-compose; GHCR image via `.github/workflows/docker.yml` |
 
 ## Key paths
 
@@ -77,6 +77,7 @@ WORKING_MEMORY.md           # session / next actions
 tests/test_builders.py
 Dockerfile
 docker-compose.yml
+.github/workflows/docker.yml   # build + push ghcr.io/<owner>/<repo>
 .env.example
 ```
 

@@ -91,6 +91,8 @@ docker compose up -d --build
 
 Compose builds image `fubo-emby` (historical name), maps host `${PORT:-7777}` → container `7777`, loads `.env`, and mounts `./config` for the persistent device id.
 
+On pushes to `main` that touch the `Dockerfile` (or app build context), GitHub Actions builds and publishes `ghcr.io/cbodden/fubo_emby` (tags: `latest` and `sha-<commit>`).
+
 Check it:
 
 ```bash

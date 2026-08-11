@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- GitHub Actions workflow to build and push the Docker image to GHCR when `Dockerfile` / app context changes on `main`
 - `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
 - `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
 - Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files

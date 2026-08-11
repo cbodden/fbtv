@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - GitHub Actions workflow to build and push the Docker image to GHCR when `Dockerfile` / app context changes on `main`
+- GitHub repository renamed to [`cbodden/fbtv`](https://github.com/cbodden/fbtv) and made public
 - `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
 - `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
 - Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files
@@ -42,5 +43,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for M3U and XMLTV builders
 - Project documentation under `docs/`
 
-[Unreleased]: https://github.com/local/fubotv-emby/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/local/fubotv-emby/releases/tag/v1.0.0
+[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/cbodden/fbtv/releases/tag/v1.0.0

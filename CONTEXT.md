@@ -6,8 +6,9 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 
 ## What this is
 
-- **Name:** Fubo → Emby & Jellyfin Bridge (`fubotv_emby` / `fubotv-emby`; image/service `fubo-emby` — historical names)
-- **Workspace:** `/Users/cesarbodden/git/work/fubo_emby` (also referenced historically as `/Users/cesarbodden/ai/fubotv_emby`)
+- **Name:** Fubo → Emby & Jellyfin Bridge (GitHub/`ghcr`: `cbodden/fbtv`; Compose service/image `fubo-emby` and older names `fubotv_emby` / `fubotv-emby` are historical)
+- **Workspace:** `/home/cbodden/git/mine/fubo_emby` (also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
+- **GitHub:** https://github.com/cbodden/fbtv (public)
 - **Version:** 1.0.0 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:

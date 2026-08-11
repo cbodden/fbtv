@@ -109,7 +109,7 @@ Returns XMLTV. Channel ids equal playlist `tvg-id` values (call signs). Programm
 
 ```xml
 <?xml version="1.0" ?>
-<tv generator-info-name="fubotv-emby">
+<tv generator-info-name="fbtv">
   <channel id="ESPN">
     <display-name>ESPN</display-name>
   </channel>

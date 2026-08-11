@@ -48,4 +48,4 @@ Supported. Each server imports channels independently.
 
 ## Historical package names
 
-Repo/image names (`fubotv_emby`, Compose service/image `fubo-emby`) predate dual-server docs. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).
+GitHub/GHCR repo is `cbodden/fbtv`. Compose service/image `fubo-emby` and older names (`fubotv_emby`, `fubotv-emby`) are historical. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).

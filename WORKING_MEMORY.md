@@ -2,10 +2,10 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~17:55 local (GHCR Docker build workflow added)  
+**Last updated:** 2026-08-11 ~18:00 local (repo renamed to fbtv + public)  
 **Active version:** 1.0.0  
-**Phase:** CI image publish on Dockerfile/context changes; next = smoke test / Emby-Jellyfin wiring  
-**Git:** `main` (may be ahead of `origin/main`)
+**Phase:** Repo is `cbodden/fbtv` (public); next = smoke test / Emby-Jellyfin wiring  
+**Git:** `main` → `origin` `git@github.com:cbodden/fbtv.git`
 
 ---
 
@@ -106,6 +106,7 @@ Issues:
 | 2026-08-11 | Add `/`, `/status`, `/status.json`, `/metrics` | User: show metrics three ways |
 | 2026-08-11 | Sync all docs for metrics | User: update documentation for metrics additions |
 | 2026-08-11 | GH Actions build/push to GHCR on Dockerfile context changes | User: auto-build image when Dockerfile pushed |
+| 2026-08-11 | GitHub repo renamed `fubo_emby` → `fbtv`, visibility public | User request |
 
 ## Do not forget
 

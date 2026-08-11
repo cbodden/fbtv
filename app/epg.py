@@ -66,8 +66,8 @@ def build_xmltv(channels: list[Channel], programmes: list[Programme]) -> str:
     root = ET.Element(
         "tv",
         {
-            "generator-info-name": "fubotv-emby",
-            "generator-info-url": "https://github.com/local/fubotv-emby",
+            "generator-info-name": "fbtv",
+            "generator-info-url": "https://github.com/cbodden/fbtv",
         },
     )
 

@@ -2,7 +2,7 @@
 
 ## Role
 
-`fubotv-emby` is a **sidecar HTTP service**, not a native Emby or Jellyfin plugin. **Emby and Jellyfin** are equal consumers of:
+`fbtv` (historically `fubotv-emby`) is a **sidecar HTTP service**, not a native Emby or Jellyfin plugin. **Emby and Jellyfin** are equal consumers of:
 
 1. An **M3U tuner** URL for channel discovery and tune URLs
 2. An **XMLTV** URL for guide data

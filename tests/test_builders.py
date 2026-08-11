@@ -1,7 +1,11 @@
 """Lightweight unit checks that do not call Fubo."""
 
+import json
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 
+from app.config import _load_credentials, _strip_wrapping_quotes
 from app.epg import EpgCache, build_xmltv
 from app.fubo_client import Channel, Programme
 from app.m3u import build_m3u
@@ -84,9 +88,59 @@ def test_prometheus_snapshot() -> None:
     assert 'fubo_bridge_info{version="1.0.0"} 1' in text
 
 
+def test_strip_wrapping_quotes() -> None:
+    assert _strip_wrapping_quotes("'ab$cd'") == ("ab$cd", True)
+    assert _strip_wrapping_quotes('"ab$cd"') == ("ab$cd", True)
+    assert _strip_wrapping_quotes("ab$cd") == ("ab$cd", False)
+
+
+def test_credentials_file_beats_env(tmp_path: Path | None = None) -> None:
+    config_dir = tmp_path if tmp_path is not None else Path(
+        __import__("tempfile").mkdtemp()
+    )
+    (config_dir / "credentials.env").write_text(
+        "FUBO_USER=you@example.com\nFUBO_PASS=ab$cd!ef\n",
+        encoding="utf-8",
+    )
+    old_user, old_pass = os.environ.get("FUBO_USER"), os.environ.get("FUBO_PASS")
+    os.environ["FUBO_USER"] = "wrong@example.com"
+    os.environ["FUBO_PASS"] = "wrong"
+    try:
+        user, password, source, _ = _load_credentials(config_dir)
+    finally:
+        if old_user is None:
+            os.environ.pop("FUBO_USER", None)
+        else:
+            os.environ["FUBO_USER"] = old_user
+        if old_pass is None:
+            os.environ.pop("FUBO_PASS", None)
+        else:
+            os.environ["FUBO_PASS"] = old_pass
+    assert user == "you@example.com"
+    assert password == "ab$cd!ef"
+    assert source.endswith("credentials.env")
+
+
+def test_credentials_json(tmp_path: Path | None = None) -> None:
+    config_dir = tmp_path if tmp_path is not None else Path(
+        __import__("tempfile").mkdtemp()
+    )
+    (config_dir / "credentials.json").write_text(
+        json.dumps({"FUBO_USER": "a@b.com", "FUBO_PASS": "p$ass"}),
+        encoding="utf-8",
+    )
+    user, password, source, _ = _load_credentials(config_dir)
+    assert user == "a@b.com"
+    assert password == "p$ass"
+    assert source.endswith("credentials.json")
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
     test_epg_cache_stats()
     test_prometheus_snapshot()
+    test_strip_wrapping_quotes()
+    test_credentials_file_beats_env()
+    test_credentials_json()
     print("ok")

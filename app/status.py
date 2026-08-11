@@ -125,6 +125,7 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
         ("Started at (UTC)", snapshot.get("started_at")),
         ("Listen", f"{listen.get('host')}:{listen.get('port')}"),
         ("Fubo signed in", "yes" if fubo.get("signed_in") else "no"),
+        ("Credentials source", fubo.get("credentials_source")),
         ("Token age (seconds)", fubo.get("token_age_seconds")),
         ("Token TTL remaining (seconds)", fubo.get("token_ttl_remaining_seconds")),
         ("Channel count", fubo.get("channel_count")),

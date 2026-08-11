@@ -8,6 +8,39 @@
 
 ---
 
+## Sign-in 401 `INVALID_USERNAME_PASSWORD` (especially Portainer)
+
+Fubo rejected the email/password the container sent. The bridge is up; auth failed at `PUT https://api.fubo.tv/signin`.
+
+**Do not wrap the password in quotes** in Portainer. Quotes become part of the value (`'secret'` ≠ `secret`). `$$` in the Portainer UI is also unreliable.
+
+### Portainer — use a credentials file (recommended)
+
+Compose never interpolates files on the `config` volume. Image **1.0.1+** reads these (file wins over env):
+
+1. Pull/redeploy `ghcr.io/cbodden/fbtv:latest` so you are on 1.0.1+.
+2. In Portainer: container → **Console**, or from the host bind mount, create `/app/config/credentials.env` with **no quotes**:
+
+```text
+FUBO_USER=you@example.com
+FUBO_PASS=your-actual-password
+```
+
+JSON is also fine: `/app/config/credentials.json` → `{"FUBO_USER":"...","FUBO_PASS":"..."}`.
+
+3. Restart the container once.
+4. Logs should show `credentials source=.../credentials.env` and `pass_len=` matching your real password. `wrapping_quotes_stripped=true` means you still had quotes in the file — remove them.
+
+### Other checks
+
+| Check | Action |
+| --- | --- |
+| Browser login | Same email/password on [fubo.tv](https://www.fubo.tv/) |
+| Account lockout | Many 401s can block the account; reset password / wait / contact Fubo |
+| VPN | Sign-in from a normal residential egress; Fubo often blocks datacenter/VPN IPs |
+
+---
+
 ## Empty playlist or HTTP 502 on `/playlist.m3u`
 
 | Check | Action |

@@ -6,13 +6,15 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-7777}:7777"
+    # Optional env pass-through. Portainer: prefer config/credentials.env on this
+    # volume (no quotes, no $$). File wins over FUBO_USER / FUBO_PASS.
     environment:
-      FUBO_USER: ${FUBO_USER:?set FUBO_USER in the environment}
-      FUBO_PASS: ${FUBO_PASS:?set FUBO_PASS in the environment}
-      HOST: 0.0.0.0
-      PORT: 7777
-      CONFIG_DIR: /app/config
-      EPG_CACHE_SECONDS: ${EPG_CACHE_SECONDS:-3600}
-      EPG_DAYS: ${EPG_DAYS:-2}
+      - FUBO_USER
+      - FUBO_PASS
+      - HOST=0.0.0.0
+      - PORT=7777
+      - CONFIG_DIR=/app/config
+      - EPG_CACHE_SECONDS=${EPG_CACHE_SECONDS:-3600}
+      - EPG_DAYS=${EPG_DAYS:-2}
     volumes:
       - ./config:/app/config

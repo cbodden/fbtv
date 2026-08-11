@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.0** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
+**Version 1.0.1** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -82,7 +82,11 @@ Personal / home-LAN use only. Respect Fubo’s terms of service. Do not redistri
 
 ### Option A — Docker (recommended)
 
-Compose **pulls** `ghcr.io/cbodden/fbtv:latest` (no local build) and does **not** load a `.env` file. Pass credentials in the shell environment:
+Compose **pulls** `ghcr.io/cbodden/fbtv:latest` (no local build) and does **not** load a project `.env` file.
+
+**Portainer:** put credentials in the config volume (no quotes) as `config/credentials.env` — see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). File wins over env vars.
+
+**CLI:** pass credentials in the shell environment:
 
 ```bash
 export FUBO_USER='you@example.com'
@@ -109,7 +113,7 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.0"}
+# → {"status":"ok","version":"1.0.1"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -318,7 +322,8 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 
 | Symptom | What to try |
 | --- | --- |
-| Process exits mentioning `FUBO_USER` / `FUBO_PASS` | Export both in the shell for Compose, or create `.env` for local Python |
+| Process exits mentioning `FUBO_USER` / `FUBO_PASS` | Set `config/credentials.env`, or export env for Compose, or `.env` for local Python |
+| Sign-in 401 `INVALID_USERNAME_PASSWORD` | Do not quote passwords in Portainer; use `config/credentials.env` — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
 | Channels import but will not play | Confirm non-DRM; test watch URL in VLC on the Emby/Jellyfin host; fix shared egress |
 | Guide has channels but no programmes | Often expected; Emby Guide Data Fubo lineup or Jellyfin Schedules Direct as backup |

@@ -4,10 +4,10 @@ Public repository: [cbodden/fbtv](https://github.com/cbodden/fbtv). Treat the tr
 
 ## Credentials
 
-- Store Fubo credentials in the process environment (Compose), an orchestrator secret store, or a local-Python `.env` — never in the image
-- Never commit `.env`, `config/device.json` with production tokens, or logs containing access tokens
+- Store Fubo credentials in `config/credentials.env` (volume), process env, an orchestrator secret store, or a local-Python `.env` — never in the image
+- Never commit `.env`, `config/credentials.*`, `config/device.json`, or logs containing access tokens
 - `.gitignore` excludes `.env` and `config/` runtime files (keeps `config/.gitkeep`)
-- Compose does **not** use `env_file`; pass `FUBO_USER` / `FUBO_PASS` when you run `docker compose`
+- Compose does **not** use `env_file`; Portainer should use the credentials file on the config volume
 
 ## Threat model (personal LAN tool)
 

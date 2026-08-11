@@ -131,6 +131,13 @@ class FuboClient:
                 headers=self._headers(authorized=False),
             )
             if response.status_code != 200:
+                logger.warning(
+                    "Sign-in rejected (%s) user=%s pass_len=%s source=%s",
+                    response.status_code,
+                    self.settings.fubo_user,
+                    len(self.settings.fubo_pass),
+                    self.settings.credentials_source,
+                )
                 raise FuboError(f"Sign-in failed ({response.status_code}): {response.text}")
 
             payload = response.json()
@@ -404,6 +411,7 @@ class FuboClient:
                 "channel_count": channel_count,
                 "channels_cache_age_seconds": channels_age,
                 "channels_source": self._channels_source,
+                "credentials_source": self.settings.credentials_source,
                 "drm_skipped_count": self._drm_skipped_count,
             }
 

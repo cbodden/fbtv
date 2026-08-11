@@ -4,15 +4,16 @@
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `FUBO_USER` | yes | — | Fubo account email |
-| `FUBO_PASS` | yes | — | Fubo account password |
+| `FUBO_USER` | if no credentials file | — | Fubo account email |
+| `FUBO_PASS` | if no credentials file | — | Fubo account password |
+| `FUBO_USER_FILE` / `FUBO_PASS_FILE` | no | — | Optional paths to files containing email/password (Docker secrets style) |
 | `HOST` | no | `0.0.0.0` | Bind address for uvicorn |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
-| `CONFIG_DIR` | no | `./config` | Writable directory for device id |
+| `CONFIG_DIR` | no | `./config` | Writable directory for device id + optional credentials file |
 | `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
 
-The process **refuses to start** if `FUBO_USER` or `FUBO_PASS` is missing.
+Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe).
 
 ### Docker Compose
 
@@ -23,6 +24,18 @@ export FUBO_USER='you@example.com'
 export FUBO_PASS='your-password'
 docker compose up -d
 ```
+
+### Portainer
+
+Prefer a file on the config volume (no `$` interpolation, no quotes):
+
+```text
+# /app/config/credentials.env
+FUBO_USER=you@example.com
+FUBO_PASS=your-actual-password
+```
+
+Then restart. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ### Local Python
 
@@ -43,8 +56,8 @@ services:
     pull_policy: always
     container_name: fbtv
     environment:
-      FUBO_USER: ${FUBO_USER:?set FUBO_USER in the environment}
-      FUBO_PASS: ${FUBO_PASS:?set FUBO_PASS in the environment}
+      - FUBO_USER
+      - FUBO_PASS
       # …
     volumes:
       - ./config:/app/config
@@ -64,6 +77,8 @@ GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to `main` (se
 | Path | Purpose |
 | --- | --- |
 | `.env` | Optional local-Python secrets (gitignored); **not** used by Compose |
+| `config/credentials.env` | Preferred Portainer/Compose secrets (`FUBO_USER=` / `FUBO_PASS=`; no quotes) |
+| `config/credentials.json` | Same secrets as JSON |
 | `config/device.json` | Stable Fubo `x-device-id` |
 | `config/.gitkeep` | Keeps empty config dir in git |
 

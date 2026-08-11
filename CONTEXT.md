@@ -11,7 +11,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); credentials via host env (no `env_file` / `.env`); CI: `.github/workflows/docker.yml`
 - **Workspace:** `/home/cbodden/git/mine/fubo_emby` (local folder may still use the old path; also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
-- **Version:** 1.0.0 (`app/__version__`; see `CHANGELOG.md`)
+- **Version:** 1.0.1 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
@@ -171,7 +171,7 @@ Known DRM sources/call signs are dropped before playlist generation.
 2. **`tvg-id` = Fubo call sign** — must match XMLTV `channel id` for mapping.
 3. **Watch URLs are local** (`/watch/{id}`), never raw CDN URLs in the M3U.
 4. **Tune = 302 redirect** — requires Emby/Jellyfin and bridge to share public egress IP.
-5. **Credentials via env** — `FUBO_USER` / `FUBO_PASS`; device id in `CONFIG_DIR/device.json`.
+5. **Credentials** — `config/credentials.env` (or JSON) preferred for Portainer; else `FUBO_USER` / `FUBO_PASS`; device id in `CONFIG_DIR/device.json`.
 6. **Channel discovery** — try subscriptions APIs first, fall back to plan-manager + user recurly packages.
 7. **EPG best-effort** — probe bulk then sample per-network schedule endpoints; channel-only XMLTV if listings fail.
 8. **Credit prior art** — see `CREDITS.md` (vlc-bridge-fubo lineage, deps).
@@ -197,7 +197,7 @@ Runtime files: `.env` (secrets, not committed), `config/device.json`, `config/.g
 
 Reverse proxy: forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use the public host.
 
-Compose mounts `./config:/app/config`, pulls `ghcr.io/cbodden/fbtv:latest`, and injects `FUBO_USER` / `FUBO_PASS` from the **host environment** (no Compose `env_file`). Local Python may still use `.env` via dotenv.
+Compose mounts `./config:/app/config` and pulls `ghcr.io/cbodden/fbtv:latest`. Credentials: `config/credentials.env` (file wins) or host env `FUBO_USER` / `FUBO_PASS`. Local Python may use `.env` with `interpolate=False`.
 
 ## Media server wiring summary
 

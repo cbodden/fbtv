@@ -9,11 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `config/credentials.env` / `credentials.json` (and `FUBO_*_FILE`) so Portainer can store secrets on the volume without `$` / quote mangling; file wins over env
+- Startup / 401 logs include credentials source, `pass_len`, and whether wrapping quotes were stripped (never the password)
+
+### Changed
+
+- Image/app version **1.0.1**
+- `load_dotenv(interpolate=False)` so `$` in local `.env` passwords is left alone
+- Wrapping `'` / `"` around `FUBO_USER` / `FUBO_PASS` are stripped
+
+### Added (earlier unreleased)
+
 - GitHub Actions workflow to build and push the Docker image to GHCR when `Dockerfile` / app context changes on `main`
 - GitHub repository renamed to [`cbodden/fbtv`](https://github.com/cbodden/fbtv) and made public
 - Docker Compose service/image and GHCR package name set to `fbtv` (was `fubo-emby` / `fubo_emby`)
 - Documentation tree rebalanced for public `cbodden/fbtv`, Compose/`ghcr` image `fbtv`, and GHCR pull notes
-- Compose pulls `ghcr.io/cbodden/fbtv:latest` (no local build) and takes credentials from the host environment (no `env_file` / `.env`)
+- Compose pulls `ghcr.io/cbodden/fbtv:latest` (no local build) and takes credentials from the host/stack environment (no `env_file` / `.env`)
+- Portainer notes for `INVALID_USERNAME_PASSWORD` (`$` env interpolation) in `docs/TROUBLESHOOTING.md`
 - `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
 - `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
 - Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files

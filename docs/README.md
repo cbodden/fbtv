@@ -22,4 +22,4 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 
 ## Version
 
-Current release: **1.0.0** (see `CHANGELOG.md`).
+Current release: **1.0.1** (see `CHANGELOG.md`).

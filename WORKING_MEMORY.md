@@ -2,9 +2,9 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~18:15 local (Compose pulls GHCR; no env_file)  
-**Active version:** 1.0.0  
-**Phase:** Compose = pull `ghcr.io/cbodden/fbtv` + host env secrets; next = smoke test / Emby-Jellyfin wiring  
+**Last updated:** 2026-08-11 ~19:15 local (credentials file for Portainer 401s)  
+**Active version:** 1.0.1  
+**Phase:** Portainer auth via `config/credentials.env`; next = pull 1.0.1 + smoke test  
 **Git:** `main` → `origin` `git@github.com:cbodden/fbtv.git`
 
 ---
@@ -112,6 +112,8 @@ Issues:
 | 2026-08-11 | Compose + GHCR image name `fbtv` (not `fubo-emby`) | User request |
 | 2026-08-11 | Full docs sync for fbtv / public / GHCR | User: update all documentation |
 | 2026-08-11 | Compose pulls GHCR; no env_file — host env for secrets | User request |
+| 2026-08-11 | Portainer auth troubleshooting (`$` mangling) | User: 401 in Portainer |
+| 2026-08-11 | credentials.env/json file wins over env; strip wrapping quotes | User: quotes/$$ still 401 in Portainer |
 
 ## Do not forget
 

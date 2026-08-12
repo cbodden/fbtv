@@ -110,6 +110,7 @@ def build_epg(client: FuboClient, channels: list[Channel], cache: EpgCache) -> s
     programmes = client.schedule(channels)
     xml = build_xmltv(channels, programmes)
     cache.set(xml, programme_count=len(programmes), channel_count=len(channels))
+    # programme_count is also on /status.json; "Loaded N programmes" is a log line only.
     return xml
 
 

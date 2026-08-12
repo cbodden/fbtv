@@ -65,10 +65,12 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin,
 ## Guide path
 
 1. Emby and/or Jellyfin fetch `/epg.xml`
-2. Bridge loads channels, then probes authenticated schedule endpoints
+2. Bridge loads channels, then probes authenticated schedule endpoints — **primary:** `/epg` (`channelWithProgramAssets`), then chunked `papi/v1/guide/epg`, then older bulk/sample paths
 3. Listings are mapped to playlist `tvg-id` (= Fubo call sign)
 4. Result is cached for `EPG_CACHE_SECONDS`
 5. If no schedule payload is found, XMLTV still contains `<channel>` entries so mapping can proceed
+
+**Emby field workaround:** while `epg.programme_count` is `0`, use Emby Guide Data’s **FuboTV** lineup (see [EMBY_SETUP.md](EMBY_SETUP.md)).
 
 ## Caching
 
@@ -101,5 +103,5 @@ Operators can read the same in-process snapshot as:
 - **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
 - **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar
-- **Deploy as `fbtv`** — Compose pulls `ghcr.io/cbodden/fbtv:latest` (CI on **`main`** only)
+- **Deploy as `fbtv`** — Compose pulls `ghcr.io/cbodden/fbtv:latest` by default; CI publishes `:latest` from **`main`** and `:dev` from **`dev`**
 - **Credentials on the config volume** — `FUBO_PASS_B64` / `credentials.json` so `$` is not interpolated by Portainer or shells

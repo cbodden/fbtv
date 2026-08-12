@@ -50,7 +50,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | `pass_fp` mismatch | The file/env password is not the one you think; regenerate `FUBO_PASS_B64` with `printf '%s' '…' \| base64 -w0` |
 | Account lockout | Many 401s can block the account; reset password / wait / contact Fubo |
 | VPN | Sign-in from a normal residential egress; Fubo often blocks datacenter/VPN IPs |
-| Image still 1.0.1 / 1.0.0 | GHCR `:latest` only builds from `main`; merge `dev` or wait for publish, then `docker compose pull` |
+| Image still old / missing EPG fix | GHCR `:latest` is **`main`** only; for pre-release use `image: ghcr.io/cbodden/fbtv:dev` + `pull_policy: always`, then `docker compose pull` |
 
 ---
 
@@ -83,15 +83,16 @@ v1 uses HTTP 302 redirects only (no local remux).
 
 ## Guide has channels but no programmes
 
-Expected when Fubo schedule endpoints are unavailable or changed. The bridge still emits `<channel>` rows for mapping.
+Expected when Fubo schedule endpoints are unavailable or changed. The bridge still emits `<channel>` rows for mapping. From **1.0.4** the primary probe is `/epg` (parsed as `channelWithProgramAssets`); `papi/v1/guide/epg` and older paths remain as fallback. Field logs showed `/epg` **200** while many other URLs **404** — older builds mapped zero programmes from that 200 because the JSON shape was not parsed.
 
 Workarounds:
 
-- Retry later / lower `EPG_CACHE_SECONDS` after a code/API fix
-- **Emby:** use Emby Guide Data’s Fubo lineup and map manually
+- **Emby (recommended while programmes are empty):** Emby Guide Data **FuboTV** lineup + manual map — see [EMBY_SETUP.md](EMBY_SETUP.md)
 - **Jellyfin:** use Schedules Direct **or** another XMLTV source (not both with bridge XMLTV at once) and map under **Live TV → Channels**
-- Increase logging and inspect which EPG paths return data (`Loaded N programmes from …`)
+- After deploying 1.0.4+ (`:dev` or a local build), refresh `/epg.xml` and check logs for `Loaded N programmes from epg` / `EPG schedule complete`
+- Lower `EPG_CACHE_SECONDS` temporarily after an API fix so a stale empty body is not reused
 - Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
+- Remember: `"Loaded N programmes"` appears in **container logs**, not inside the XML body
 
 ---
 

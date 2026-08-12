@@ -2,7 +2,7 @@ name: Build and push Docker image
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - Dockerfile
       - requirements.txt
@@ -47,9 +47,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            # :latest only from default branch (main)
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=sha-
+            # :dev from the dev branch, :main from main, etc.
             type=ref,event=branch
+            type=sha,prefix=sha-
 
       - name: Build and push
         uses: docker/build-push-action@v6

@@ -211,10 +211,21 @@ class FuboClient:
             logger.info("Signed in to Fubo")
             return token
 
-    def api_get(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    def api_get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> Any:
         self.token()
         url = f"{API_BASE}/{path.lstrip('/')}"
-        response = self._http.get(url, headers=self._headers(), params=params)
+        response = self._http.get(
+            url,
+            headers=self._headers(),
+            params=params,
+            timeout=timeout if timeout is not None else self._http.timeout,
+        )
         if response.status_code != 200:
             raise FuboError(f"GET {path} failed ({response.status_code}): {response.text[:500]}")
         return response.json()
@@ -527,6 +538,391 @@ class FuboClient:
                 return None
         return None
 
+    @staticmethod
+    def _text_field(value: Any) -> str | None:
+        """Normalize Fubo title/name fields (plain string or ``{"text": "..."}``)."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            text = value.strip()
+            return text or None
+        if isinstance(value, dict):
+            nested = value.get("text") or value.get("value") or value.get("name")
+            if isinstance(nested, str):
+                text = nested.strip()
+                return text or None
+        return None
+
+    def _programmes_from_papi_components(
+        self,
+        components: list[Any],
+        channels_by_id: dict[str, Channel],
+        rich_lookup: dict[tuple[str, str], dict[str, Any]] | None = None,
+    ) -> list[Programme]:
+        """Parse ``channel-cell`` / ``program-cell`` payloads from ``papi/v1/guide/epg``."""
+        programmes: list[Programme] = []
+        rich_lookup = rich_lookup or {}
+
+        for channel_cell in components:
+            if not isinstance(channel_cell, dict):
+                continue
+            if channel_cell.get("type") and channel_cell.get("type") != "channel-cell":
+                continue
+
+            station_id = str(channel_cell.get("id") or "").strip()
+            channel = channels_by_id.get(station_id) if station_id else None
+            if channel is None:
+                continue
+
+            for prog in channel_cell.get("components") or []:
+                if not isinstance(prog, dict):
+                    continue
+                if prog.get("type") and prog.get("type") != "program-cell":
+                    continue
+
+                start_raw = prog.get("start_time") or prog.get("startTime")
+                stop_raw = prog.get("end_time") or prog.get("endTime")
+                start = self._parse_dt(start_raw)
+                stop = self._parse_dt(stop_raw)
+                if not start or not stop:
+                    continue
+
+                title = (
+                    self._text_field(prog.get("title"))
+                    or self._text_field(prog.get("name"))
+                    or self._text_field(prog.get("subtitle"))
+                )
+                rich = rich_lookup.get((station_id, str(start_raw))) if start_raw else None
+                if rich and not title:
+                    title = self._text_field(rich.get("title"))
+                if not title:
+                    continue
+
+                desc = (
+                    prog.get("description")
+                    or (rich or {}).get("description")
+                    or self._text_field(prog.get("subtitle"))
+                )
+                categories: list[str] = []
+                for value in (
+                    prog.get("normalizedGenres")
+                    or prog.get("genres")
+                    or (rich or {}).get("normalizedGenres")
+                    or (rich or {}).get("genres")
+                    or []
+                ):
+                    if isinstance(value, dict):
+                        name = value.get("name") or value.get("value")
+                        if name:
+                            categories.append(str(name))
+                    elif value:
+                        categories.append(str(value))
+
+                programmes.append(
+                    Programme(
+                        channel_id=channel.call_sign,
+                        title=title,
+                        start=start,
+                        stop=stop,
+                        description=str(desc) if desc else None,
+                        categories=categories,
+                    )
+                )
+
+        return programmes
+
+    def _fetch_papi_guide_components(
+        self,
+        start: datetime,
+        end: datetime,
+        *,
+        chunk_hours: int = 6,
+    ) -> list[dict[str, Any]]:
+        """Fetch and merge ``papi/v1/guide/epg`` channel-cells across time chunks."""
+        channels_by_id: dict[str, dict[str, Any]] = {}
+        current = start.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        end_utc = end.astimezone(timezone.utc)
+        any_ok = False
+
+        while current < end_utc:
+            chunk_end = min(current + timedelta(hours=chunk_hours), end_utc)
+            start_str = current.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            end_str = chunk_end.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            try:
+                payload = self.api_get(
+                    "papi/v1/guide/epg",
+                    params={"start_time": start_str, "end_time": end_str},
+                    timeout=120.0,
+                )
+            except FuboError as exc:
+                logger.info(
+                    "EPG endpoint papi/v1/guide/epg unavailable (%s → %s): %s",
+                    start_str,
+                    end_str,
+                    exc,
+                )
+                current = chunk_end
+                continue
+
+            any_ok = True
+            epg_data = (payload or {}).get("content", {}).get("epg", {})
+            if isinstance(epg_data, list):
+                chunk_channels = epg_data
+            elif isinstance(epg_data, dict):
+                if epg_data.get("type") == "channel-cell":
+                    chunk_channels = [epg_data]
+                else:
+                    chunk_channels = epg_data.get("components") or epg_data.get("channels") or []
+                    if not isinstance(chunk_channels, list):
+                        chunk_channels = []
+            else:
+                chunk_channels = []
+
+            for ch in chunk_channels:
+                if not isinstance(ch, dict):
+                    continue
+                if ch.get("type") and ch.get("type") != "channel-cell":
+                    continue
+                ch_id = str(ch.get("id") or "").strip()
+                if not ch_id:
+                    continue
+                if ch_id not in channels_by_id:
+                    channels_by_id[ch_id] = ch
+                else:
+                    existing = channels_by_id[ch_id].setdefault("components", [])
+                    if not isinstance(existing, list):
+                        existing = []
+                        channels_by_id[ch_id]["components"] = existing
+                    for prog in ch.get("components") or []:
+                        existing.append(prog)
+
+            current = chunk_end
+
+        if not any_ok:
+            return []
+        return list(channels_by_id.values())
+
+    def _programmes_from_epg_assets(
+        self,
+        payload: Any,
+        channels_by_id: dict[str, Channel],
+    ) -> list[Programme]:
+        """Parse ``/epg`` ``channelWithProgramAssets`` payloads (live-confirmed 200 OK)."""
+        programmes: list[Programme] = []
+        rows = (payload or {}).get("response") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            return programmes
+
+        for ch in rows:
+            if not isinstance(ch, dict):
+                continue
+            if ch.get("type") and ch.get("type") != "channelWithProgramAssets":
+                continue
+            ch_data = ch.get("data") or {}
+            if not isinstance(ch_data, dict):
+                continue
+            channel_meta = ch_data.get("channel") or {}
+            station_id = str(channel_meta.get("id") or "").strip()
+            channel = channels_by_id.get(station_id) if station_id else None
+            if channel is None:
+                continue
+
+            for item in ch_data.get("programsWithAssets") or []:
+                if not isinstance(item, dict):
+                    continue
+                program = item.get("program") or {}
+                if not isinstance(program, dict):
+                    program = {}
+                assets = item.get("assets") or []
+                asset = assets[0] if assets and isinstance(assets[0], dict) else {}
+                access = asset.get("accessRights") or {}
+                if not isinstance(access, dict):
+                    access = {}
+
+                start = self._parse_dt(
+                    access.get("startTime")
+                    or asset.get("startTime")
+                    or item.get("startTime")
+                    or program.get("startTime")
+                )
+                stop = self._parse_dt(
+                    access.get("endTime")
+                    or asset.get("endTime")
+                    or item.get("endTime")
+                    or program.get("endTime")
+                )
+                if start and not stop:
+                    duration = (
+                        access.get("durationInSeconds")
+                        or access.get("durationSeconds")
+                        or access.get("duration")
+                        or asset.get("durationInSeconds")
+                        or asset.get("durationSeconds")
+                        or asset.get("duration")
+                        or program.get("durationInSeconds")
+                        or program.get("duration")
+                    )
+                    if isinstance(duration, (int, float)) and duration > 0:
+                        # Fubo sometimes reports ms for large values.
+                        seconds = float(duration)
+                        if seconds > 24 * 60 * 60:
+                            seconds = seconds / 1000.0
+                        stop = start + timedelta(seconds=seconds)
+
+                title = (
+                    self._text_field(program.get("title"))
+                    or self._text_field(program.get("name"))
+                    or self._text_field(program.get("shortName"))
+                    or self._text_field(asset.get("title"))
+                    or self._text_field(item.get("title"))
+                )
+                if not (title and start and stop):
+                    continue
+
+                desc = (
+                    program.get("longDescription")
+                    or program.get("shortDescription")
+                    or program.get("description")
+                )
+                categories: list[str] = []
+                for g in program.get("genres") or []:
+                    if isinstance(g, dict) and g.get("name"):
+                        categories.append(str(g["name"]))
+                    elif g:
+                        categories.append(str(g))
+                for t in (program.get("tagsV2") or {}).get("normalized_genre") or []:
+                    if isinstance(t, dict) and t.get("value"):
+                        categories.append(str(t["value"]))
+
+                programmes.append(
+                    Programme(
+                        channel_id=channel.call_sign,
+                        title=title,
+                        start=start,
+                        stop=stop,
+                        description=str(desc) if desc else None,
+                        categories=categories,
+                    )
+                )
+
+        return programmes
+
+    def _fetch_epg_assets_programmes(
+        self,
+        start: datetime,
+        end: datetime,
+        channels_by_id: dict[str, Channel],
+    ) -> list[Programme]:
+        """Fetch listings from ``/epg`` (optionally enriched). Known live 200 path."""
+        start_str = start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        end_str = end.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        attempts: list[tuple[str, dict[str, Any]]] = [
+            (
+                "epg?enrichments=follow",
+                {
+                    "startTime": start_str,
+                    "endTime": end_str,
+                    "enrichments": "follow",
+                },
+            ),
+            (
+                "epg",
+                {
+                    "startTime": start_str,
+                    "endTime": end_str,
+                },
+            ),
+        ]
+        for label, params in attempts:
+            try:
+                payload = self.api_get("epg", params=params, timeout=120.0)
+            except FuboError as exc:
+                logger.info("EPG endpoint %s unavailable: %s", label, exc)
+                continue
+            found = self._programmes_from_epg_assets(payload, channels_by_id)
+            if found:
+                logger.info("Loaded %s programmes from %s", len(found), label)
+                return found
+            response_len = len((payload or {}).get("response") or []) if isinstance(payload, dict) else 0
+            logger.info(
+                "EPG endpoint %s responded (response rows=%s) but mapped 0 programmes",
+                label,
+                response_len,
+            )
+        return []
+
+    def _fetch_epg_enrichment(
+        self,
+        start: datetime,
+        end: datetime,
+    ) -> dict[tuple[str, str], dict[str, Any]]:
+        """Optional descriptions/genres from ``/epg?enrichments=follow`` keyed by station+start."""
+        rich_lookup: dict[tuple[str, str], dict[str, Any]] = {}
+        current = start.astimezone(timezone.utc)
+        end_utc = end.astimezone(timezone.utc)
+
+        while current < end_utc:
+            chunk_end = min(current + timedelta(hours=24), end_utc)
+            start_str = current.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            end_str = chunk_end.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            try:
+                payload = self.api_get(
+                    "epg",
+                    params={
+                        "startTime": start_str,
+                        "endTime": end_str,
+                        "enrichments": "follow",
+                    },
+                    timeout=120.0,
+                )
+            except FuboError as exc:
+                logger.debug("EPG enrichment /epg unavailable: %s", exc)
+                current = chunk_end
+                continue
+
+            for ch in (payload or {}).get("response") or []:
+                if not isinstance(ch, dict) or ch.get("type") != "channelWithProgramAssets":
+                    continue
+                ch_data = ch.get("data") or {}
+                channel = ch_data.get("channel") or {}
+                ch_id = str(channel.get("id") or "").strip()
+                if not ch_id:
+                    continue
+                for item in ch_data.get("programsWithAssets") or []:
+                    if not isinstance(item, dict):
+                        continue
+                    program = item.get("program") or {}
+                    assets = item.get("assets") or []
+                    if not assets:
+                        continue
+                    access = (assets[0] or {}).get("accessRights") or {}
+                    start_time = access.get("startTime")
+                    if not start_time:
+                        continue
+                    genres = [
+                        str(g["name"])
+                        for g in program.get("genres") or []
+                        if isinstance(g, dict) and g.get("name")
+                    ]
+                    normalized = [
+                        str(t["value"])
+                        for t in (program.get("tagsV2") or {}).get("normalized_genre") or []
+                        if isinstance(t, dict) and t.get("value")
+                    ]
+                    rich_lookup[(ch_id, str(start_time))] = {
+                        "title": self._text_field(program.get("title"))
+                        or self._text_field(program.get("name")),
+                        "description": program.get("longDescription")
+                        or program.get("shortDescription")
+                        or "",
+                        "genres": genres,
+                        "normalizedGenres": normalized,
+                    }
+
+            current = chunk_end
+
+        return rich_lookup
+
     def _programmes_from_payload(
         self,
         payload: Any,
@@ -561,17 +957,27 @@ class FuboClient:
                 return
 
             title = (
-                node.get("title")
-                or node.get("name")
-                or (node.get("airing") or {}).get("title")
-                or (node.get("program") or {}).get("title")
+                self._text_field(node.get("title"))
+                or self._text_field(node.get("name"))
+                or self._text_field((node.get("airing") or {}).get("title"))
+                or self._text_field((node.get("program") or {}).get("title"))
             )
             start = (
-                self._parse_dt(node.get("startTime") or node.get("start") or node.get("startsAt"))
+                self._parse_dt(
+                    node.get("startTime")
+                    or node.get("start_time")
+                    or node.get("start")
+                    or node.get("startsAt")
+                )
                 or self._parse_dt((node.get("airing") or {}).get("startTime"))
             )
             stop = (
-                self._parse_dt(node.get("endTime") or node.get("stop") or node.get("endsAt"))
+                self._parse_dt(
+                    node.get("endTime")
+                    or node.get("end_time")
+                    or node.get("stop")
+                    or node.get("endsAt")
+                )
                 or self._parse_dt((node.get("airing") or {}).get("endTime"))
             )
 
@@ -611,8 +1017,10 @@ class FuboClient:
     def schedule(self, channels: list[Channel], days: int | None = None) -> list[Programme]:
         """Fetch guide listings and map them onto known channels.
 
-        Tries several authenticated Fubo endpoints. Returns an empty list when
-        schedule data is unavailable so callers can still emit channel-only XMLTV.
+        Prefers live-confirmed ``/epg`` (``channelWithProgramAssets``), then
+        ``papi/v1/guide/epg``, then older bulk/sample paths. Returns an empty
+        list when schedule data is unavailable so callers can still emit
+        channel-only XMLTV.
         """
         days = days if days is not None else self.settings.epg_days
         now = datetime.now(timezone.utc)
@@ -626,58 +1034,96 @@ class FuboClient:
         channels_by_id = {ch.id: ch for ch in channels}
         channels_by_call = {ch.call_sign: ch for ch in channels}
 
-        candidates: list[tuple[str, dict[str, Any] | None]] = [
-            (
-                "epg",
-                {
-                    "startTime": start_iso,
-                    "endTime": end_iso,
-                },
-            ),
-            (
-                "v3/epg",
-                {
-                    "startTime": start_iso,
-                    "endTime": end_iso,
-                },
-            ),
-            (
-                "tvguide",
-                {
-                    "startTime": start_ms,
-                    "endTime": end_ms,
-                },
-            ),
-            (
-                "v3/kgraph/v3/epg",
-                {
-                    "startTime": start_iso,
-                    "endTime": end_iso,
-                },
-            ),
-            (
-                "epg/v1/listings",
-                {
-                    "startTime": start_iso,
-                    "endTime": end_iso,
-                },
-            ),
-        ]
-
         programmes: list[Programme] = []
+        source: str | None = None
 
-        for path, params in candidates:
-            try:
-                payload = self.api_get(path, params=params)
-            except FuboError as exc:
-                logger.debug("EPG endpoint %s unavailable: %s", path, exc)
-                continue
+        logger.info(
+            "EPG schedule probe starting (%s channels, %s day(s))",
+            len(channels),
+            days,
+        )
 
-            found = self._programmes_from_payload(payload, channels_by_id, channels_by_call)
-            if found:
-                logger.info("Loaded %s programmes from %s", len(found), path)
-                programmes.extend(found)
-                break
+        # Field note (2026-08-12): plain /epg returns 200; older paths 404. Parse
+        # channelWithProgramAssets explicitly — the generic walker maps 0 rows.
+        found = self._fetch_epg_assets_programmes(start, end, channels_by_id)
+        if found:
+            programmes.extend(found)
+            source = "epg"
+
+        if not programmes:
+            papi_components = self._fetch_papi_guide_components(start, end)
+            if papi_components:
+                rich = self._fetch_epg_enrichment(start, end)
+                found = self._programmes_from_papi_components(
+                    papi_components, channels_by_id, rich_lookup=rich
+                )
+                if found:
+                    logger.info(
+                        "Loaded %s programmes from papi/v1/guide/epg (%s channel-cells, %s enriched keys)",
+                        len(found),
+                        len(papi_components),
+                        len(rich),
+                    )
+                    programmes.extend(found)
+                    source = "papi/v1/guide/epg"
+                else:
+                    logger.info(
+                        "EPG papi/v1/guide/epg returned %s channel-cells but 0 programmes mapped to lineup",
+                        len(papi_components),
+                    )
+            else:
+                logger.info(
+                    "EPG papi/v1/guide/epg returned no channel-cells (all chunks failed or empty)"
+                )
+
+        if not programmes:
+            candidates: list[tuple[str, dict[str, Any] | None]] = [
+                (
+                    "v3/epg",
+                    {
+                        "startTime": start_iso,
+                        "endTime": end_iso,
+                    },
+                ),
+                (
+                    "tvguide",
+                    {
+                        "startTime": start_ms,
+                        "endTime": end_ms,
+                    },
+                ),
+                (
+                    "v3/kgraph/v3/epg",
+                    {
+                        "startTime": start_iso,
+                        "endTime": end_iso,
+                    },
+                ),
+                (
+                    "epg/v1/listings",
+                    {
+                        "startTime": start_iso,
+                        "endTime": end_iso,
+                    },
+                ),
+            ]
+
+            for path, params in candidates:
+                try:
+                    payload = self.api_get(path, params=params, timeout=60.0)
+                except FuboError as exc:
+                    logger.info("EPG endpoint %s unavailable: %s", path, exc)
+                    continue
+
+                found = self._programmes_from_payload(
+                    payload, channels_by_id, channels_by_call
+                )
+                if found:
+                    logger.info("Loaded %s programmes from %s", len(found), path)
+                    programmes.extend(found)
+                    source = path
+                    break
+                logger.info("EPG endpoint %s responded but mapped 0 programmes", path)
 
         # Fall back to a small sample of per-network schedules when bulk EPG is unavailable.
         if not programmes:
@@ -692,7 +1138,7 @@ class FuboClient:
                             params={"startTime": start_iso, "endTime": end_iso},
                         )
                     except FuboError as exc:
-                        logger.debug("EPG endpoint %s unavailable: %s", path, exc)
+                        logger.info("EPG endpoint %s unavailable: %s", path, exc)
                         continue
                     found = self._programmes_from_payload(
                         payload, channels_by_id, channels_by_call
@@ -700,6 +1146,7 @@ class FuboClient:
                     if found:
                         logger.info("Loaded %s programmes from %s", len(found), path)
                         programmes.extend(found)
+                        source = path
 
         # De-dupe by channel + start + title
         unique: dict[tuple[str, str, str], Programme] = {}
@@ -707,4 +1154,16 @@ class FuboClient:
             key = (prog.channel_id, prog.start.isoformat(), prog.title)
             unique[key] = prog
 
-        return sorted(unique.values(), key=lambda p: (p.channel_id, p.start))
+        result = sorted(unique.values(), key=lambda p: (p.channel_id, p.start))
+        if result:
+            logger.info(
+                "EPG schedule complete: %s programmes (source=%s)",
+                len(result),
+                source or "unknown",
+            )
+        else:
+            logger.warning(
+                "EPG schedule complete: 0 programmes — XMLTV will be channel-only; "
+                "use Emby Guide Data FuboTV / Jellyfin Schedules Direct until a probe succeeds"
+            )
+        return result

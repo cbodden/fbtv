@@ -4,7 +4,7 @@
 
 ## Prior art and inspiration
 
-Fubo authentication headers, device-id persistence, channel-lineup discovery, DRM skip heuristics, and live stream resolution patterns were informed by community “vlc-bridge” / Channels DVR bridge work:
+Fubo authentication headers, device-id persistence, channel-lineup discovery, DRM skip heuristics, live stream resolution, and **guide EPG** patterns (`/epg` assets payloads, `papi/v1/guide/epg`) were informed by community “vlc-bridge” / Channels DVR bridge work:
 
 | Project | Authors / maintainers | Notes |
 | --- | --- | --- |

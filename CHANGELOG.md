@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- EPG prefers live-confirmed `/epg` (`channelWithProgramAssets` parser); then `papi/v1/guide/epg`; older schedule URLs kept as fallback
+- INFO-level EPG probe logging (success and empty/failed paths); `"Loaded N programmes"` is a log line, not XML content
+- Emby setup recommends **Guide Data FuboTV** as the primary guide while bridge `programme_count` is `0`
+- GHCR publishes on **`dev`** as `ghcr.io/cbodden/fbtv:dev` (does not move `:latest`); docs for Compose pre-release pulls
+- Unit coverage for `papi` `program-cell` / `title.text` and `/epg` assets parsing
 - Learn `drmProtected` stations at tune time, drop them from the in-memory lineup, and persist IDs in `config/drm_skipped.json` so they stay out of `/playlist.m3u` after refresh/restart
 - Lineup also treats `drmProtected` / `isDrm` flags on channel metadata as DRM (in addition to known sources/call signs)
 - Docs tree synced for 1.0.3 DRM learn/exclude (`drm_skipped.json`, status `drm_learned_count`)
@@ -20,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Image/app version **1.0.3**
+- Image/app version **1.0.4**
+- GitHub Actions Docker workflow triggers on **`main` and `dev`** (`:latest` still default-branch only)
 - Fubo client headers aligned to current community bridge (`x-client-version` 5.40.0 / FuboPlayer 1.106.0)
 - `load_dotenv(interpolate=False)` so `$` in local `.env` passwords is left alone
 - Wrapping `'` / `"` around `FUBO_USER` / `FUBO_PASS` are stripped
@@ -44,8 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 
 - Optional MPEG-TS remux / stream proxy for clients that do not share egress IP with the bridge
-- Richer EPG once stable Fubo schedule endpoints are confirmed in the field
 - Configurable DRM allow/deny lists
+- Field-confirm richer EPG on live accounts; then prefer bridge XMLTV over Emby Guide Data when `programme_count` is healthy
 
 ## [1.0.0] - 2026-08-06
 

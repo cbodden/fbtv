@@ -41,7 +41,7 @@ Supported. Each server imports channels independently.
 
 | Quirk | Emby | Jellyfin |
 | --- | --- | --- |
-| Sparse Fubo EPG fallback | Emby Guide Data **FuboTV** lineup + manual map | Schedules Direct or third-party XMLTV + manual map; cannot combine Schedules Direct and XMLTV |
+| Sparse / empty Fubo EPG | **Prefer Emby Guide Data FuboTV** until `/status.json` shows `epg.programme_count` > 0; bridge XMLTV optional | Schedules Direct or third-party XMLTV + manual map; cannot combine Schedules Direct and XMLTV |
 | Channel → guide mapping UI | Live TV guide provider mapping | **Dashboard → Live TV → Channels** (edit EPG channel when auto-match fails) |
 | Docker reachability | LAN IP or `host.docker.internal` from the Emby container to a host-side bridge | LAN IP or `host.docker.internal` from the Jellyfin container to a host-side bridge |
 | Optional M3U User-Agent | Rarely needed for this bridge | Rarely needed for this bridge (streams are Fubo CDN after 302) |
@@ -51,8 +51,8 @@ Supported. Each server imports channels independently.
 | Kind | Current name |
 | --- | --- |
 | GitHub repo | [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) |
-| Compose service / container | `fbtv` (pulls GHCR; credentials file or `FUBO_*` / `FUBO_PASS_B64`) |
-| GHCR image | `ghcr.io/cbodden/fbtv` |
+| Compose service / container | `fbtv` (pulls GHCR `:latest` or `:dev`; credentials file or `FUBO_*` / `FUBO_PASS_B64`) |
+| GHCR image | `ghcr.io/cbodden/fbtv` (`:latest` from `main`, `:dev` from `dev`) |
 | XMLTV `generator-info-name` | `fbtv` |
 
 Older labels (`fubo-emby`, `fubo_emby`, `fubotv_emby`, `fubotv-emby`) are historical only. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).

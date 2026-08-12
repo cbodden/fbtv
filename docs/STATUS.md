@@ -24,9 +24,11 @@ Full field reference and examples: [API.md](API.md).
 | EPG | `cached`, cache age, TTL, last-build `programme_count` / `channel_count` |
 | Requests | OK/error counters for playlist, EPG, and watch |
 
-Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`. Opening `/status` alone does not force a Fubo refresh. After restart, fetch the playlist (or EPG) once to populate counts. `drm_learned_count` reflects stations persisted in `config/drm_skipped.json` from prior `drmProtected` tunes.
+Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`. Opening `/status` alone does not force a Fubo refresh. After restart, fetch the playlist (or EPG) once to populate counts. `drm_learned_count` reflects stations persisted in `config/drm_skipped.json` from prior `drmProtected` tunes. `epg.programme_count` of `0` with `cached: true` means channel-only XMLTV (schedule probe empty or unmapped). Success/failure details are in **container logs** (`Loaded N programmes…` / `EPG schedule complete…`), not inside the XML body.
 
 Snapshots **do not** include passwords, bearer tokens, or raw stream URLs.
+
+Pre-release image: `ghcr.io/cbodden/fbtv:dev` (from the `dev` branch). Stable: `:latest` (from `main`).
 
 ## Quick checks
 

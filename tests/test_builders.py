@@ -213,6 +213,113 @@ def test_is_drm_channel_flags() -> None:
     assert not FuboClient._is_drm_channel({"callSign": "ESPN", "source": "other"})
 
 
+def test_papi_program_cell_parsing() -> None:
+    from app.config import Settings
+    from app.fubo_client import FuboClient
+
+    settings = Settings(
+        fubo_user="u@example.com",
+        fubo_pass="secret",
+        host="0.0.0.0",
+        port=7777,
+        config_dir=Path(__import__("tempfile").mkdtemp()),
+        epg_cache_seconds=3600,
+        epg_days=2,
+        credentials_source="test",
+    )
+    client = FuboClient(settings)
+    try:
+        channels = [Channel(id="12345", call_sign="ESPN", name="ESPN")]
+        components = [
+            {
+                "type": "channel-cell",
+                "id": "12345",
+                "components": [
+                    {
+                        "type": "program-cell",
+                        "start_time": "2026-08-12T18:00:00.000Z",
+                        "end_time": "2026-08-12T19:00:00.000Z",
+                        "title": {"text": "SportsCenter"},
+                        "subtitle": {"text": "Highlights"},
+                    }
+                ],
+            }
+        ]
+        rich = {
+            ("12345", "2026-08-12T18:00:00.000Z"): {
+                "description": "Nightly sports news",
+                "genres": ["Sports"],
+                "normalizedGenres": ["Sports"],
+            }
+        }
+        found = client._programmes_from_papi_components(
+            components, {ch.id: ch for ch in channels}, rich_lookup=rich
+        )
+        assert len(found) == 1
+        assert found[0].channel_id == "ESPN"
+        assert found[0].title == "SportsCenter"
+        assert found[0].description == "Nightly sports news"
+        assert "Sports" in found[0].categories
+    finally:
+        client.close()
+
+
+def test_epg_assets_parsing() -> None:
+    from app.config import Settings
+    from app.fubo_client import FuboClient
+
+    settings = Settings(
+        fubo_user="u@example.com",
+        fubo_pass="secret",
+        host="0.0.0.0",
+        port=7777,
+        config_dir=Path(__import__("tempfile").mkdtemp()),
+        epg_cache_seconds=3600,
+        epg_days=2,
+        credentials_source="test",
+    )
+    client = FuboClient(settings)
+    try:
+        channels = [Channel(id="16689", call_sign="ESPN", name="ESPN")]
+        payload = {
+            "response": [
+                {
+                    "type": "channelWithProgramAssets",
+                    "data": {
+                        "channel": {"id": 16689},
+                        "programsWithAssets": [
+                            {
+                                "program": {
+                                    "title": "SportsCenter",
+                                    "shortDescription": "Highlights",
+                                    "genres": [{"name": "Sports"}],
+                                },
+                                "assets": [
+                                    {
+                                        "accessRights": {
+                                            "startTime": "2026-08-12T18:00:00.000Z",
+                                            "endTime": "2026-08-12T19:00:00.000Z",
+                                        }
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+        found = client._programmes_from_epg_assets(
+            payload, {ch.id: ch for ch in channels}
+        )
+        assert len(found) == 1
+        assert found[0].channel_id == "ESPN"
+        assert found[0].title == "SportsCenter"
+        assert found[0].description == "Highlights"
+        assert "Sports" in found[0].categories
+    finally:
+        client.close()
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
@@ -224,4 +331,6 @@ if __name__ == "__main__":
     test_credentials_pass_b64()
     test_mark_drm_station_removes_from_cache_and_persists()
     test_is_drm_channel_flags()
+    test_papi_program_cell_parsing()
+    test_epg_assets_parsing()
     print("ok")

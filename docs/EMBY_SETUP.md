@@ -33,22 +33,28 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 | `group-title` | Package / plan grouping (imported as tags) |
 | URL line | `http://<bridge>/watch/<stationId>` |
 
-## Add XMLTV guide data
+## Guide data (recommended: Emby Guide Data FuboTV)
+
+Fubo’s private schedule APIs have been unreliable (many paths 404). **Until bridge `/epg.xml` shows a non-zero `epg.programme_count` in `/status.json`, use Emby Guide Data’s FuboTV lineup as the primary guide:**
 
 1. Under **TV Guide Data Providers**, click **+**
-2. Select **XMLTV**
-3. URL: `http://<bridge-host>:7777/epg.xml`
-4. Choose a refresh interval (daily is typical; bridge caches EPG for `EPG_CACHE_SECONDS`)
-5. Save and refresh guide data
+2. Choose **Emby Guide Data** (not XMLTV)
+3. Set your ZIP / country, then select a **FuboTV** lineup when offered (scroll — US lists are long; Guide Data plugin **1.0.18+** added FuboTV)
+4. Save and refresh guide data
+5. Map channels by name / call sign where Emby does not auto-match
 
-## Channel mapping
+### Optional: bridge XMLTV
 
-When `tvg-id` matches XMLTV channel ids, Emby often maps automatically.
+You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Deploy via `ghcr.io/cbodden/fbtv:dev` or a local build until merged to `main`. Check after a refresh:
 
-If listings are sparse (schedule API unavailable):
+```bash
+curl -sS http://<bridge-host>:7777/health          # version should be 1.0.4+
+curl -sS http://<bridge-host>:7777/status.json      # epg.programme_count
+curl -sS http://<bridge-host>:7777/epg.xml | grep -c '<programme'
+# "Loaded N programmes" appears in container logs, not in the XML body
+```
 
-1. Keep the bridge XMLTV for channel identity, **or**
-2. Add Emby Guide Data and select a **FuboTV** lineup (when offered for your ZIP), then map channels manually by name/call sign
+If `programme_count` stays `0`, keep Emby Guide Data as the guide source and treat bridge XMLTV as optional.
 
 ## Playback checklist
 

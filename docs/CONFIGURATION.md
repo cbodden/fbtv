@@ -84,7 +84,22 @@ PORT=7788 EPG_CACHE_SECONDS=7200 docker compose up -d
 docker compose logs -f fbtv
 ```
 
-GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main` only** (see `.github/workflows/docker.yml`). Tags: `latest`, `sha-<commit>`. Work on `dev` is not published until merged.
+GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main`** and **`dev`** (see `.github/workflows/docker.yml`):
+
+| Branch | Tags |
+| --- | --- |
+| `main` | `latest`, `main`, `sha-<commit>` |
+| `dev` | `dev`, `sha-<commit>` (does **not** move `latest`) |
+
+```yaml
+# Stable (main)
+image: ghcr.io/cbodden/fbtv:latest
+pull_policy: always
+
+# Pre-release from the `dev` branch
+image: ghcr.io/cbodden/fbtv:dev
+pull_policy: always
+```
 
 ## Runtime files
 

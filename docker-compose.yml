@@ -1,5 +1,6 @@
 services:
   fbtv:
+    # Default: stable from main. For pre-release: ghcr.io/cbodden/fbtv:dev
     image: ghcr.io/cbodden/fbtv:latest
     pull_policy: always
     container_name: fbtv

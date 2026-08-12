@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.6 DRM pacing/429 docs + sweep + EPG).
+**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.6 released on `main`).
 
 ## What this is
 
@@ -32,7 +32,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** v1.0.6 in tree (DRM scan pacing for Fubo 429). EPG field-confirmed on `:dev` (~19k programmes). **Do not merge `dev` → `main` until user asks.**
+**Status:** **v1.0.6** on `main` / GHCR `:latest` (EPG `/epg` parser, DRM background scan with 429 pacing). Pre-release continues on `dev` → `:dev`.
 
 ## Non-goals (v1)
 

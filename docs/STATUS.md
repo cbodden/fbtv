@@ -30,7 +30,7 @@ Snapshots **do not** include passwords, bearer tokens, or raw stream URLs.
 
 DRM sweep status is also at `GET /admin/drm-scan` (includes `settings.concurrency` / `settings.delay_ms` and last-result `rate_limited`); start with `POST /admin/drm-scan?force=true`. Scans are paced for Fubo rate limits — see [CONFIGURATION.md](CONFIGURATION.md#drm-scan).
 
-Pre-release image: `ghcr.io/cbodden/fbtv:dev` (from the `dev` branch; **1.0.6+**). Stable: `:latest` (from `main`).
+Pre-release image: `ghcr.io/cbodden/fbtv:dev` (from the `dev` branch). Stable: `:latest` from **`main`** (**1.0.6+**).
 
 ## Quick checks
 

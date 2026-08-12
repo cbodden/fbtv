@@ -246,7 +246,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. Pull pre-release with `ghcr.io/cbodden/fbtv:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. Stable image: `ghcr.io/cbodden/fbtv:latest`; pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -340,7 +340,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Sign-in 401 `INVALID_USERNAME_PASSWORD` | Use `FUBO_PASS_B64` or `python -m app.set_credentials`; do not quote passwords — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
 | Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; test watch with GET (not HEAD); fix shared egress / Cloudflare 403 |
-| Logs show `vapi/asset` **429** during DRM scan | Expected under load before 1.0.6; use `:dev` 1.0.6+, keep `DRM_SCAN_CONCURRENCY=1`, raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
+| Logs show `vapi/asset` **429** during DRM scan | Use **1.0.6+** (`:latest` or `:dev`); keep `DRM_SCAN_CONCURRENCY=1`; raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
 | Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
 | Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
@@ -382,7 +382,7 @@ app/
 docs/                 # Deep-dive documentation
 tests/                # Unit checks (no live Fubo calls)
 credentials.env.example
-.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main)
+.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main → :latest, dev → :dev)
 docker-compose.yml            # Pulls ghcr.io/cbodden/fbtv:latest (use :dev for pre-release)
 ```
 

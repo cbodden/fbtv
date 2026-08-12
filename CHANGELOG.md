@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+
+- Optional MPEG-TS remux / stream proxy for clients that do not share egress IP with the bridge
+- Configurable DRM allow/deny lists (manual overrides on top of scan)
+
+## [1.0.6] - 2026-08-12
+
 ### Added
 
 - Background DRM asset sweep (startup + interval + `POST /admin/drm-scan`): probe `vapi/asset`, persist DRM/playable in `config/drm_skipped.json`, clear EPG cache so M3U/XMLTV stay aligned; env `DRM_SCAN_*`
 - DRM scan pacing: default concurrency **1**, `DRM_SCAN_DELAY_MS` (750), and exponential backoff on HTTP **429**
-- Docs tree synced for 1.0.6 (DRM pacing / 429 troubleshooting, admin scan examples, `DRM_SCAN_*` in README)
 - EPG prefers live-confirmed `/epg` (`channelWithProgramAssets` parser); then `papi/v1/guide/epg`; older schedule URLs kept as fallback
 - INFO-level EPG probe logging (success and empty/failed paths); `"Loaded N programmes"` is a log line, not XML content
 - Emby setup recommends **Guide Data FuboTV** as the primary guide while bridge `programme_count` is `0`
@@ -19,12 +25,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit coverage for `papi` `program-cell` / `title.text`, `/epg` assets parsing, and DRM scan
 - Learn `drmProtected` stations at tune time, drop them from the in-memory lineup, and persist IDs in `config/drm_skipped.json` so they stay out of `/playlist.m3u` after refresh/restart
 - Lineup also treats `drmProtected` / `isDrm` flags on channel metadata as DRM (in addition to known sources/call signs)
-- Docs tree synced for 1.0.3 DRM learn/exclude (`drm_skipped.json`, status `drm_learned_count`)
 - `FUBO_PASS_B64` and `python -m app.set_credentials` so passwords with `$` / `!` can be stored without shell/Portainer interpolation
 - `pass_fp` / `pass_classes` in credential logs (SHA-256 prefix; never the password)
-- Docs tree synced for 1.0.2 credentials (B64 / file / Portainer), GHCR-from-`main`, and `credentials_source` on status
 - `config/credentials.env` / `credentials.json` (and `FUBO_*_FILE`) so Portainer can store secrets on the volume without `$` / quote mangling; file wins over env
 - Startup / 401 logs include credentials source, `pass_len`, and whether wrapping quotes were stripped (never the password)
+- GitHub Actions workflow to build and push the Docker image to GHCR when `Dockerfile` / app context changes
+- GitHub repository renamed to [`cbodden/fbtv`](https://github.com/cbodden/fbtv) and made public
+- Docker Compose service/image and GHCR package name set to `fbtv` (was `fubo-emby` / `fubo_emby`)
+- Documentation tree for public `cbodden/fbtv`, Compose/`ghcr` image `fbtv`, and GHCR pull notes
+- Compose pulls `ghcr.io/cbodden/fbtv:latest` (no local build) and takes credentials from the host/stack environment (no `env_file` / `.env`)
+- Portainer notes for `INVALID_USERNAME_PASSWORD` (`$` env interpolation) in `docs/TROUBLESHOOTING.md`
+- `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
+- `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
+- Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files
+- Expanded `README.md` into a full user guide (install, Emby & Jellyfin wiring, day-to-day use)
+- Explicit **Emby and Jellyfin** support as equal first-class targets: `docs/JELLYFIN_SETUP.md`, `docs/MEDIA_SERVERS.md`; dual-server language across docs and OpenAPI
+- Runtime metrics: live snapshot on `/`, HTML `/status`, JSON `/status.json`, Prometheus `/metrics`
+- `docs/STATUS.md` and related docs for metrics / DRM scan admin
 
 ### Changed
 
@@ -33,27 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fubo client headers aligned to current community bridge (`x-client-version` 5.40.0 / FuboPlayer 1.106.0)
 - `load_dotenv(interpolate=False)` so `$` in local `.env` passwords is left alone
 - Wrapping `'` / `"` around `FUBO_USER` / `FUBO_PASS` are stripped
-
-### Added (earlier unreleased)
-
-- GitHub Actions workflow to build and push the Docker image to GHCR when `Dockerfile` / app context changes on `main`
-- GitHub repository renamed to [`cbodden/fbtv`](https://github.com/cbodden/fbtv) and made public
-- Docker Compose service/image and GHCR package name set to `fbtv` (was `fubo-emby` / `fubo_emby`)
-- Documentation tree rebalanced for public `cbodden/fbtv`, Compose/`ghcr` image `fbtv`, and GHCR pull notes
-- Compose pulls `ghcr.io/cbodden/fbtv:latest` (no local build) and takes credentials from the host/stack environment (no `env_file` / `.env`)
-- Portainer notes for `INVALID_USERNAME_PASSWORD` (`$` env interpolation) in `docs/TROUBLESHOOTING.md`
-- `CREDITS.md` attributing community Fubo bridge prior art and third-party dependencies
-- `CONTEXT.md` durable project context and `WORKING_MEMORY.md` session state
-- Cursor rule `.cursor/rules/project-context.mdc` to load/maintain those files
-- Expanded `README.md` into a full user guide (install, Emby & Jellyfin wiring, day-to-day use)
-- Explicit **Emby and Jellyfin** support as equal first-class targets: `docs/JELLYFIN_SETUP.md`, `docs/MEDIA_SERVERS.md`; README / Architecture / Troubleshooting / Configuration / API / landing page / OpenAPI title rebalanced for dual-server language
-- Runtime metrics: live snapshot on `/`, HTML `/status`, JSON `/status.json`, Prometheus `/metrics` (channel/DRM/EPG/request counters from in-process caches)
-- `docs/STATUS.md` plus README / Architecture / Troubleshooting / Configuration / Media servers / Emby & Jellyfin setup / Security / Contributing updates for metrics
-
-### Planned
-
-- Optional MPEG-TS remux / stream proxy for clients that do not share egress IP with the bridge
-- Configurable DRM allow/deny lists (manual overrides on top of scan)
+- Docs synced for DRM pacing / 429 troubleshooting, admin scan examples, and `DRM_SCAN_*` in README
 
 ## [1.0.0] - 2026-08-06
 
@@ -73,5 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for M3U and XMLTV builders
 - Project documentation under `docs/`
 
-[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/cbodden/fbtv/compare/v1.0.0...v1.0.6
 [1.0.0]: https://github.com/cbodden/fbtv/releases/tag/v1.0.0

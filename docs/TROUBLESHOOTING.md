@@ -88,7 +88,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.6`+ (`ghcr.io/cbodden/fbtv:dev`) |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.6`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
@@ -105,7 +105,7 @@ Workarounds:
 
 - **Emby (recommended while programmes are empty):** Emby Guide Data **FuboTV** lineup + manual map — see [EMBY_SETUP.md](EMBY_SETUP.md)
 - **Jellyfin:** use Schedules Direct **or** another XMLTV source (not both with bridge XMLTV at once) and map under **Live TV → Channels**
-- After deploying 1.0.4+ (`:dev` or a local build), refresh `/epg.xml` and check logs for `Loaded N programmes from epg` / `EPG schedule complete`
+- After deploying 1.0.4+ (`:latest`, `:dev`, or a local build), refresh `/epg.xml` and check logs for `Loaded N programmes from epg` / `EPG schedule complete`
 - Lower `EPG_CACHE_SECONDS` temporarily after an API fix so a stale empty body is not reused
 - Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
 - Remember: `"Loaded N programmes"` appears in **container logs**, not inside the XML body

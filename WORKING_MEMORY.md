@@ -2,31 +2,30 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~22:50 local (docs synced on `dev` for 1.0.2 credentials)  
-**Active version:** 1.0.2  
-**Phase:** Docs on `dev` match B64/file credentials; GHCR `:latest` still from `main` until merge  
-**Git:** `dev` → `origin/dev` (`git@github.com:cbodden/fbtv.git`); `main` is older
+**Last updated:** 2026-08-12 (docs synced + 1.0.3 DRM learn ready to commit on `dev`)  
+**Active version:** 1.0.3  
+**Phase:** Docs synced for learn-on-tune DRM; Emby field test continues (EPG via Guide Data)  
+**Git:** `dev` → commit 1.0.3 locally; `main` / GHCR `:latest` still older until merge
 
 ---
 
 ## Resume here (this session)
 
-1. Read [CONTEXT.md](CONTEXT.md) then this file
-2. Credentials: `config/credentials.env` with `FUBO_PASS_B64` (or `python -m app.set_credentials`). Alphanumeric `FUBO_PASS` works in Portainer today.
-3. Start: `docker compose up -d` pulls **`main`’s** GHCR image unless you build locally from `dev`
-4. Verify: `/health` (expect 1.0.2 only after `dev` is in the image), `/status.json`, playlist, epg
-5. Wire Emby / Jellyfin per `docs/MEDIA_SERVERS.md`
-6. Retry `$` password once via `FUBO_PASS_B64` after 1.0.2 is running
+1. Deploy/build 1.0.3 from `dev` (GHCR `:latest` is still older until merge to `main`)
+2. Tune a known DRM channel once → confirm log `Learned DRM station …` and `config/drm_skipped.json`
+3. Re-fetch `/playlist.m3u` and refresh Emby M3U tuner — DRM id should be gone
+4. Emby guide: use Emby Guide Data FuboTV until schedule endpoints are fixed
+5. Optional later: find working Fubo EPG URL; merge `dev` → `main` for GHCR
 
 ## Current focus
 
-- Documentation aligned to 1.0.2 credential model on branch `dev`
-- Confirm `$` password via `FUBO_PASS_B64` after image includes this branch
-- Emby/Jellyfin wiring still pending
+- Learn-on-tune DRM exclusion shipped in tree (1.0.3)
+- Emby wiring / guide workaround still in progress
+- EPG schedule probe still all 404
 
 ## Snapshot — what exists on disk
 
-Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`)
+Path: `/Users/cesarbodden/git/mine/fbtv` (this checkout); also `/home/cbodden/git/mine/fubo_emby`. GitHub is `cbodden/fbtv`.
 
 | Area | Contents |
 | --- | --- |
@@ -36,7 +35,7 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 | Docs | README + `docs/` + SECURITY/CONTRIBUTING/CREDITS/CHANGELOG |
 | Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
 | Tests | `tests/test_builders.py` |
-| Local only | `.venv/`; secrets in volume `config/credentials.*` or env |
+| Local only | `.venv/`; secrets in volume `config/credentials.*` or env; `config/drm_skipped.json` (learned DRM ids) |
 
 ## Done so far
 
@@ -62,30 +61,32 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 - [x] Live Fubo sign-in (alphanumeric password, Portainer) (2026-08-11)
 - [x] FUBO_PASS_B64 + set_credentials on `dev` (2026-08-11)
 - [x] Docs resynced on `dev` for 1.0.2 credentials (2026-08-11)
+- [x] Emby M3U channels import OK; watch 302 on playable channels (2026-08-12)
+- [x] Docs resynced on `dev` for 1.0.3 DRM learn/exclude (2026-08-12)
 
 ## Open questions / blockers
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Live Fubo sign-in | OK without `$` | Portainer + credentials file; `$` still needs B64 (1.0.2 image) |
-| Usable EPG endpoint | Unknown | Probe logic present; may be channel-only XMLTV (`docs/TROUBLESHOOTING.md`) |
-| Emby/Jellyfin ↔ bridge topology | Unknown | HLS 302 needs shared public egress IP |
+| Live Fubo sign-in | OK without `$` | Portainer + credentials file; `$` still needs B64 (1.0.2+ image) |
+| Usable EPG endpoint | Broken (2026-08-12) | All bulk + sample paths 404. Use Emby Guide Data FuboTV workaround |
+| Emby/Jellyfin ↔ bridge topology | In progress | Emby M3U works; shared egress assumed for 302s that play |
 | Docker build | Unverified in original agent env | `docker` was missing there |
 | Jellyfin field validation | Not run | Docs added; playback untested |
 
 ## Field notes (fill in during smoke test)
 
 ```text
-Date: 2026-08-11
+Date: 2026-08-12
 Bridge URL: Portainer / Docker (fbtv)
-Media server(s): not wired yet
+Media server(s): Emby (Jellyfin not wired yet)
 Same egress?:
 Channel count in playlist:
-EPG programmes present?:
-Working EPG endpoint (from logs):
-Playback result (sample channels):
-DRM skips observed:
-Issues: Sign-in 401 until password had no `$`. File load worked (pass_len=14, has_dollar=True) but Fubo rejected; alphanumeric password succeeded. B64 path not field-tested yet.
+EPG programmes present?: 0 (all schedule URLs 404)
+Working EPG endpoint (from logs): none
+Playback result (sample channels): 16689 / 20373 → 302; 20360 → 502 DRM
+DRM skips observed: 20360 confirmed drmProtected
+Issues: Sign-in 401 until password had no `$`. EPG empty. DRM stations were listed until learn-on-tune (1.0.3).
 ```
 
 ## Decisions log
@@ -112,6 +113,8 @@ Issues: Sign-in 401 until password had no `$`. File load worked (pass_len=14, ha
 | 2026-08-11 | Bump Fubo client headers to 5.40.0 | User: 401 persists with correct email + pass_len=14 / `$` |
 | 2026-08-11 | FUBO_PASS_B64 + set_credentials for `$` passwords | User: works without `$`, wants secure passwords |
 | 2026-08-11 | Resync all docs on `dev` for 1.0.2 credential model | User: update all documentation on dev |
+| 2026-08-12 | Learn drmProtected at tune; persist + exclude from M3U | User: drop DRM stations from playlist |
+| 2026-08-12 | Resync all docs for 1.0.3 DRM learn model | User: update all documentation and commit |
 
 ## Do not forget
 
@@ -123,4 +126,4 @@ Issues: Sign-in 401 until password had no `$`. File load worked (pass_len=14, ha
 
 ## Scratch
 
-_Scratch: Docs on `dev` describe FUBO_PASS_B64 / set_credentials / GHCR-from-main. Alphanumeric Fubo sign-in works. Merge `dev` → `main` before `:latest` includes 1.0.2._
+_Scratch: 1.0.3 learn-on-tune DRM on `dev`. Emby needs M3U refresh after learn. EPG still needs Emby Guide Data or a new schedule URL._

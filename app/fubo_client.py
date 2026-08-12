@@ -8,6 +8,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from threading import Lock
 from typing import Any
 
@@ -70,9 +71,64 @@ class FuboClient:
         self._channels_source: str | None = None
         self._drm_skipped_count = 0
         self._drm_skipped_ids: set[str] = set()
+        self._drm_learned_ids: set[str] = self._load_drm_skipped()
 
     def close(self) -> None:
         self._http.close()
+
+    def _drm_skipped_path(self) -> Path:
+        return self.settings.config_dir / "drm_skipped.json"
+
+    def _load_drm_skipped(self) -> set[str]:
+        path = self._drm_skipped_path()
+        if not path.exists():
+            return set()
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning("Could not read %s; starting with empty DRM skip list", path)
+            return set()
+        if isinstance(data, dict):
+            raw_ids = data.get("station_ids") or data.get("ids") or []
+        elif isinstance(data, list):
+            raw_ids = data
+        else:
+            return set()
+        return {str(item) for item in raw_ids if item}
+
+    def _save_drm_skipped(self) -> None:
+        path = self._drm_skipped_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "station_ids": sorted(self._drm_learned_ids),
+            }
+            path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        except OSError as exc:
+            logger.warning("Could not persist DRM skip list to %s: %s", path, exc)
+
+    def mark_drm_station(self, station_id: str) -> None:
+        """Remember a station that Fubo flagged drmProtected; drop it from the M3U cache."""
+        sid = str(station_id).strip()
+        if not sid:
+            return
+        with self._lock:
+            newly = sid not in self._drm_learned_ids
+            self._drm_learned_ids.add(sid)
+            self._drm_skipped_ids.add(sid)
+            if self._channels_cache is not None:
+                before = len(self._channels_cache)
+                self._channels_cache = [ch for ch in self._channels_cache if ch.id != sid]
+                if len(self._channels_cache) != before:
+                    logger.info("Removed DRM station %s from channel cache", sid)
+            self._drm_skipped_count = len(self._drm_skipped_ids | self._drm_learned_ids)
+            if newly:
+                self._save_drm_skipped()
+                logger.info(
+                    "Learned DRM station %s (total learned=%s); excluded from future playlists",
+                    sid,
+                    len(self._drm_learned_ids),
+                )
 
     def _load_device_id(self) -> str:
         path = self.settings.config_dir / "device.json"
@@ -165,6 +221,10 @@ class FuboClient:
 
     @staticmethod
     def _is_drm_channel(channel: dict[str, Any]) -> bool:
+        if channel.get("drmProtected") is True or channel.get("drm_protected") is True:
+            return True
+        if channel.get("isDrm") is True or channel.get("is_drm") is True:
+            return True
         source = channel.get("source") or ""
         call_sign = channel.get("call_sign") or channel.get("callSign") or ""
         if source in DRM_SOURCES:
@@ -358,7 +418,9 @@ class FuboClient:
         stations: dict[str, Channel] = {}
         errors: list[str] = []
         source_used: str | None = None
-        self._drm_skipped_ids = set()
+        with self._lock:
+            learned = set(self._drm_learned_ids)
+        self._drm_skipped_ids = set(learned)
 
         try:
             stations = self._channels_from_subscriptions()
@@ -380,6 +442,11 @@ class FuboClient:
         if not stations:
             raise FuboError("; ".join(errors) or "No channels returned from Fubo")
 
+        for sid in list(stations.keys()):
+            if sid in learned:
+                del stations[sid]
+                self._drm_skipped_ids.add(sid)
+
         sorted_channels = sorted(
             stations.values(),
             key=lambda ch: (
@@ -392,7 +459,12 @@ class FuboClient:
             self._channels_cache = list(sorted_channels)
             self._channels_cache_at = time.time()
             self._channels_source = source_used
-            self._drm_skipped_count = len(self._drm_skipped_ids)
+            self._drm_skipped_count = len(self._drm_skipped_ids | self._drm_learned_ids)
+            if learned:
+                logger.info(
+                    "Excluded %s previously learned DRM stations from lineup",
+                    len(learned),
+                )
 
         return sorted_channels
 
@@ -418,12 +490,14 @@ class FuboClient:
                 "channels_source": self._channels_source,
                 "credentials_source": self.settings.credentials_source,
                 "drm_skipped_count": self._drm_skipped_count,
+                "drm_learned_count": len(self._drm_learned_ids),
             }
 
     def watch(self, channel_id: str) -> str:
         payload = self.api_get("vapi/asset/v1", params={"channelId": channel_id, "type": "live"})
         stream = payload.get("stream") or {}
         if stream.get("drmProtected") is True:
+            self.mark_drm_station(channel_id)
             raise FuboError("Stream is DRM protected")
         url = stream.get("url")
         if not url:

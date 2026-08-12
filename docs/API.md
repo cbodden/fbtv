@@ -11,7 +11,7 @@ Interactive OpenAPI docs are also available when the server is running:
 
 ## `GET /`
 
-HTML index with Emby/Jellyfin copy-paste URLs plus a live snapshot (channel count, sign-in, DRM skips, EPG programmes, uptime, watch counters) and links to status/metrics.
+HTML index with Emby/Jellyfin copy-paste URLs plus a live snapshot (channel count, sign-in, DRM skips / learned, EPG programmes, uptime, watch counters) and links to status/metrics.
 
 **Response:** `200 text/html`
 
@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -42,7 +42,8 @@ Machine-readable JSON status (same payload as the HTML page).
     "channels_cache_age_seconds": 20,
     "channels_source": "subscriptions",
     "credentials_source": "/app/config/credentials.env",
-    "drm_skipped_count": 12
+    "drm_skipped_count": 12,
+    "drm_learned_count": 3
   },
   "epg": {
     "cached": true,
@@ -77,12 +78,12 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.2"}
+{"status": "ok", "version": "1.0.3"}
 ```
 
 ## `GET /playlist.m3u`
 
-Builds an M3U of non-DRM subscribed channels.
+Builds an M3U of non-DRM subscribed channels (known DRM packages plus stations previously learned as `drmProtected` at tune time).
 
 **Response:** `200 audio/x-mpegurl`
 
@@ -145,7 +146,7 @@ Resolves a live stream for the Fubo station id and redirects.
 
 | Status | When |
 | --- | --- |
-| `502` | DRM protected, missing URL, or Fubo API error |
+| `502` | DRM protected (station is learned and dropped from later playlists), missing URL, or Fubo API error |
 | `503` | Service not initialized |
 
 Emby, Jellyfin, or VLC must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream.

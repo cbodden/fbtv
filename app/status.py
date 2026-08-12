@@ -98,6 +98,7 @@ def render_index_html(base: str, version: str, snapshot: dict[str, Any]) -> str:
     <div class="stat"><span class="muted">Channels</span><strong>{_fmt(fubo.get("channel_count"))}</strong></div>
     <div class="stat"><span class="muted">Signed in</span><strong>{"yes" if fubo.get("signed_in") else "no"}</strong></div>
     <div class="stat"><span class="muted">DRM skipped</span><strong>{_fmt(fubo.get("drm_skipped_count"))}</strong></div>
+    <div class="stat"><span class="muted">DRM learned</span><strong>{_fmt(fubo.get("drm_learned_count"))}</strong></div>
     <div class="stat"><span class="muted">EPG programmes</span><strong>{_fmt(epg.get("programme_count"))}</strong></div>
     <div class="stat"><span class="muted">Uptime</span><strong>{_fmt(snapshot.get("uptime_seconds"))}s</strong></div>
     <div class="stat"><span class="muted">Watch OK / err</span><strong>{_fmt(req.get("watch_ok"))} / {_fmt(req.get("watch_error"))}</strong></div>
@@ -132,6 +133,7 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
         ("Channels cache age (seconds)", fubo.get("channels_cache_age_seconds")),
         ("Channels source", fubo.get("channels_source")),
         ("DRM skipped (unique)", fubo.get("drm_skipped_count")),
+        ("DRM learned (tune-time)", fubo.get("drm_learned_count")),
         ("EPG cached", "yes" if epg.get("cached") else "no"),
         ("EPG cache age (seconds)", epg.get("age_seconds")),
         ("EPG TTL (seconds)", epg.get("ttl_seconds")),
@@ -199,9 +201,12 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
         "# HELP fubo_bridge_channels Cached non-DRM channel count.",
         "# TYPE fubo_bridge_channels gauge",
         f"fubo_bridge_channels {int(fubo.get('channel_count') or 0)}",
-        "# HELP fubo_bridge_drm_skipped Unique DRM stations skipped during last lineup load.",
+        "# HELP fubo_bridge_drm_skipped Unique DRM stations skipped (lineup heuristics + learned).",
         "# TYPE fubo_bridge_drm_skipped gauge",
         f"fubo_bridge_drm_skipped {int(fubo.get('drm_skipped_count') or 0)}",
+        "# HELP fubo_bridge_drm_learned Unique DRM stations learned at tune time.",
+        "# TYPE fubo_bridge_drm_learned gauge",
+        f"fubo_bridge_drm_learned {int(fubo.get('drm_learned_count') or 0)}",
         "# HELP fubo_bridge_epg_cached Whether a warm XMLTV body is cached.",
         "# TYPE fubo_bridge_epg_cached gauge",
         f"fubo_bridge_epg_cached {1 if epg.get('cached') else 0}",

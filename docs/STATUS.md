@@ -20,11 +20,11 @@ Full field reference and examples: [API.md](API.md).
 | Area | Fields |
 | --- | --- |
 | Process | `version`, `uptime_seconds`, `started_at`, listen `host`/`port` |
-| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count` |
+| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count`, `drm_learned_count` |
 | EPG | `cached`, cache age, TTL, last-build `programme_count` / `channel_count` |
 | Requests | OK/error counters for playlist, EPG, and watch |
 
-Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`. Opening `/status` alone does not force a Fubo refresh. After restart, fetch the playlist (or EPG) once to populate counts.
+Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`. Opening `/status` alone does not force a Fubo refresh. After restart, fetch the playlist (or EPG) once to populate counts. `drm_learned_count` reflects stations persisted in `config/drm_skipped.json` from prior `drmProtected` tunes.
 
 Snapshots **do not** include passwords, bearer tokens, or raw stream URLs.
 

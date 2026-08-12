@@ -60,9 +60,10 @@ If programmes are missing or channels are unmatched:
 ## Playback checklist
 
 1. From Jellyfin, tune a non-DRM channel (news/basic sports usually fare better than premium movie nets)
-2. If tune fails immediately → check bridge logs for DRM or HTTP errors
-3. If tune starts then fails → suspect **IP binding**; co-locate bridge and Jellyfin egress
-4. On the Jellyfin host, open a `/watch/<id>` URL from the M3U in VLC and confirm it redirects to an `.m3u8`
+2. If tune fails immediately → check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
+3. Refresh the M3U tuner after DRM learns so Jellyfin drops dead entries
+4. If tune starts then fails → suspect **IP binding**; co-locate bridge and Jellyfin egress
+5. On the Jellyfin host, open a `/watch/<id>` URL from the M3U in VLC and confirm it redirects to an `.m3u8`
 
 ## Suggested topology
 

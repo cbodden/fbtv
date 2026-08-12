@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-11 (1.0.2 credentials: `FUBO_PASS_B64` / set_credentials / Portainer).
+**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.3 learn-on-tune DRM skip list).
 
 ## What this is
 
@@ -11,7 +11,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); no Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** only (`.github/workflows/docker.yml`).
 - **Workspace:** `/home/cbodden/git/mine/fubo_emby` (local folder may still use the old path; also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
-- **Version:** 1.0.2 (`app/__version__`; see `CHANGELOG.md`)
+- **Version:** 1.0.3 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
@@ -38,7 +38,7 @@ Implementation patterns for Fubo auth/lineup/watch were informed by community vl
 
 **2026-08-11:** Documented Emby and Jellyfin as equal first-class consumers; rebalanced README and docs away from Emby-only framing. HTTP API unchanged.
 
-**Status:** v1.0.2 on `dev`. Live Fubo sign-in succeeded with an alphanumeric password (Portainer). `$` in passwords needs `FUBO_PASS_B64` / `set_credentials` (not yet confirmed in the field). Emby/Jellyfin wiring still pending.
+**Status:** v1.0.3 on `dev`. Live Fubo sign-in + Emby M3U work. Fubo schedule EPG endpoints 404 (use Emby Guide Data). DRM stations learned at tune time and excluded from later playlists.
 
 ## Non-goals (v1)
 
@@ -96,7 +96,7 @@ credentials.env.example
 | `/metrics` | Prometheus text metrics |
 | `/playlist.m3u` | Subscribed non-DRM channels; stream URLs → `/watch/{stationId}`; absolute URLs from request host or `X-Forwarded-*` |
 | `/epg.xml` | XMLTV; `channel id` = call sign; cached `EPG_CACHE_SECONDS`; programmes when schedule probe succeeds |
-| `/watch/{id}` | Resolve live URL; reject DRM; **302** to HLS |
+| `/watch/{id}` | Resolve live URL; reject DRM (learn station id); **302** to HLS |
 | `/health` | Liveness + version |
 | `/docs` | FastAPI OpenAPI UI |
 
@@ -143,13 +143,13 @@ First successful populated list wins:
 1. **Subscriptions** — `subscriptions`, `subscriptions/products`, plus `v3/plan-manager/plans` for source metadata
 2. **Plan manager fallback** — `v3/plan-manager/plans` + `user` recurly `purchased_packages`
 
-Known DRM sources/call signs are dropped before playlist generation.
+Known DRM sources/call signs (and lineup `drmProtected` / `isDrm` flags) are dropped before playlist generation. Stations that return `drmProtected` at tune time are persisted in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists.
 
 ### Tune
 
 1. Emby or Jellyfin opens `/watch/{stationId}` from the M3U
 2. Bridge calls `vapi/asset/v1?channelId=…&type=live`
-3. `drmProtected` → HTTP 502; else **302** to HLS URL
+3. `drmProtected` → record station, HTTP 502; else **302** to HLS URL
 
 ### Guide
 
@@ -166,6 +166,7 @@ Known DRM sources/call signs are dropped before playlist generation.
 | Channel list | 30 minutes | Process memory |
 | XMLTV body | `EPG_CACHE_SECONDS` (default 1h) | Process memory |
 | Device id | Permanent until deleted | `CONFIG_DIR/device.json` |
+| Learned DRM station ids | Permanent until deleted | `CONFIG_DIR/drm_skipped.json` |
 
 ## Product decisions (locked)
 
@@ -196,7 +197,7 @@ Known DRM sources/call signs are dropped before playlist generation.
 
 Process **refuses to start** if no email+password can be resolved.
 
-Runtime files: `config/credentials.env` / `credentials.json` (preferred), `.env` (local Python, not committed), `config/device.json`, `config/.gitkeep`.
+Runtime files: `config/credentials.env` / `credentials.json` (preferred), `.env` (local Python, not committed), `config/device.json`, `config/drm_skipped.json`, `config/.gitkeep`.
 
 Reverse proxy: forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use the public host.
 

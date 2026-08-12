@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Learn `drmProtected` stations at tune time, drop them from the in-memory lineup, and persist IDs in `config/drm_skipped.json` so they stay out of `/playlist.m3u` after refresh/restart
+- Lineup also treats `drmProtected` / `isDrm` flags on channel metadata as DRM (in addition to known sources/call signs)
+- Docs tree synced for 1.0.3 DRM learn/exclude (`drm_skipped.json`, status `drm_learned_count`)
 - `FUBO_PASS_B64` and `python -m app.set_credentials` so passwords with `$` / `!` can be stored without shell/Portainer interpolation
 - `pass_fp` / `pass_classes` in credential logs (SHA-256 prefix; never the password)
 - Docs tree synced for 1.0.2 credentials (B64 / file / Portainer), GHCR-from-`main`, and `credentials_source` on status
@@ -17,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Image/app version **1.0.2**
+- Image/app version **1.0.3**
 - Fubo client headers aligned to current community bridge (`x-client-version` 5.40.0 / FuboPlayer 1.106.0)
 - `load_dotenv(interpolate=False)` so `$` in local `.env` passwords is left alone
 - Wrapping `'` / `"` around `FUBO_USER` / `FUBO_PASS` are stripped

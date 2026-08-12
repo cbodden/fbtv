@@ -156,6 +156,63 @@ def test_credentials_pass_b64(tmp_path: Path | None = None) -> None:
     assert "S" in classes
 
 
+def test_mark_drm_station_removes_from_cache_and_persists(
+    tmp_path: Path | None = None,
+) -> None:
+    import time
+
+    from app.config import Settings
+    from app.fubo_client import FuboClient
+
+    config_dir = tmp_path if tmp_path is not None else Path(
+        __import__("tempfile").mkdtemp()
+    )
+    settings = Settings(
+        fubo_user="u@example.com",
+        fubo_pass="secret",
+        host="0.0.0.0",
+        port=7777,
+        config_dir=config_dir,
+        epg_cache_seconds=3600,
+        epg_days=2,
+        credentials_source="test",
+    )
+    client = FuboClient(settings)
+    try:
+        client._channels_cache = [
+            Channel(id="20360", call_sign="DRMCH", name="DRM Channel"),
+            Channel(id="1", call_sign="OK", name="Playable"),
+        ]
+        client._channels_cache_at = time.time()
+        client.mark_drm_station("20360")
+        assert [ch.id for ch in client._channels_cache or []] == ["1"]
+        assert "20360" in client._drm_learned_ids
+        stats = client.runtime_stats()
+        assert stats["drm_learned_count"] == 1
+        assert stats["channel_count"] == 1
+        skip_file = config_dir / "drm_skipped.json"
+        assert skip_file.is_file()
+        payload = json.loads(skip_file.read_text(encoding="utf-8"))
+        assert "20360" in payload["station_ids"]
+
+        # Restart client: learned IDs reload from disk.
+        client2 = FuboClient(settings)
+        try:
+            assert "20360" in client2._drm_learned_ids
+        finally:
+            client2.close()
+    finally:
+        client.close()
+
+
+def test_is_drm_channel_flags() -> None:
+    from app.fubo_client import FuboClient
+
+    assert FuboClient._is_drm_channel({"drmProtected": True, "callSign": "FOO"})
+    assert FuboClient._is_drm_channel({"source": "Disney", "callSign": "FOO"})
+    assert not FuboClient._is_drm_channel({"callSign": "ESPN", "source": "other"})
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
@@ -165,4 +222,6 @@ if __name__ == "__main__":
     test_credentials_file_beats_env()
     test_credentials_json()
     test_credentials_pass_b64()
+    test_mark_drm_station_removes_from_cache_and_persists()
+    test_is_drm_channel_flags()
     print("ok")

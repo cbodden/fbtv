@@ -69,12 +69,13 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 ## Channels import but will not play (Emby or Jellyfin)
 
 1. Confirm the channel is not DRM-filtered (premium movie nets often are)
-2. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC
-3. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
-4. If VLC fails with the redirected CDN URL, you likely hit **IP binding**:
+2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry
+3. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC
+4. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
+5. If VLC fails with the redirected CDN URL, you likely hit **IP binding**:
    - Run the bridge on the same machine as Emby/Jellyfin, or
    - Ensure they use the same public egress (no split VPN)
-5. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
+6. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
 
 v1 uses HTTP 302 redirects only (no local remux).
 
@@ -106,7 +107,7 @@ curl -sS http://127.0.0.1:7777/metrics | head
 | Observation | Likely meaning |
 | --- | --- |
 | `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — check `credentials_source`, `pass_fp` in logs, then hit playlist |
-| `channel_count` set, `drm_skipped_count` high | Expected for DRM packages; those channels stay out of the M3U |
+| `channel_count` set, `drm_skipped_count` / `drm_learned_count` high | Expected for DRM packages; those channels stay out of the M3U after learn/refresh |
 | `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (schedule probe empty) |
 | `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |
 | Status routes return 404 | Process predates metrics — restart uvicorn / Compose |

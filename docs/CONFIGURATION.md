@@ -10,7 +10,7 @@
 | `FUBO_USER_FILE` / `FUBO_PASS_FILE` | no | — | Optional paths to files containing email/password (Docker secrets style) |
 | `HOST` | no | `0.0.0.0` | Bind address for uvicorn |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
-| `CONFIG_DIR` | no | `./config` | Writable directory for device id + optional credentials file |
+| `CONFIG_DIR` | no | `./config` | Writable directory for device id, credentials file, and learned DRM skip list |
 | `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
 
@@ -94,9 +94,10 @@ GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main` o
 | `config/credentials.env` | `FUBO_USER=` plus `FUBO_PASS_B64=` (preferred) or `FUBO_PASS=` |
 | `config/credentials.json` | Same secrets as JSON (`python -m app.set_credentials`) |
 | `config/device.json` | Stable Fubo `x-device-id` |
+| `config/drm_skipped.json` | Station ids learned as `drmProtected` at tune time (excluded from later playlists) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
-Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction).
+Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction). Delete `config/drm_skipped.json` only if you want previously learned DRM stations to reappear in the M3U until they fail again.
 
 ## Reverse proxy tips
 
@@ -109,7 +110,7 @@ The bridge prefers those headers when building absolute `/watch/…` URLs inside
 
 ## Logging
 
-The service logs at INFO by default (sign-in, channel load counts, EPG source hits). Credential logs include `source`, `pass_len`, `pass_fp` (SHA-256 prefix), `pass_classes`, and `has_dollar` — **never** the password. Avoid enabling verbose HTTP body logging in production; responses can include tokens or stream URLs.
+The service logs at INFO by default (sign-in, channel load counts, learned DRM stations, EPG source hits). Credential logs include `source`, `pass_len`, `pass_fp` (SHA-256 prefix), `pass_classes`, and `has_dollar` — **never** the password. Avoid enabling verbose HTTP body logging in production; responses can include tokens or stream URLs.
 
 ## Status and metrics
 

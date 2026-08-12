@@ -2,35 +2,27 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~20:10 local (FUBO_PASS_B64 for `$` passwords)  
+**Last updated:** 2026-08-11 ~22:50 local (docs synced on `dev` for 1.0.2 credentials)  
 **Active version:** 1.0.2  
-**Phase:** Special-char passwords via base64 / set_credentials; next = pull 1.0.2 + retry `$` password once  
-**Git:** `main` → `origin` `git@github.com:cbodden/fbtv.git`
+**Phase:** Docs on `dev` match B64/file credentials; GHCR `:latest` still from `main` until merge  
+**Git:** `dev` → `origin/dev` (`git@github.com:cbodden/fbtv.git`); `main` is older
 
 ---
 
 ## Resume here (this session)
 
 1. Read [CONTEXT.md](CONTEXT.md) then this file
-2. Export `FUBO_USER` / `FUBO_PASS` (Compose) **or** `cp .env.example .env` for local Python only (do not commit `.env`)
-3. Start bridge:
-   - `docker compose up -d` (pulls `ghcr.io/cbodden/fbtv:latest`) **or**
-   - `source .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 7777`
-4. Verify per `docs/TROUBLESHOOTING.md` / `docs/STATUS.md`:
-   - `curl -sS http://127.0.0.1:7777/health`
-   - `curl -sS http://127.0.0.1:7777/status.json`
-   - `curl -sS http://127.0.0.1:7777/playlist.m3u | head`
-   - `curl -sS http://127.0.0.1:7777/epg.xml | head`
-5. Wire M3U + XMLTV:
-   - Emby → `docs/EMBY_SETUP.md`
-   - Jellyfin → `docs/JELLYFIN_SETUP.md`
-   - Both → `docs/MEDIA_SERVERS.md` (same egress; combined stream caps)
-6. Fill **Field notes** below; update this file with results
+2. Credentials: `config/credentials.env` with `FUBO_PASS_B64` (or `python -m app.set_credentials`). Alphanumeric `FUBO_PASS` works in Portainer today.
+3. Start: `docker compose up -d` pulls **`main`’s** GHCR image unless you build locally from `dev`
+4. Verify: `/health` (expect 1.0.2 only after `dev` is in the image), `/status.json`, playlist, epg
+5. Wire Emby / Jellyfin per `docs/MEDIA_SERVERS.md`
+6. Retry `$` password once via `FUBO_PASS_B64` after 1.0.2 is running
 
 ## Current focus
 
-- Compose pulls GHCR image and uses host env for credentials (no `.env` / build)
-- Field validation / Emby-Jellyfin wiring still in progress
+- Documentation aligned to 1.0.2 credential model on branch `dev`
+- Confirm `$` password via `FUBO_PASS_B64` after image includes this branch
+- Emby/Jellyfin wiring still pending
 
 ## Snapshot — what exists on disk
 
@@ -38,13 +30,13 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 
 | Area | Contents |
 | --- | --- |
-| App | `app/{main,fubo_client,m3u,epg,status,config,__init__}.py` |
-| Ops | `Dockerfile`, `docker-compose.yml` (pull `ghcr.io/cbodden/fbtv:latest`, host env), `.env.example` (local Python), `.gitignore`, `requirements.txt` |
-| CI | `.github/workflows/docker.yml` → `ghcr.io/cbodden/fbtv` |
-| Docs | `README`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CREDITS`, `docs/{README,API,ARCHITECTURE,CONFIGURATION,MEDIA_SERVERS,EMBY_SETUP,JELLYFIN_SETUP,STATUS,TROUBLESHOOTING}` |
+| App | `app/{main,fubo_client,m3u,epg,status,config,set_credentials,__init__}.py` |
+| Ops | `Dockerfile`, `docker-compose.yml` (GHCR pull), `.env.example`, `credentials.env.example` |
+| CI | `.github/workflows/docker.yml` → GHCR on **`main` only** |
+| Docs | README + `docs/` + SECURITY/CONTRIBUTING/CREDITS/CHANGELOG |
 | Agent | `CONTEXT.md`, `WORKING_MEMORY.md`, `.cursor/rules/project-context.mdc` |
 | Tests | `tests/test_builders.py` |
-| Local only | `.venv/` (gitignored); secrets via shell env (Compose) or `.env` (local Python) |
+| Local only | `.venv/`; secrets in volume `config/credentials.*` or env |
 
 ## Done so far
 
@@ -67,12 +59,15 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 - [x] GitHub Actions Docker build → GHCR (2026-08-11)
 - [x] Repo renamed to `fbtv` + public; Compose/GHCR image `fbtv` (2026-08-11)
 - [x] Docs tree synced for fbtv naming / public / GHCR (2026-08-11)
+- [x] Live Fubo sign-in (alphanumeric password, Portainer) (2026-08-11)
+- [x] FUBO_PASS_B64 + set_credentials on `dev` (2026-08-11)
+- [x] Docs resynced on `dev` for 1.0.2 credentials (2026-08-11)
 
 ## Open questions / blockers
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Live Fubo sign-in | Not run | Needs `FUBO_USER`/`FUBO_PASS` in env — see `docs/CONFIGURATION.md` |
+| Live Fubo sign-in | OK without `$` | Portainer + credentials file; `$` still needs B64 (1.0.2 image) |
 | Usable EPG endpoint | Unknown | Probe logic present; may be channel-only XMLTV (`docs/TROUBLESHOOTING.md`) |
 | Emby/Jellyfin ↔ bridge topology | Unknown | HLS 302 needs shared public egress IP |
 | Docker build | Unverified in original agent env | `docker` was missing there |
@@ -81,16 +76,16 @@ Path: `/home/cbodden/git/mine/fubo_emby` (local folder; GitHub is `cbodden/fbtv`
 ## Field notes (fill in during smoke test)
 
 ```text
-Date:
-Bridge URL:
-Media server(s): Emby / Jellyfin / both
+Date: 2026-08-11
+Bridge URL: Portainer / Docker (fbtv)
+Media server(s): not wired yet
 Same egress?:
 Channel count in playlist:
 EPG programmes present?:
 Working EPG endpoint (from logs):
 Playback result (sample channels):
 DRM skips observed:
-Issues:
+Issues: Sign-in 401 until password had no `$`. File load worked (pass_len=14, has_dollar=True) but Fubo rejected; alphanumeric password succeeded. B64 path not field-tested yet.
 ```
 
 ## Decisions log
@@ -116,6 +111,7 @@ Issues:
 | 2026-08-11 | credentials.env/json file wins over env; strip wrapping quotes | User: quotes/$$ still 401 in Portainer |
 | 2026-08-11 | Bump Fubo client headers to 5.40.0 | User: 401 persists with correct email + pass_len=14 / `$` |
 | 2026-08-11 | FUBO_PASS_B64 + set_credentials for `$` passwords | User: works without `$`, wants secure passwords |
+| 2026-08-11 | Resync all docs on `dev` for 1.0.2 credential model | User: update all documentation on dev |
 
 ## Do not forget
 
@@ -127,4 +123,4 @@ Issues:
 
 ## Scratch
 
-_Scratch: Docs/context aligned to public `cbodden/fbtv` and image `fbtv`. Ready for smoke test._
+_Scratch: Docs on `dev` describe FUBO_PASS_B64 / set_credentials / GHCR-from-main. Alphanumeric Fubo sign-in works. Merge `dev` → `main` before `:latest` includes 1.0.2._

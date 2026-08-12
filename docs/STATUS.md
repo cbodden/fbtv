@@ -20,7 +20,7 @@ Full field reference and examples: [API.md](API.md).
 | Area | Fields |
 | --- | --- |
 | Process | `version`, `uptime_seconds`, `started_at`, listen `host`/`port` |
-| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `drm_skipped_count` |
+| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count` |
 | EPG | `cached`, cache age, TTL, last-build `programme_count` / `channel_count` |
 | Requests | OK/error counters for playlist, EPG, and watch |
 
@@ -49,5 +49,5 @@ open http://127.0.0.1:7777/status
 | --- | --- |
 | `app/status.py` | Snapshot builder + HTML / Prometheus renderers |
 | `app/main.py` | Routes `/`, `/status`, `/status.json`, `/metrics`; request counters |
-| `app/fubo_client.py` | `runtime_stats()` (token, channels, DRM skips) |
+| `app/fubo_client.py` | `runtime_stats()` (token, channels, DRM skips, credentials source path — not the password) |
 | `app/epg.py` | `EpgCache.runtime_stats()` |

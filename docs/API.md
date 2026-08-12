@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -41,6 +41,7 @@ Machine-readable JSON status (same payload as the HTML page).
     "channel_count": 198,
     "channels_cache_age_seconds": 20,
     "channels_source": "subscriptions",
+    "credentials_source": "/app/config/credentials.env",
     "drm_skipped_count": 12
   },
   "epg": {
@@ -76,7 +77,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.0"}
+{"status": "ok", "version": "1.0.2"}
 ```
 
 ## `GET /playlist.m3u`

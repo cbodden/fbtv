@@ -51,7 +51,7 @@ Supported. Each server imports channels independently.
 | Kind | Current name |
 | --- | --- |
 | GitHub repo | [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) |
-| Compose service / container | `fbtv` (pulls GHCR; host env for `FUBO_*`) |
+| Compose service / container | `fbtv` (pulls GHCR; credentials file or `FUBO_*` / `FUBO_PASS_B64`) |
 | GHCR image | `ghcr.io/cbodden/fbtv` |
 | XMLTV `generator-info-name` | `fbtv` |
 

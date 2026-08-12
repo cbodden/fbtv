@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `FUBO_PASS_B64` and `python -m app.set_credentials` so passwords with `$` / `!` can be stored without shell/Portainer interpolation
 - `pass_fp` / `pass_classes` in credential logs (SHA-256 prefix; never the password)
+- Docs tree synced for 1.0.2 credentials (B64 / file / Portainer), GHCR-from-`main`, and `credentials_source` on status
 - `config/credentials.env` / `credentials.json` (and `FUBO_*_FILE`) so Portainer can store secrets on the volume without `$` / quote mangling; file wins over env
 - Startup / 401 logs include credentials source, `pass_len`, and whether wrapping quotes were stripped (never the password)
 

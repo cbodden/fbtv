@@ -2,13 +2,13 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-11 (Compose pull-from-GHCR + host-env credentials).
+**Synced from:** `docs/` + root docs on 2026-08-11 (1.0.2 credentials: `FUBO_PASS_B64` / set_credentials / Portainer).
 
 ## What this is
 
 - **Name:** Fubo → Emby & Jellyfin Bridge — short name **`fbtv`**
 - **GitHub:** https://github.com/cbodden/fbtv (public)
-- **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); credentials via host env (no `env_file` / `.env`); CI: `.github/workflows/docker.yml`
+- **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); no Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** only (`.github/workflows/docker.yml`).
 - **Workspace:** `/home/cbodden/git/mine/fubo_emby` (local folder may still use the old path; also referenced historically as `/Users/cesarbodden/git/work/fubo_emby`, `/Users/cesarbodden/ai/fubotv_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
 - **Version:** 1.0.2 (`app/__version__`; see `CHANGELOG.md`)
@@ -38,7 +38,7 @@ Implementation patterns for Fubo auth/lineup/watch were informed by community vl
 
 **2026-08-11:** Documented Emby and Jellyfin as equal first-class consumers; rebalanced README and docs away from Emby-only framing. HTTP API unchanged.
 
-**Status:** v1 implementation and documentation complete. Live Fubo + Emby/Jellyfin smoke test not yet run.
+**Status:** v1.0.2 on `dev`. Live Fubo sign-in succeeded with an alphanumeric password (Portainer). `$` in passwords needs `FUBO_PASS_B64` / `set_credentials` (not yet confirmed in the field). Emby/Jellyfin wiring still pending.
 
 ## Non-goals (v1)
 
@@ -55,8 +55,8 @@ Implementation patterns for Fubo auth/lineup/watch were informed by community vl
 | Language | Python 3.11+ (dev venv used 3.14 locally) |
 | HTTP | FastAPI + Uvicorn |
 | Fubo HTTP | httpx |
-| Config | python-dotenv / env vars |
-| Deploy | Docker Compose pulls `ghcr.io/cbodden/fbtv:latest` (host env for secrets); CI builds GHCR via `.github/workflows/docker.yml` |
+| Config | python-dotenv (`interpolate=False`); credentials file / `FUBO_PASS_B64` / env |
+| Deploy | Docker Compose pulls `ghcr.io/cbodden/fbtv:latest`; CI builds GHCR from `main` |
 
 ## Key paths
 
@@ -66,7 +66,8 @@ app/fubo_client.py          # auth, channels, watch, schedule probe
 app/m3u.py                  # playlist builder
 app/epg.py                  # XMLTV + TTL cache
 app/status.py               # status snapshot + HTML/Prometheus helpers
-app/config.py               # Settings
+app/config.py               # Settings; credentials.env/json; FUBO_PASS_B64
+app/set_credentials.py      # Write credentials.json from stdin
 app/__init__.py             # __version__
 docs/                       # full documentation (source for this file)
 docs/MEDIA_SERVERS.md       # Emby & Jellyfin equal targets
@@ -80,8 +81,9 @@ WORKING_MEMORY.md           # session / next actions
 tests/test_builders.py
 Dockerfile
 docker-compose.yml
-.github/workflows/docker.yml   # build + push ghcr.io/cbodden/fbtv
-.env.example
+.github/workflows/docker.yml   # build + push ghcr.io/cbodden/fbtv (main)
+credentials.env.example
+.env.example                   # local Python only
 ```
 
 ## HTTP surface (from `docs/API.md`)
@@ -171,7 +173,7 @@ Known DRM sources/call signs are dropped before playlist generation.
 2. **`tvg-id` = Fubo call sign** — must match XMLTV `channel id` for mapping.
 3. **Watch URLs are local** (`/watch/{id}`), never raw CDN URLs in the M3U.
 4. **Tune = 302 redirect** — requires Emby/Jellyfin and bridge to share public egress IP.
-5. **Credentials** — `config/credentials.env` (or JSON) preferred for Portainer; else `FUBO_USER` / `FUBO_PASS`; device id in `CONFIG_DIR/device.json`.
+5. **Credentials** — file on config volume wins; **`FUBO_PASS_B64`** for `$`/`!`; else `FUBO_USER`/`FUBO_PASS`; device id in `CONFIG_DIR/device.json`.
 6. **Channel discovery** — try subscriptions APIs first, fall back to plan-manager + user recurly packages.
 7. **EPG best-effort** — probe bulk then sample per-network schedule endpoints; channel-only XMLTV if listings fail.
 8. **Credit prior art** — see `CREDITS.md` (vlc-bridge-fubo lineage, deps).
@@ -183,21 +185,22 @@ Known DRM sources/call signs are dropped before playlist generation.
 
 | Variable | Default | Required |
 | --- | --- | --- |
-| `FUBO_USER` | — | yes |
-| `FUBO_PASS` | — | yes |
+| `FUBO_USER` | — | if no credentials file |
+| `FUBO_PASS` | — | if no file / B64 |
+| `FUBO_PASS_B64` | — | no (wins over `FUBO_PASS`) |
 | `HOST` | `0.0.0.0` | no |
 | `PORT` | `7777` | no |
 | `CONFIG_DIR` | `./config` | no |
 | `EPG_CACHE_SECONDS` | `3600` | no |
 | `EPG_DAYS` | `2` | no |
 
-Process **refuses to start** if `FUBO_USER` or `FUBO_PASS` is missing.
+Process **refuses to start** if no email+password can be resolved.
 
-Runtime files: `.env` (secrets, not committed), `config/device.json`, `config/.gitkeep`.
+Runtime files: `config/credentials.env` / `credentials.json` (preferred), `.env` (local Python, not committed), `config/device.json`, `config/.gitkeep`.
 
 Reverse proxy: forward `X-Forwarded-Host` and `X-Forwarded-Proto` so playlist watch URLs use the public host.
 
-Compose mounts `./config:/app/config` and pulls `ghcr.io/cbodden/fbtv:latest`. Credentials: `config/credentials.env` (file wins) or host env `FUBO_USER` / `FUBO_PASS`. Local Python may use `.env` with `interpolate=False`.
+Compose mounts `./config:/app/config` and pulls `ghcr.io/cbodden/fbtv:latest`. Fubo client headers: `x-client-version` **5.40.0**.
 
 ## Media server wiring summary
 

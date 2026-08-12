@@ -7,7 +7,7 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 | [../README.md](../README.md) | **Primary guide:** what it does, install (Compose + GHCR), Emby & Jellyfin setup, status/metrics, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching, metrics |
-| [CONFIGURATION.md](CONFIGURATION.md) | Environment variables, Compose GHCR pull + host env, runtime files |
+| [CONFIGURATION.md](CONFIGURATION.md) | Env vars, `FUBO_PASS_B64`, Compose GHCR pull, Portainer credentials file |
 | [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both; naming |
 | [EMBY_SETUP.md](EMBY_SETUP.md) | Emby Live TV wiring |
 | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |

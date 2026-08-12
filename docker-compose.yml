@@ -6,11 +6,12 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-7777}:7777"
-    # Optional env pass-through. Portainer: prefer config/credentials.env on this
-    # volume (no quotes, no $$). File wins over FUBO_USER / FUBO_PASS.
+    # Optional env pass-through. Portainer: prefer config/credentials.env with
+    # FUBO_PASS_B64 (no quotes). File wins over these variables.
     environment:
       - FUBO_USER
       - FUBO_PASS
+      - FUBO_PASS_B64
       - HOST=0.0.0.0
       - PORT=7777
       - CONFIG_DIR=/app/config

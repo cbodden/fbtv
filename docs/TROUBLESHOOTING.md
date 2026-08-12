@@ -4,7 +4,7 @@
 
 **Symptom:** process exits immediately mentioning `FUBO_USER` / `FUBO_PASS`.
 
-**Fix:** export `FUBO_USER` and `FUBO_PASS` in the shell, then `docker compose up -d` (Compose does not load `.env`). For local Python, create `.env` from `.env.example`. Service name is `fbtv` (`docker compose logs -f fbtv`).
+**Fix:** provide credentials via `config/credentials.env` (`FUBO_USER` + `FUBO_PASS_B64` preferred), `config/credentials.json`, or export `FUBO_USER` / `FUBO_PASS` / `FUBO_PASS_B64`. Compose does not load a project `.env`. For local Python, create `.env` from `.env.example` (interpolation is off). Service name is `fbtv` (`docker compose logs -f fbtv`).
 
 ---
 
@@ -47,8 +47,10 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | Check | Action |
 | --- | --- |
 | Browser login | Same email/password on [fubo.tv](https://www.fubo.tv/) |
+| `pass_fp` mismatch | The file/env password is not the one you think; regenerate `FUBO_PASS_B64` with `printf '%s' '…' \| base64 -w0` |
 | Account lockout | Many 401s can block the account; reset password / wait / contact Fubo |
 | VPN | Sign-in from a normal residential egress; Fubo often blocks datacenter/VPN IPs |
+| Image still 1.0.1 / 1.0.0 | GHCR `:latest` only builds from `main`; merge `dev` or wait for publish, then `docker compose pull` |
 
 ---
 
@@ -103,7 +105,7 @@ curl -sS http://127.0.0.1:7777/metrics | head
 
 | Observation | Likely meaning |
 | --- | --- |
-| `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — fix credentials / hit playlist |
+| `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — check `credentials_source`, `pass_fp` in logs, then hit playlist |
 | `channel_count` set, `drm_skipped_count` high | Expected for DRM packages; those channels stay out of the M3U |
 | `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (schedule probe empty) |
 | `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |

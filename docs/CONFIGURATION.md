@@ -14,17 +14,19 @@
 | `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
 
-Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe).
+Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, `FUBO_PASS_B64`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe). `FUBO_PASS_B64` wins over plain `FUBO_PASS` in the same source.
 
 ### Docker Compose
 
-Pass variables in the **host environment** (Compose does **not** use `env_file` / a project `.env`):
+Compose does **not** use `env_file` / a project `.env`. Alphanumeric passwords may be exported:
 
 ```bash
 export FUBO_USER='you@example.com'
 export FUBO_PASS='your-password'
 docker compose up -d
 ```
+
+Prefer a credentials file (especially Portainer) — see below.
 
 ### Portainer / special characters (`$`, `!`, etc.)
 
@@ -50,7 +52,7 @@ Then restart. Logs include `pass_fp=` (SHA-256 prefix) so you can confirm the de
 
 ### Local Python
 
-Copy `.env.example` to `.env` and edit (loaded by python-dotenv):
+Copy `.env.example` to `.env` and edit (loaded by python-dotenv with **`interpolate=False`**, so `$` is not expanded):
 
 ```bash
 cp .env.example .env
@@ -69,6 +71,7 @@ services:
     environment:
       - FUBO_USER
       - FUBO_PASS
+      - FUBO_PASS_B64
       # …
     volumes:
       - ./config:/app/config
@@ -81,7 +84,7 @@ PORT=7788 EPG_CACHE_SECONDS=7200 docker compose up -d
 docker compose logs -f fbtv
 ```
 
-GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to `main` (see `.github/workflows/docker.yml`). Tags: `latest`, `sha-<commit>`.
+GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main` only** (see `.github/workflows/docker.yml`). Tags: `latest`, `sha-<commit>`. Work on `dev` is not published until merged.
 
 ## Runtime files
 
@@ -106,7 +109,7 @@ The bridge prefers those headers when building absolute `/watch/…` URLs inside
 
 ## Logging
 
-The service logs at INFO by default (sign-in, channel load counts, EPG source hits). Avoid enabling verbose HTTP body logging in production; responses can include tokens or stream URLs.
+The service logs at INFO by default (sign-in, channel load counts, EPG source hits). Credential logs include `source`, `pass_len`, `pass_fp` (SHA-256 prefix), `pass_classes`, and `has_dollar` — **never** the password. Avoid enabling verbose HTTP body logging in production; responses can include tokens or stream URLs.
 
 ## Status and metrics
 

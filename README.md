@@ -82,30 +82,32 @@ Personal / home-LAN use only. Respect Fubo’s terms of service. Do not redistri
 
 ### Option A — Docker (recommended)
 
-Compose **pulls** `ghcr.io/cbodden/fbtv:latest` (no local build) and does **not** load a project `.env` file.
+Compose **pulls** `ghcr.io/cbodden/fbtv:latest` (no local build) and does **not** load a project `.env` file. GHCR publishes on pushes to **`main`** only (a `dev` branch will not refresh `:latest` until merged).
 
-**Portainer:** put credentials in the config volume (no quotes) as `config/credentials.env` — see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). File wins over env vars.
+**Credentials (pick one; file wins over env):**
 
-**CLI:** pass credentials in the shell environment:
+1. **Portainer / special characters (`$`, `!`):** put this on the config volume as `config/credentials.env` (no quotes):
+
+```text
+FUBO_USER=you@example.com
+FUBO_PASS_B64=<output of: printf '%s' 'your$password' | base64 -w0>
+```
+
+   Or: `printf '%s\n%s\n' 'you@example.com' 'your$password' | docker exec -i fbtv python -m app.set_credentials`
+
+2. **CLI alphanumeric password:**
 
 ```bash
 export FUBO_USER='you@example.com'
 export FUBO_PASS='your-password'
-
 docker compose up -d
 ```
 
-Or one-shot:
+Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config`, and sets `pull_policy: always`.
 
-```bash
-FUBO_USER='you@example.com' FUBO_PASS='your-password' docker compose up -d
-```
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_DAYS`. Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
-Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config` for the persistent device id, and sets `pull_policy: always` so `compose up` refreshes the image.
-
-Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_DAYS` (same pattern — export or prefix the command).
-
-GitHub Actions publishes the image on relevant pushes to `main` (tags: `latest`, `sha-<commit>`). See `.github/workflows/docker.yml`.
+GitHub Actions: `.github/workflows/docker.yml` (tags: `latest`, `sha-<commit>`).
 
 If the GHCR package is private, authenticate once: `echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin`.
 
@@ -143,27 +145,28 @@ cp .env.example .env
 uvicorn app.main:app --host 0.0.0.0 --port 7777
 ```
 
-The process **will not start** if `FUBO_USER` or `FUBO_PASS` is missing.
+The process **will not start** unless credentials are available from a credentials file, `FUBO_PASS_B64`, or `FUBO_USER` + `FUBO_PASS`.
 
 ---
 
 ## Configure
 
-### Docker Compose
+### Docker Compose / Portainer
 
-Export `FUBO_USER` / `FUBO_PASS` (and optional overrides) in the environment before `docker compose up`. Compose does not use `env_file` / `.env` for the container.
+Compose does not use `env_file`. Prefer `config/credentials.env` with `FUBO_PASS_B64` when the password has `$` or other special characters. Alphanumeric passwords may be exported as `FUBO_USER` / `FUBO_PASS`.
 
 ### Local Python
 
-Copy `.env.example` → `.env` and edit. Never commit `.env`. The app loads it via python-dotenv when running outside Compose.
+Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `interpolate=False` so `$` in `.env` is left alone. You can also use `config/credentials.json`.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `FUBO_USER` | yes | — | Fubo account email |
-| `FUBO_PASS` | yes | — | Fubo account password |
+| `FUBO_USER` | if no credentials file | — | Fubo account email |
+| `FUBO_PASS` | if no file / B64 | — | Password (avoid `$` here) |
+| `FUBO_PASS_B64` | no | — | Base64 UTF-8 password; wins over `FUBO_PASS` |
 | `HOST` | no | `0.0.0.0` | Bind address (local uvicorn) |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
-| `CONFIG_DIR` | no | `./config` | Writable dir for `device.json` |
+| `CONFIG_DIR` | no | `./config` | Writable dir for `device.json` + credentials files |
 | `EPG_CACHE_SECONDS` | no | `3600` | How long to reuse generated `epg.xml` |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data exists |
 
@@ -172,6 +175,8 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. The app loads it v
 | Path | Purpose |
 | --- | --- |
 | `.env` | Optional local-Python secrets (gitignored); not used by Compose |
+| `config/credentials.env` | `FUBO_USER` + `FUBO_PASS_B64` (preferred) or `FUBO_PASS` |
+| `config/credentials.json` | Same secrets; write with `python -m app.set_credentials` |
 | `config/device.json` | Stable Fubo `x-device-id` (created on first run) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
@@ -247,7 +252,7 @@ Once installed and wired:
 1. **Leave the bridge running** (Compose `restart: unless-stopped`, or a systemd/user service for uvicorn).
 2. Use **Emby** and/or **Jellyfin** Live TV as usual — channel change hits `/watch/{id}`, which redirects to Fubo HLS.
 3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
-4. **Credential / device changes:** update the environment (Compose) or `.env` (local Python) and restart. Only delete `config/device.json` as a last resort.
+4. **Credential / device changes:** update `config/credentials.env` (or JSON / env) and restart. Only delete `config/device.json` as a last resort.
 5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
 6. **Status / metrics:** see [Status and metrics](#status-and-metrics) below.
 7. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
@@ -322,8 +327,8 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 
 | Symptom | What to try |
 | --- | --- |
-| Process exits mentioning `FUBO_USER` / `FUBO_PASS` | Set `config/credentials.env`, or export env for Compose, or `.env` for local Python |
-| Sign-in 401 `INVALID_USERNAME_PASSWORD` | Do not quote passwords in Portainer; use `config/credentials.env` — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| Process exits mentioning credentials | Set `config/credentials.env` (`FUBO_PASS_B64` if the password has `$`), or env / local `.env` |
+| Sign-in 401 `INVALID_USERNAME_PASSWORD` | Use `FUBO_PASS_B64` or `python -m app.set_credentials`; do not quote passwords — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
 | Channels import but will not play | Confirm non-DRM; test watch URL in VLC on the Emby/Jellyfin host; fix shared egress |
 | Guide has channels but no programmes | Often expected; Emby Guide Data Fubo lineup or Jellyfin Schedules Direct as backup |
@@ -359,17 +364,16 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ```text
 app/
-  main.py          # FastAPI routes
-  fubo_client.py   # Auth, channels, watch, schedule
-  m3u.py           # Playlist builder
-  epg.py           # XMLTV builder + cache
-  status.py        # Status snapshot + HTML/Prometheus
-  config.py        # Env settings
-docs/              # Deep-dive documentation
-tests/             # Unit checks (no live Fubo calls)
-.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv
-Dockerfile                    # Used by CI (Compose pulls the published image)
-docker-compose.yml            # Service fbtv → ghcr.io/cbodden/fbtv:latest
+  main.py             # FastAPI routes
+  fubo_client.py      # Auth (client 5.40.0), channels, watch, schedule
+  config.py           # Settings + credentials file / FUBO_PASS_B64
+  set_credentials.py  # Write credentials.json from stdin
+  m3u.py / epg.py / status.py
+docs/                 # Deep-dive documentation
+tests/                # Unit checks (no live Fubo calls)
+credentials.env.example
+.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main)
+docker-compose.yml            # Pulls ghcr.io/cbodden/fbtv:latest
 ```
 
 ```bash

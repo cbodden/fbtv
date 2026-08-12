@@ -29,18 +29,20 @@ The bridge authenticates to Fubo with the subscriber’s credentials and transla
 | Module | Responsibility |
 | --- | --- |
 | `app/main.py` | HTTP routes, lifespan wiring, base URL detection |
-| `app/config.py` | Environment → `Settings` |
-| `app/fubo_client.py` | Device id, auth, channel list, watch URL, schedule probe |
+| `app/config.py` | Credentials file / `FUBO_PASS_B64` / env → `Settings` (no `$` interpolation) |
+| `app/set_credentials.py` | Write `config/credentials.json` from stdin |
+| `app/fubo_client.py` | Device id, `PUT /signin` (client **5.40.0**), channel list, watch URL, schedule probe |
 | `app/m3u.py` | EXTINF playlist generation |
 | `app/epg.py` | XMLTV generation + TTL cache |
 | `app/status.py` | Status snapshot + HTML/Prometheus rendering |
 
 ## Auth flow
 
-1. Load or create `CONFIG_DIR/device.json` (`x-device-id`)
-2. `PUT /signin` with email/password and Android TV-style client headers
-3. Cache `access_token` for about four hours
-4. Send `Authorization: Bearer …` on subsequent API calls
+1. Load credentials from `config/credentials.env` or `credentials.json` (file wins), else `FUBO_PASS_B64` / `FUBO_USER`+`FUBO_PASS`
+2. Load or create `CONFIG_DIR/device.json` (`x-device-id`)
+3. `PUT /signin` with JSON `email`/`password` and Android TV-style headers (`x-client-version` 5.40.0)
+4. Cache `access_token` for about four hours
+5. Send `Authorization: Bearer …` on subsequent API calls
 
 ## Channel lineup
 
@@ -98,4 +100,5 @@ Operators can read the same in-process snapshot as:
 - **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
 - **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar
-- **Deploy as `fbtv`** — Compose pulls `ghcr.io/cbodden/fbtv:latest` with host-env credentials (CI: `.github/workflows/docker.yml`)
+- **Deploy as `fbtv`** — Compose pulls `ghcr.io/cbodden/fbtv:latest` (CI on **`main`** only)
+- **Credentials on the config volume** — `FUBO_PASS_B64` / `credentials.json` so `$` is not interpolated by Portainer or shells

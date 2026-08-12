@@ -51,7 +51,7 @@ Two discovery paths (first successful wins for a populated list):
 1. **Subscriptions** — `subscriptions`, `subscriptions/products`, plus `v3/plan-manager/plans` for source metadata
 2. **Plan manager fallback** — `v3/plan-manager/plans` + `user` recurly `purchased_packages`
 
-Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` flags on lineup metadata) are dropped before playlist generation. Stations discovered as `drmProtected` at tune time **or** during a background DRM asset sweep are remembered in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists and EPG channel mapping. Sweeps are optional/periodic (`DRM_SCAN_*`); they classify streams only — they do not decrypt DRM.
+Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` flags on lineup metadata) are dropped before playlist generation. Stations discovered as `drmProtected` at tune time **or** during a background DRM asset sweep are remembered in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists and EPG channel mapping. Sweeps are optional/periodic (`DRM_SCAN_*`); they classify streams only — they do not decrypt DRM. From **1.0.6**, sweeps default to **one** concurrent probe, `DRM_SCAN_DELAY_MS` pacing (default 750), and exponential backoff on HTTP **429** from `vapi/asset`.
 
 ## Tune path
 

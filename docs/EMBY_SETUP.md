@@ -58,9 +58,11 @@ If `programme_count` stays `0`, keep Emby Guide Data as the guide source and tre
 
 ## Playback checklist
 
-1. From Emby, tune a non-DRM channel (news/sports basics usually work better than premium nets)
-2. If tune fails immediately, check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
-3. Refresh the M3U tuner after DRM learns so Emby drops dead entries
+1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on **1.0.6+** (paced; may take several minutes), then refresh M3U + guide
+2. From Emby, tune a non-DRM channel (news/sports basics usually work better than premium nets)
+3. If tune fails immediately, check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
+4. Refresh the M3U tuner after DRM learns so Emby drops dead entries
+5. If logs show `vapi/asset` **429**, raise `DRM_SCAN_DELAY_MS` — see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 4. If tune starts then fails, suspect **IP binding** — move bridge onto Emby’s host/network egress
 5. Confirm `/watch/{id}` in a browser/VLC on the Emby host redirects to an `.m3u8` URL
 

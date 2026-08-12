@@ -82,6 +82,21 @@ v1 uses HTTP 302 redirects only (no local remux). DRM decryption is out of scope
 
 ---
 
+## DRM scan logs show `429 Too Many Requests`
+
+Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults to `DRM_SCAN_CONCURRENCY=1`, `DRM_SCAN_DELAY_MS=750`, and backs off on 429.
+
+| Check | Action |
+| --- | --- |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.6`+ (`ghcr.io/cbodden/fbtv:dev`) |
+| Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
+| Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
+| Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
+
+A slow, complete sweep is expected with hundreds of stations (roughly delay × station count).
+
+---
+
 ## Guide has channels but no programmes
 
 Expected when Fubo schedule endpoints are unavailable or changed. The bridge still emits `<channel>` rows for mapping. From **1.0.4** the primary probe is `/epg` (parsed as `channelWithProgramAssets`); `papi/v1/guide/epg` and older paths remain as fallback. Field logs showed `/epg` **200** while many other URLs **404** — older builds mapped zero programmes from that 200 because the JSON shape was not parsed.
@@ -152,8 +167,10 @@ Delete `config/device.json` only as a last resort, then restart so a new device 
 ```bash
 curl -sS http://127.0.0.1:7777/health
 curl -sS http://127.0.0.1:7777/status.json
+curl -sS http://127.0.0.1:7777/admin/drm-scan
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head
-curl -sSI http://127.0.0.1:7777/watch/<stationId>
+# Watch must be GET (not HEAD / curl -I) — HEAD often fails incorrectly
+curl -sS -D - -o /dev/null http://127.0.0.1:7777/watch/<stationId>
 ```

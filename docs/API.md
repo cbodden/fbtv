@@ -43,7 +43,10 @@ Machine-readable JSON status (same payload as the HTML page).
     "channels_source": "subscriptions",
     "credentials_source": "/app/config/credentials.env",
     "drm_skipped_count": 12,
-    "drm_learned_count": 3
+    "drm_learned_count": 3,
+    "drm_playable_count": 180,
+    "drm_last_scan_at": "2026-08-12T22:00:00Z",
+    "drm_scan_running": false
   },
   "epg": {
     "cached": true,
@@ -73,13 +76,41 @@ Prometheus text exposition of key gauges/counters from the same snapshot.
 
 ## `GET /admin/drm-scan`
 
-DRM sweep status (running flag, last result, learned/playable counts, settings).
+DRM sweep status (running flag, last result, learned/playable counts, settings). From **1.0.6**, settings include `delay_ms`; last result may include `rate_limited`.
 
 **Response:** `200 application/json`
 
+```json
+{
+  "running": false,
+  "started_at": null,
+  "finished_at": "2026-08-12T22:10:00Z",
+  "last_result": {
+    "status": "completed",
+    "checked": 200,
+    "drm": 12,
+    "playable": 180,
+    "errors": 3,
+    "rate_limited": 5,
+    "drm_learned_count": 12,
+    "duration_seconds": 180.0
+  },
+  "drm_learned_count": 12,
+  "drm_playable_count": 180,
+  "drm_updated_at": "2026-08-12T22:10:00Z",
+  "settings": {
+    "on_start": true,
+    "interval_hours": 24,
+    "max_age_hours": 24,
+    "concurrency": 1,
+    "delay_ms": 750
+  }
+}
+```
+
 ## `POST /admin/drm-scan`
 
-Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations.
+Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded.
 
 **Response:** `200 application/json` with `{"status":"started",...}`
 

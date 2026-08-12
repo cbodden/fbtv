@@ -169,6 +169,11 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `CONFIG_DIR` | no | `./config` | Writable dir for `device.json`, credentials files, `drm_skipped.json` |
 | `EPG_CACHE_SECONDS` | no | `3600` | How long to reuse generated `epg.xml` |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data exists |
+| `DRM_SCAN_ON_START` | no | `true` | Background DRM asset sweep after startup |
+| `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep at 1; Fubo **429**s) |
+| `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes |
+| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is fresh |
+| `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan (0 = off) |
 
 **Runtime files**
 
@@ -335,7 +340,8 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Sign-in 401 `INVALID_USERNAME_PASSWORD` | Use `FUBO_PASS_B64` or `python -m app.set_credentials`; do not quote passwords — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
 | Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; test watch with GET (not HEAD); fix shared egress / Cloudflare 403 |
-| Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.5 check logs for `Loaded N programmes from epg` (log line, not XML) |
+| Logs show `vapi/asset` **429** during DRM scan | Expected under load before 1.0.6; use `:dev` 1.0.6+, keep `DRM_SCAN_CONCURRENCY=1`, raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
+| Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
 | Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
 | Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |

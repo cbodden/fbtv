@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Background DRM asset sweep (startup + interval + `POST /admin/drm-scan`): probe `vapi/asset`, persist DRM/playable in `config/drm_skipped.json`, clear EPG cache so M3U/XMLTV stay aligned; env `DRM_SCAN_*`
 - DRM scan pacing: default concurrency **1**, `DRM_SCAN_DELAY_MS` (750), and exponential backoff on HTTP **429**
+- Docs tree synced for 1.0.6 (DRM pacing / 429 troubleshooting, admin scan examples, `DRM_SCAN_*` in README)
 - EPG prefers live-confirmed `/epg` (`channelWithProgramAssets` parser); then `papi/v1/guide/epg`; older schedule URLs kept as fallback
 - INFO-level EPG probe logging (success and empty/failed paths); `"Loaded N programmes"` is a log line, not XML content
 - Emby setup recommends **Guide Data FuboTV** as the primary guide while bridge `programme_count` is `0`

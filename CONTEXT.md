@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.6 DRM scan pacing + 1.0.5 sweep + 1.0.4 EPG).
+**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.6 DRM pacing/429 docs + sweep + EPG).
 
 ## What this is
 

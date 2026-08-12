@@ -59,11 +59,13 @@ If programmes are missing or channels are unmatched:
 
 ## Playback checklist
 
-1. From Jellyfin, tune a non-DRM channel (news/basic sports usually fare better than premium movie nets)
-2. If tune fails immediately → check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
-3. Refresh the M3U tuner after DRM learns so Jellyfin drops dead entries
-4. If tune starts then fails → suspect **IP binding**; co-locate bridge and Jellyfin egress
-5. On the Jellyfin host, open a `/watch/<id>` URL from the M3U in VLC and confirm it redirects to an `.m3u8`
+1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on bridge **1.0.6+** (paced for Fubo **429**), then refresh the M3U tuner + guide
+2. From Jellyfin, tune a non-DRM channel (news/basic sports usually fare better than premium movie nets)
+3. If tune fails immediately → check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
+4. Refresh the M3U tuner after DRM learns so Jellyfin drops dead entries
+5. If tune starts then fails → suspect **IP binding**; co-locate bridge and Jellyfin egress
+6. On the Jellyfin host, open a `/watch/<id>` URL from the M3U in VLC (**GET**, not HEAD) and confirm it redirects to an `.m3u8`
+7. Scan 429s → raise `DRM_SCAN_DELAY_MS`; see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) / [CONFIGURATION.md](CONFIGURATION.md#drm-scan)
 
 ## Suggested topology
 

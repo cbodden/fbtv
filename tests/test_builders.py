@@ -5,11 +5,28 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.config import _load_credentials, _strip_wrapping_quotes, password_fingerprint
+from app.config import Settings, _load_credentials, _strip_wrapping_quotes, password_fingerprint
 from app.epg import EpgCache, build_xmltv
 from app.fubo_client import Channel, Programme
 from app.m3u import build_m3u
 from app.status import RuntimeState, build_snapshot, render_prometheus
+
+
+def _settings(config_dir: Path) -> Settings:
+    return Settings(
+        fubo_user="u@example.com",
+        fubo_pass="secret",
+        host="0.0.0.0",
+        port=7777,
+        config_dir=config_dir,
+        epg_cache_seconds=3600,
+        epg_days=2,
+        credentials_source="test",
+        drm_scan_on_start=False,
+        drm_scan_concurrency=2,
+        drm_scan_max_age_hours=24,
+        drm_scan_interval_hours=0,
+    )
 
 
 def test_build_m3u() -> None:
@@ -161,22 +178,12 @@ def test_mark_drm_station_removes_from_cache_and_persists(
 ) -> None:
     import time
 
-    from app.config import Settings
     from app.fubo_client import FuboClient
 
     config_dir = tmp_path if tmp_path is not None else Path(
         __import__("tempfile").mkdtemp()
     )
-    settings = Settings(
-        fubo_user="u@example.com",
-        fubo_pass="secret",
-        host="0.0.0.0",
-        port=7777,
-        config_dir=config_dir,
-        epg_cache_seconds=3600,
-        epg_days=2,
-        credentials_source="test",
-    )
+    settings = _settings(config_dir)
     client = FuboClient(settings)
     try:
         client._channels_cache = [
@@ -214,19 +221,9 @@ def test_is_drm_channel_flags() -> None:
 
 
 def test_papi_program_cell_parsing() -> None:
-    from app.config import Settings
     from app.fubo_client import FuboClient
 
-    settings = Settings(
-        fubo_user="u@example.com",
-        fubo_pass="secret",
-        host="0.0.0.0",
-        port=7777,
-        config_dir=Path(__import__("tempfile").mkdtemp()),
-        epg_cache_seconds=3600,
-        epg_days=2,
-        credentials_source="test",
-    )
+    settings = _settings(Path(__import__("tempfile").mkdtemp()))
     client = FuboClient(settings)
     try:
         channels = [Channel(id="12345", call_sign="ESPN", name="ESPN")]
@@ -265,19 +262,9 @@ def test_papi_program_cell_parsing() -> None:
 
 
 def test_epg_assets_parsing() -> None:
-    from app.config import Settings
     from app.fubo_client import FuboClient
 
-    settings = Settings(
-        fubo_user="u@example.com",
-        fubo_pass="secret",
-        host="0.0.0.0",
-        port=7777,
-        config_dir=Path(__import__("tempfile").mkdtemp()),
-        epg_cache_seconds=3600,
-        epg_days=2,
-        credentials_source="test",
-    )
+    settings = _settings(Path(__import__("tempfile").mkdtemp()))
     client = FuboClient(settings)
     try:
         channels = [Channel(id="16689", call_sign="ESPN", name="ESPN")]
@@ -320,6 +307,42 @@ def test_epg_assets_parsing() -> None:
         client.close()
 
 
+def test_drm_scan_persists_and_skips_when_fresh() -> None:
+    from app.fubo_client import FuboClient
+
+    config_dir = Path(__import__("tempfile").mkdtemp())
+    settings = _settings(config_dir)
+    client = FuboClient(settings)
+    try:
+        playable = Channel(id="1", call_sign="OK", name="Playable")
+        drm_ch = Channel(id="20360", call_sign="DRMCH", name="DRM Channel")
+
+        def fake_lineup(*, include_learned_drm: bool) -> list[Channel]:
+            return [playable, drm_ch]
+
+        client._lineup_channels = fake_lineup  # type: ignore[method-assign]
+        client.probe_asset = (  # type: ignore[method-assign]
+            lambda channel_id: "drm" if str(channel_id) == "20360" else "ok"
+        )
+
+        result = client.scan_drm(force=True)
+        assert result["status"] == "completed"
+        assert result["drm"] == 1
+        assert result["playable"] == 1
+        assert "20360" in client._drm_learned_ids
+        assert "1" in client._drm_playable
+        skip_file = config_dir / "drm_skipped.json"
+        payload = json.loads(skip_file.read_text(encoding="utf-8"))
+        assert "20360" in payload["station_ids"]
+        assert payload.get("last_scan_at")
+
+        skipped = client.scan_drm(force=False)
+        assert skipped["status"] == "skipped"
+        assert skipped["skipped"] is True
+    finally:
+        client.close()
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
@@ -333,4 +356,5 @@ if __name__ == "__main__":
     test_is_drm_channel_flags()
     test_papi_program_cell_parsing()
     test_epg_assets_parsing()
+    test_drm_scan_persists_and_skips_when_fresh()
     print("ok")

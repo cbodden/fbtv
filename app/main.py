@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -32,6 +33,59 @@ settings: Settings | None = None
 client: FuboClient | None = None
 epg_cache: EpgCache | None = None
 runtime = RuntimeState()
+_drm_stop = threading.Event()
+_drm_threads: list[threading.Thread] = []
+
+
+def _on_drm_scan_complete(result: dict[str, Any]) -> None:
+    """Invalidate EPG after a scan that changed DRM classifications."""
+    if epg_cache is None:
+        return
+    if result.get("skipped"):
+        return
+    if result.get("status") == "completed" and (
+        int(result.get("drm") or 0) > 0 or int(result.get("playable") or 0) > 0
+    ):
+        epg_cache.clear()
+        logger.info("Cleared EPG cache after DRM scan (M3U/EPG will rebuild without DRM ids)")
+
+
+def _run_drm_scan(*, force: bool) -> None:
+    if client is None:
+        return
+    try:
+        client.scan_drm(force=force, on_complete=_on_drm_scan_complete)
+    except FuboError as exc:
+        logger.warning("DRM scan not started: %s", exc)
+    except Exception:
+        logger.exception("DRM scan crashed")
+
+
+def _start_drm_scan_thread(*, force: bool, name: str) -> bool:
+    if client is None:
+        return False
+    if client._scan_running:  # noqa: SLF001 — intentional in-process guard
+        return False
+    thread = threading.Thread(
+        target=_run_drm_scan,
+        kwargs={"force": force},
+        name=name,
+        daemon=True,
+    )
+    _drm_threads.append(thread)
+    thread.start()
+    return True
+
+
+def _drm_interval_loop() -> None:
+    assert settings is not None
+    hours = settings.drm_scan_interval_hours
+    if hours <= 0:
+        return
+    logger.info("DRM periodic scan enabled every %s hour(s)", hours)
+    while not _drm_stop.wait(hours * 3600):
+        logger.info("DRM periodic scan tick")
+        _start_drm_scan_thread(force=False, name="drm-scan-interval")
 
 
 @asynccontextmanager
@@ -41,15 +95,27 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     client = FuboClient(settings)
     epg_cache = EpgCache(settings.epg_cache_seconds)
     runtime = RuntimeState()
+    _drm_stop.clear()
     logger.info(
         "Fubo Emby & Jellyfin bridge v%s ready on %s:%s",
         __version__,
         settings.host,
         settings.port,
     )
+    if settings.drm_scan_on_start:
+        _start_drm_scan_thread(force=False, name="drm-scan-startup")
+    if settings.drm_scan_interval_hours > 0:
+        interval_thread = threading.Thread(
+            target=_drm_interval_loop,
+            name="drm-scan-interval-loop",
+            daemon=True,
+        )
+        _drm_threads.append(interval_thread)
+        interval_thread.start()
     try:
         yield
     finally:
+        _drm_stop.set()
         if client is not None:
             client.close()
 
@@ -151,15 +217,58 @@ def epg() -> PlainTextResponse:
 
 @app.get("/watch/{channel_id}")
 def watch(channel_id: str) -> RedirectResponse:
-    _, fubo, _ = _require_client()
+    _, fubo, cache = _require_client()
     try:
         url = fubo.watch(channel_id)
     except FuboError as exc:
         runtime.counters.watch_error += 1
+        # Learn-on-tune may have dropped a channel; refresh EPG on next build.
+        if "DRM protected" in str(exc):
+            cache.clear()
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     runtime.counters.watch_ok += 1
     return RedirectResponse(url=url, status_code=302)
+
+
+@app.get("/admin/drm-scan")
+def drm_scan_status() -> dict[str, Any]:
+    _, fubo, _ = _require_client()
+    stats = fubo.runtime_stats()
+    return {
+        "running": stats.get("drm_scan_running"),
+        "started_at": stats.get("drm_scan_started_at"),
+        "finished_at": stats.get("drm_scan_finished_at"),
+        "last_result": stats.get("drm_scan_last_result"),
+        "drm_learned_count": stats.get("drm_learned_count"),
+        "drm_playable_count": stats.get("drm_playable_count"),
+        "drm_updated_at": stats.get("drm_updated_at"),
+        "settings": {
+            "on_start": stats.get("drm_scan_on_start"),
+            "interval_hours": stats.get("drm_scan_interval_hours"),
+            "max_age_hours": stats.get("drm_scan_max_age_hours"),
+            "concurrency": stats.get("drm_scan_concurrency"),
+        },
+    }
+
+
+@app.post("/admin/drm-scan")
+def drm_scan_start(force: bool = False) -> dict[str, Any]:
+    """Start a background DRM asset sweep (non-blocking)."""
+    _, fubo, _ = _require_client()
+    if fubo._scan_running:  # noqa: SLF001
+        raise HTTPException(status_code=409, detail="DRM scan already running")
+    started = _start_drm_scan_thread(
+        force=force,
+        name="drm-scan-admin-force" if force else "drm-scan-admin",
+    )
+    if not started:
+        raise HTTPException(status_code=409, detail="DRM scan already running")
+    return {
+        "status": "started",
+        "forced": force,
+        "message": "DRM scan running in background; poll GET /admin/drm-scan or /status.json",
+    }
 
 
 @app.get("/health")

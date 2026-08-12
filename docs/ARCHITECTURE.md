@@ -51,7 +51,7 @@ Two discovery paths (first successful wins for a populated list):
 1. **Subscriptions** — `subscriptions`, `subscriptions/products`, plus `v3/plan-manager/plans` for source metadata
 2. **Plan manager fallback** — `v3/plan-manager/plans` + `user` recurly `purchased_packages`
 
-Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` flags on lineup metadata) are dropped before playlist generation. Stations discovered as `drmProtected` at tune time are remembered in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists.
+Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` flags on lineup metadata) are dropped before playlist generation. Stations discovered as `drmProtected` at tune time **or** during a background DRM asset sweep are remembered in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists and EPG channel mapping. Sweeps are optional/periodic (`DRM_SCAN_*`); they classify streams only — they do not decrypt DRM.
 
 ## Tune path
 
@@ -80,7 +80,7 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin,
 | Channel list | 30 minutes | Process memory |
 | XMLTV body | `EPG_CACHE_SECONDS` (default 1h) | Process memory |
 | Device id | Permanent until deleted | `CONFIG_DIR/device.json` |
-| Learned DRM station ids | Permanent until deleted | `CONFIG_DIR/drm_skipped.json` |
+| Learned / scanned DRM station ids | Permanent until deleted | `CONFIG_DIR/drm_skipped.json` (`station_ids`, `playable`, `last_scan_at`) |
 | Request counters / uptime | Process lifetime | Process memory (`app/status.py` / `main`) |
 
 ## Status and metrics

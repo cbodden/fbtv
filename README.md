@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.4** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
+**Version 1.0.5** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -41,7 +41,7 @@ This is **not** a native Emby plugin or Jellyfin plugin. Both servers already su
 Fubo does not offer an official Emby or Jellyfin plugin. This bridge fills that gap for **personal use** with your own paid subscription:
 
 1. **Signs in** to `api.fubo.tv` with your email/password and a stable device id (`config/device.json`).
-2. **Discovers your lineup** from Fubo subscription / plan APIs and **skips DRM** (known packages plus stations learned as `drmProtected` at tune time).
+2. **Discovers your lineup** from Fubo subscription / plan APIs and **skips DRM** (known packages plus stations learned/scanned as `drmProtected`).
 3. **Serves an M3U** whose each channel points at this bridge (`/watch/<stationId>`), not at a raw CDN URL.
 4. **On tune**, resolves a live HLS URL from Fubo and **HTTP 302 redirects** the media server (or VLC) to that stream.
 5. **Builds XMLTV** from Fubo guide data when available (prefers `/epg`, then `papi/v1/guide/epg`); otherwise still emits channel rows so Emby and Jellyfin can map by call sign (`tvg-id`). Emby operators can use **Guide Data FuboTV** when programmes are empty.
@@ -115,7 +115,7 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.4"}
+# → {"status":"ok","version":"1.0.5"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -178,7 +178,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `config/credentials.env` | `FUBO_USER` + `FUBO_PASS_B64` (preferred) or `FUBO_PASS` |
 | `config/credentials.json` | Same secrets; write with `python -m app.set_credentials` |
 | `config/device.json` | Stable Fubo `x-device-id` (created on first run) |
-| `config/drm_skipped.json` | Station ids learned as DRM at tune time (kept out of later playlists) |
+| `config/drm_skipped.json` | DRM station ids from tune or background scan (kept out of later playlists/EPG) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
 Delete `config/device.json` only if you intentionally want a new device identity (can trigger extra sign-in friction).
@@ -241,7 +241,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`; if that works for your account, bridge `/epg.xml` can supply programmes again. Pull pre-release with `ghcr.io/cbodden/fbtv:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5** adds a background DRM asset sweep so DRM stations are dropped from M3U/EPG without waiting for a failed tune. Pull pre-release with `ghcr.io/cbodden/fbtv:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -304,7 +304,7 @@ curl -sSI http://127.0.0.1:7777/watch/<stationId>   # expect 302 + Location: …
 
 1. Load or create `CONFIG_DIR/device.json` (`x-device-id`).
 2. `PUT /signin` with Android TV–style client headers; cache bearer token ~4 hours.
-3. Build lineup via subscriptions APIs, with plan-manager + recurly packages as fallback; drop DRM sources and previously learned DRM station ids.
+3. Build lineup via subscriptions APIs, with plan-manager + recurly packages as fallback; drop DRM sources and previously learned/scanned DRM station ids. Optional background DRM sweep probes assets and updates the skip list.
 4. Serve M3U with absolute `/watch/…` URLs (honors `X-Forwarded-Host` / `X-Forwarded-Proto`).
 5. On watch: call `vapi/asset/v1?channelId=…&type=live`; reject `drmProtected` (and remember the station for future playlists); otherwise **302** to HLS.
 6. On EPG: probe `/epg` (`channelWithProgramAssets`), then `papi/v1/guide/epg`, then older fallbacks; map to call signs; cache XMLTV body.
@@ -316,7 +316,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 ## Limitations
 
 - **Unofficial API** — Fubo does not document this for third-party use. Endpoints/headers can change without notice.
-- **DRM** — Protected packages are skipped; tune-time `drmProtected` stations are remembered and dropped from later playlists (`config/drm_skipped.json`).
+- **DRM** — Protected packages are skipped; tune-time and background-scan `drmProtected` stations are remembered and dropped from later playlists/EPG (`config/drm_skipped.json`). Decryption is out of scope.
 - **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress as Emby and Jellyfin is strongly recommended.
 - **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse.
 - **No remux in v1** — Redirect only (no streamlink/ffmpeg MPEG-TS proxy yet; see CHANGELOG Unreleased).
@@ -334,8 +334,8 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Process exits mentioning credentials | Set `config/credentials.env` (`FUBO_PASS_B64` if the password has `$`), or env / local `.env` |
 | Sign-in 401 `INVALID_USERNAME_PASSWORD` | Use `FUBO_PASS_B64` or `python -m app.set_credentials`; do not quote passwords — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
-| Channels import but will not play | Confirm non-DRM; if DRM, refresh M3U after learn; test watch URL in VLC on the Emby/Jellyfin host; fix shared egress |
-| Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4 check logs for `Loaded N programmes from epg` (log line, not XML) |
+| Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; test watch with GET (not HEAD); fix shared egress / Cloudflare 403 |
+| Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.5 check logs for `Loaded N programmes from epg` (log line, not XML) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
 | Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
 | Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |

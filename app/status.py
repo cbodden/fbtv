@@ -99,6 +99,7 @@ def render_index_html(base: str, version: str, snapshot: dict[str, Any]) -> str:
     <div class="stat"><span class="muted">Signed in</span><strong>{"yes" if fubo.get("signed_in") else "no"}</strong></div>
     <div class="stat"><span class="muted">DRM skipped</span><strong>{_fmt(fubo.get("drm_skipped_count"))}</strong></div>
     <div class="stat"><span class="muted">DRM learned</span><strong>{_fmt(fubo.get("drm_learned_count"))}</strong></div>
+    <div class="stat"><span class="muted">DRM scan</span><strong>{"running" if fubo.get("drm_scan_running") else "idle"}</strong></div>
     <div class="stat"><span class="muted">EPG programmes</span><strong>{_fmt(epg.get("programme_count"))}</strong></div>
     <div class="stat"><span class="muted">Uptime</span><strong>{_fmt(snapshot.get("uptime_seconds"))}s</strong></div>
     <div class="stat"><span class="muted">Watch OK / err</span><strong>{_fmt(req.get("watch_ok"))} / {_fmt(req.get("watch_error"))}</strong></div>
@@ -133,7 +134,10 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
         ("Channels cache age (seconds)", fubo.get("channels_cache_age_seconds")),
         ("Channels source", fubo.get("channels_source")),
         ("DRM skipped (unique)", fubo.get("drm_skipped_count")),
-        ("DRM learned (tune-time)", fubo.get("drm_learned_count")),
+        ("DRM learned", fubo.get("drm_learned_count")),
+        ("DRM playable (scanned)", fubo.get("drm_playable_count")),
+        ("DRM last full scan", fubo.get("drm_last_scan_at")),
+        ("DRM scan running", "yes" if fubo.get("drm_scan_running") else "no"),
         ("EPG cached", "yes" if epg.get("cached") else "no"),
         ("EPG cache age (seconds)", epg.get("age_seconds")),
         ("EPG TTL (seconds)", epg.get("ttl_seconds")),

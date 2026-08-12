@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.4 `/epg` parser + GHCR `:dev` builds + Emby Guide Data).
+**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.5 DRM background scan + 1.0.4 EPG).
 
 ## What this is
 
@@ -11,7 +11,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` by default (`pull_policy: always`); use `ghcr.io/cbodden/fbtv:dev` for pre-release. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
 - **Workspace:** `/home/cbodden/git/mine/fbtv` (also historically `/home/cbodden/git/mine/fubo_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
-- **Version:** 1.0.4 (`app/__version__`; see `CHANGELOG.md`)
+- **Version:** 1.0.5 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
@@ -32,7 +32,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** v1.0.4 on `dev`. Live Fubo sign-in + Emby M3U work. Field logs: `/epg` returns **200** while many other schedule URLs **404**; 1.0.4 parses `channelWithProgramAssets`. Emby Guide Data FuboTV recommended while `programme_count` is 0. DRM learn-on-tune. GHCR `:dev` builds from `dev` (does not move `:latest`). **Do not merge `dev` → `main` until user asks.**
+**Status:** v1.0.5 in tree (DRM background scan). v1.0.4 on GHCR `:dev` field-confirmed EPG (~19k programmes). **Do not merge `dev` → `main` until user asks.**
 
 ## Non-goals (v1)
 
@@ -84,8 +84,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 ## Planned
 
 - Optional MPEG-TS remux / stream proxy
-- Configurable DRM allow/deny lists
-- Field-confirm 1.0.4 EPG on `:dev`; then prefer bridge XMLTV when healthy
+- Configurable DRM allow/deny lists (manual overrides on top of scan)
 
 ## Agent guidance
 

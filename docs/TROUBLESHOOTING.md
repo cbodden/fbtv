@@ -70,14 +70,15 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 
 1. Confirm the channel is not DRM-filtered (premium movie nets often are)
 2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry
-3. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC
-4. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
-5. If VLC fails with the redirected CDN URL, you likely hit **IP binding**:
+3. Prefer a full DRM sweep so the playlist is clean before Emby imports: `POST /admin/drm-scan?force=true`, wait for `GET /admin/drm-scan` to show `running: false`, then refresh M3U + EPG
+4. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC (**GET**, not HEAD/`curl -I`)
+5. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
+6. If VLC fails with the redirected CDN URL, you likely hit **IP binding** or a Cloudflare 403 on the CDN (bridge already 302'd — not the DRM 502 path):
    - Run the bridge on the same machine as Emby/Jellyfin, or
    - Ensure they use the same public egress (no split VPN)
-6. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
+7. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
 
-v1 uses HTTP 302 redirects only (no local remux).
+v1 uses HTTP 302 redirects only (no local remux). DRM decryption is out of scope.
 
 ---
 

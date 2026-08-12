@@ -126,9 +126,13 @@ class FuboClient:
             if self._token and (time.time() - self._token_at) < 4 * 60 * 60:
                 return self._token
 
+            body = json.dumps(
+                {"email": self.settings.fubo_user, "password": self.settings.fubo_pass},
+                ensure_ascii=False,
+            ).encode("utf-8")
             response = self._http.put(
                 f"{API_BASE}/signin",
-                json={"email": self.settings.fubo_user, "password": self.settings.fubo_pass},
+                content=body,
                 headers=self._headers(authorized=False),
             )
             if response.status_code != 200:

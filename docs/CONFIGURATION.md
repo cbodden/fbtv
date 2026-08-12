@@ -5,7 +5,8 @@
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `FUBO_USER` | if no credentials file | — | Fubo account email |
-| `FUBO_PASS` | if no credentials file | — | Fubo account password |
+| `FUBO_PASS` | if no credentials file | — | Fubo account password (avoid `$` here — use `FUBO_PASS_B64`) |
+| `FUBO_PASS_B64` | no | — | Base64 UTF-8 password; wins over `FUBO_PASS` (safe for `$` `!` `` ` ``) |
 | `FUBO_USER_FILE` / `FUBO_PASS_FILE` | no | — | Optional paths to files containing email/password (Docker secrets style) |
 | `HOST` | no | `0.0.0.0` | Bind address for uvicorn |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
@@ -25,17 +26,27 @@ export FUBO_PASS='your-password'
 docker compose up -d
 ```
 
-### Portainer
+### Portainer / special characters (`$`, `!`, etc.)
 
-Prefer a file on the config volume (no `$` interpolation, no quotes):
+Do **not** put a raw `$` password in stack env or a hand-edited `credentials.env` (shells and Portainer still eat `$…`). Use base64 or the helper:
+
+```bash
+printf '%s' 'my$ecureP@ss' | base64 -w0; echo
+```
 
 ```text
 # /app/config/credentials.env
 FUBO_USER=you@example.com
-FUBO_PASS=your-actual-password
+FUBO_PASS_B64=bXkkZWN1cmVQQHNz
 ```
 
-Then restart. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+Or write JSON without interpolation:
+
+```bash
+printf '%s\n%s\n' 'you@example.com' 'my$ecureP@ss' | docker exec -i fbtv python -m app.set_credentials
+```
+
+Then restart. Logs include `pass_fp=` (SHA-256 prefix) so you can confirm the decoded password without printing it. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ### Local Python
 
@@ -77,8 +88,8 @@ GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to `main` (se
 | Path | Purpose |
 | --- | --- |
 | `.env` | Optional local-Python secrets (gitignored); **not** used by Compose |
-| `config/credentials.env` | Preferred Portainer/Compose secrets (`FUBO_USER=` / `FUBO_PASS=`; no quotes) |
-| `config/credentials.json` | Same secrets as JSON |
+| `config/credentials.env` | `FUBO_USER=` plus `FUBO_PASS_B64=` (preferred) or `FUBO_PASS=` |
+| `config/credentials.json` | Same secrets as JSON (`python -m app.set_credentials`) |
 | `config/device.json` | Stable Fubo `x-device-id` |
 | `config/.gitkeep` | Keeps empty config dir in git |
 

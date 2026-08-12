@@ -2,9 +2,9 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-11 ~19:15 local (credentials file for Portainer 401s)  
-**Active version:** 1.0.1  
-**Phase:** Portainer auth via `config/credentials.env`; next = pull 1.0.1 + smoke test  
+**Last updated:** 2026-08-11 ~20:10 local (FUBO_PASS_B64 for `$` passwords)  
+**Active version:** 1.0.2  
+**Phase:** Special-char passwords via base64 / set_credentials; next = pull 1.0.2 + retry `$` password once  
 **Git:** `main` → `origin` `git@github.com:cbodden/fbtv.git`
 
 ---
@@ -115,6 +115,7 @@ Issues:
 | 2026-08-11 | Portainer auth troubleshooting (`$` mangling) | User: 401 in Portainer |
 | 2026-08-11 | credentials.env/json file wins over env; strip wrapping quotes | User: quotes/$$ still 401 in Portainer |
 | 2026-08-11 | Bump Fubo client headers to 5.40.0 | User: 401 persists with correct email + pass_len=14 / `$` |
+| 2026-08-11 | FUBO_PASS_B64 + set_credentials for `$` passwords | User: works without `$`, wants secure passwords |
 
 ## Do not forget
 

@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.config import _load_credentials, _strip_wrapping_quotes
+from app.config import _load_credentials, _strip_wrapping_quotes, password_fingerprint
 from app.epg import EpgCache, build_xmltv
 from app.fubo_client import Channel, Programme
 from app.m3u import build_m3u
@@ -135,6 +135,27 @@ def test_credentials_json(tmp_path: Path | None = None) -> None:
     assert source.endswith("credentials.json")
 
 
+def test_credentials_pass_b64(tmp_path: Path | None = None) -> None:
+    import base64
+
+    config_dir = tmp_path if tmp_path is not None else Path(
+        __import__("tempfile").mkdtemp()
+    )
+    secret = "ab$cd!ef"
+    (config_dir / "credentials.env").write_text(
+        "FUBO_USER=you@example.com\n"
+        f"FUBO_PASS_B64={base64.b64encode(secret.encode()).decode()}\n",
+        encoding="utf-8",
+    )
+    user, password, source, _ = _load_credentials(config_dir)
+    assert user == "you@example.com"
+    assert password == secret
+    assert source.endswith("credentials.env")
+    fp, classes = password_fingerprint(secret)
+    assert len(fp) == 12
+    assert "S" in classes
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
@@ -143,4 +164,5 @@ if __name__ == "__main__":
     test_strip_wrapping_quotes()
     test_credentials_file_beats_env()
     test_credentials_json()
+    test_credentials_pass_b64()
     print("ok")

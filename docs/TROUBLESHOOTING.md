@@ -16,20 +16,31 @@ Fubo rejected the email/password the container sent. The bridge is up; auth fail
 
 ### Portainer — use a credentials file (recommended)
 
-Compose never interpolates files on the `config` volume. Image **1.0.1+** reads these (file wins over env):
+Compose never interpolates files on the `config` volume. Image **1.0.2+** prefers **base64** so `$` cannot be eaten:
 
-1. Pull/redeploy `ghcr.io/cbodden/fbtv:latest` so you are on 1.0.1+.
-2. In Portainer: container → **Console**, or from the host bind mount, create `/app/config/credentials.env` with **no quotes**:
-
-```text
-FUBO_USER=you@example.com
-FUBO_PASS=your-actual-password
+```bash
+printf '%s' 'my$ecureP@ss' | base64 -w0; echo
 ```
 
-JSON is also fine: `/app/config/credentials.json` → `{"FUBO_USER":"...","FUBO_PASS":"..."}`.
+```text
+# /app/config/credentials.env
+FUBO_USER=you@example.com
+FUBO_PASS_B64=<paste-base64-here>
+```
 
-3. Restart the container once.
-4. Logs should show `credentials source=.../credentials.env` and `pass_len=` matching your real password. `wrapping_quotes_stripped=true` means you still had quotes in the file — remove them.
+Or:
+
+```bash
+printf '%s\n%s\n' 'you@example.com' 'my$ecureP@ss' | docker exec -i fbtv python -m app.set_credentials
+```
+
+Restart once. Confirm `pass_len` and `pass_fp` in the logs:
+
+```bash
+python3 -c "import hashlib; p=r'my$ecureP@ss'; print(len(p), hashlib.sha256(p.encode()).hexdigest()[:12])"
+```
+
+If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting that password (reset on fubo.tv and try again once).
 
 ### Other checks
 

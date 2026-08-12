@@ -97,7 +97,7 @@ Liveness probe. Does not verify Fubo credentials.
 
 ## `GET /playlist.m3u`
 
-Builds an M3U of non-DRM subscribed channels (known DRM packages plus stations previously learned as `drmProtected` at tune time).
+Builds an M3U of non-DRM subscribed channels (known DRM packages plus stations learned or scanned as `drmProtected`).
 
 **Response:** `200 audio/x-mpegurl`
 

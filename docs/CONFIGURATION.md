@@ -14,7 +14,8 @@
 | `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
 | `DRM_SCAN_ON_START` | no | `true` | Run a background DRM asset sweep after startup (skipped if last full scan is fresh) |
-| `DRM_SCAN_CONCURRENCY` | no | `3` | Parallel `vapi/asset` probes during a sweep |
+| `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep low — Fubo returns **429** when pressed) |
+| `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes (global pace lock) |
 | `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is newer than this (0 = always scan) |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan interval (0 = disabled) |
 
@@ -154,4 +155,4 @@ curl -sS http://127.0.0.1:7777/admin/drm-scan
 curl -sS -X POST 'http://127.0.0.1:7777/admin/drm-scan?force=true'
 ```
 
-Defaults start a background sweep on boot and every 24h; a fresh `last_scan_at` skips non-forced runs. Tune-time DRM learns still apply immediately.
+Defaults start a background sweep on boot and every 24h (one probe at a time, 750ms pacing, 429 backoff). A fresh `last_scan_at` skips non-forced runs. Tune-time DRM learns still apply immediately. If logs show many **429** responses, raise `DRM_SCAN_DELAY_MS` (e.g. `1500`) and keep `DRM_SCAN_CONCURRENCY=1`.

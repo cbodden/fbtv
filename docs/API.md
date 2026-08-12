@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -92,7 +92,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.5"}
+{"status": "ok", "version": "1.0.6"}
 ```
 
 ## `GET /playlist.m3u`
@@ -119,7 +119,7 @@ Absolute stream URLs use the request host, or `X-Forwarded-Host` / `X-Forwarded-
 
 ## `GET /epg.xml`
 
-Returns XMLTV. Channel ids equal playlist `tvg-id` values (call signs). Programme elements appear when a schedule endpoint returns usable data (from **1.0.5**, primarily `/epg` with a `channelWithProgramAssets` parser, then `papi/v1/guide/epg`); otherwise only channels are listed.
+Returns XMLTV. Channel ids equal playlist `tvg-id` values (call signs). Programme elements appear when a schedule endpoint returns usable data (from **1.0.4+**, primarily `/epg` with a `channelWithProgramAssets` parser, then `papi/v1/guide/epg`); otherwise only channels are listed.
 
 **Response:** `200 application/xml`
 

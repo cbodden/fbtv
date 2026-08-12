@@ -31,6 +31,7 @@ class Settings:
     credentials_source: str
     drm_scan_on_start: bool
     drm_scan_concurrency: int
+    drm_scan_delay_ms: int
     drm_scan_max_age_hours: int
     drm_scan_interval_hours: int
 
@@ -186,7 +187,9 @@ def load_settings() -> Settings:
         epg_days=int(os.environ.get("EPG_DAYS", "2")),
         credentials_source=source,
         drm_scan_on_start=_env_bool("DRM_SCAN_ON_START", True),
-        drm_scan_concurrency=_env_int("DRM_SCAN_CONCURRENCY", 3, minimum=1),
+        # Default to 1 worker — Fubo rate-limits parallel vapi/asset probes (429).
+        drm_scan_concurrency=_env_int("DRM_SCAN_CONCURRENCY", 1, minimum=1),
+        drm_scan_delay_ms=_env_int("DRM_SCAN_DELAY_MS", 750, minimum=0),
         drm_scan_max_age_hours=_env_int("DRM_SCAN_MAX_AGE_HOURS", 24, minimum=0),
         drm_scan_interval_hours=_env_int("DRM_SCAN_INTERVAL_HOURS", 24, minimum=0),
     )

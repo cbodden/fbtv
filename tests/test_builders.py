@@ -23,7 +23,8 @@ def _settings(config_dir: Path) -> Settings:
         epg_days=2,
         credentials_source="test",
         drm_scan_on_start=False,
-        drm_scan_concurrency=2,
+        drm_scan_concurrency=1,
+        drm_scan_delay_ms=0,
         drm_scan_max_age_hours=24,
         drm_scan_interval_hours=0,
     )

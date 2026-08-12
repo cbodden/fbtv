@@ -48,7 +48,7 @@ Fubo’s private schedule APIs have been unreliable (many paths 404). **Until br
 You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Deploy via `ghcr.io/cbodden/fbtv:dev` or a local build until merged to `main`. Check after a refresh:
 
 ```bash
-curl -sS http://<bridge-host>:7777/health          # version should be 1.0.5+ for DRM sweep
+curl -sS http://<bridge-host>:7777/health          # version should be 1.0.6+ for paced DRM sweep
 curl -sS http://<bridge-host>:7777/status.json      # epg.programme_count
 curl -sS http://<bridge-host>:7777/epg.xml | grep -c '<programme'
 # "Loaded N programmes" appears in container logs, not in the XML body

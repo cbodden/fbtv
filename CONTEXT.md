@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.5 DRM background scan + 1.0.4 EPG).
+**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.6 DRM scan pacing + 1.0.5 sweep + 1.0.4 EPG).
 
 ## What this is
 
@@ -11,7 +11,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` by default (`pull_policy: always`); use `ghcr.io/cbodden/fbtv:dev` for pre-release. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
 - **Workspace:** `/home/cbodden/git/mine/fbtv` (also historically `/home/cbodden/git/mine/fubo_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
-- **Version:** 1.0.5 (`app/__version__`; see `CHANGELOG.md`)
+- **Version:** 1.0.6 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
@@ -32,7 +32,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** v1.0.5 in tree (DRM background scan). v1.0.4 on GHCR `:dev` field-confirmed EPG (~19k programmes). **Do not merge `dev` → `main` until user asks.**
+**Status:** v1.0.6 in tree (DRM scan pacing for Fubo 429). EPG field-confirmed on `:dev` (~19k programmes). **Do not merge `dev` → `main` until user asks.**
 
 ## Non-goals (v1)
 

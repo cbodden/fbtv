@@ -277,21 +277,42 @@ class FuboClient:
         return (time.time() - self._drm_last_scan_at) < max_age_h * 3600
 
     def probe_asset(self, channel_id: str) -> str:
-        """Return ``drm``, ``ok``, or ``error`` for a live asset probe."""
-        try:
-            payload = self.api_get(
-                "vapi/asset/v1",
-                params={"channelId": str(channel_id), "type": "live"},
-                timeout=30.0,
-            )
-        except FuboError as exc:
-            logger.debug("DRM probe %s failed: %s", channel_id, exc)
+        """Return ``drm``, ``ok``, ``rate_limited``, or ``error`` for a live asset probe."""
+        backoff_s = (1.0, 2.0, 5.0, 10.0, 20.0)
+        last_exc: FuboError | None = None
+        for attempt in range(len(backoff_s) + 1):
+            try:
+                payload = self.api_get(
+                    "vapi/asset/v1",
+                    params={"channelId": str(channel_id), "type": "live"},
+                    timeout=30.0,
+                )
+            except FuboError as exc:
+                last_exc = exc
+                msg = str(exc)
+                if "429" in msg and attempt < len(backoff_s):
+                    wait = backoff_s[attempt]
+                    logger.warning(
+                        "DRM probe %s rate-limited (429); backing off %.0fs (attempt %s/%s)",
+                        channel_id,
+                        wait,
+                        attempt + 1,
+                        len(backoff_s),
+                    )
+                    time.sleep(wait)
+                    continue
+                logger.debug("DRM probe %s failed: %s", channel_id, exc)
+                if "429" in msg:
+                    return "rate_limited"
+                return "error"
+            stream = payload.get("stream") or {}
+            if stream.get("drmProtected") is True:
+                return "drm"
+            if stream.get("url"):
+                return "ok"
             return "error"
-        stream = payload.get("stream") or {}
-        if stream.get("drmProtected") is True:
-            return "drm"
-        if stream.get("url"):
-            return "ok"
+        if last_exc and "429" in str(last_exc):
+            return "rate_limited"
         return "error"
 
     def scan_drm(
@@ -318,6 +339,7 @@ class FuboClient:
             "drm": 0,
             "playable": 0,
             "errors": 0,
+            "rate_limited": 0,
             "skipped": False,
         }
         try:
@@ -344,20 +366,33 @@ class FuboClient:
             channels = self._lineup_channels(include_learned_drm=force)
             if not channels and force:
                 channels = self._lineup_channels(include_learned_drm=True)
+            delay_s = max(0.0, self.settings.drm_scan_delay_ms / 1000.0)
             logger.info(
-                "DRM scan starting (%s stations, concurrency=%s, force=%s)",
+                "DRM scan starting (%s stations, concurrency=%s, delay_ms=%s, force=%s)",
                 len(channels),
                 self.settings.drm_scan_concurrency,
+                self.settings.drm_scan_delay_ms,
                 force,
             )
 
             drm_hits = 0
             playable_hits = 0
             errors = 0
+            rate_limited = 0
             checked = 0
+            pace_lock = Lock()
+            last_probe_at = 0.0
 
             def _work(ch: Channel) -> tuple[Channel, str]:
-                return ch, self.probe_asset(ch.id)
+                nonlocal last_probe_at
+                with pace_lock:
+                    if delay_s > 0 and last_probe_at > 0:
+                        wait = delay_s - (time.time() - last_probe_at)
+                        if wait > 0:
+                            time.sleep(wait)
+                    outcome = self.probe_asset(ch.id)
+                    last_probe_at = time.time()
+                return ch, outcome
 
             workers = max(1, self.settings.drm_scan_concurrency)
             with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -383,8 +418,20 @@ class FuboClient:
                             name=ch.name,
                             save=False,
                         )
+                    elif outcome == "rate_limited":
+                        rate_limited += 1
                     else:
                         errors += 1
+                    if checked % 25 == 0 or checked == len(channels):
+                        logger.info(
+                            "DRM scan progress %s/%s drm=%s playable=%s rate_limited=%s errors=%s",
+                            checked,
+                            len(channels),
+                            drm_hits,
+                            playable_hits,
+                            rate_limited,
+                            errors,
+                        )
 
             with self._lock:
                 self._drm_updated_at = time.time()
@@ -400,15 +447,17 @@ class FuboClient:
                     "drm": drm_hits,
                     "playable": playable_hits,
                     "errors": errors,
+                    "rate_limited": rate_limited,
                     "drm_learned_count": len(self._drm_learned_ids),
                     "duration_seconds": round(time.time() - started, 1),
                 }
             )
             logger.info(
-                "DRM scan complete checked=%s drm=%s playable=%s errors=%s learned_total=%s (%.1fs)",
+                "DRM scan complete checked=%s drm=%s playable=%s rate_limited=%s errors=%s learned_total=%s (%.1fs)",
                 checked,
                 drm_hits,
                 playable_hits,
+                rate_limited,
                 errors,
                 len(self._drm_learned_ids),
                 time.time() - started,
@@ -869,6 +918,7 @@ class FuboClient:
                 "drm_scan_interval_hours": self.settings.drm_scan_interval_hours,
                 "drm_scan_max_age_hours": self.settings.drm_scan_max_age_hours,
                 "drm_scan_concurrency": self.settings.drm_scan_concurrency,
+                "drm_scan_delay_ms": self.settings.drm_scan_delay_ms,
             }
 
     def watch(self, channel_id: str) -> str:

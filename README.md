@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.5** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
+**Version 1.0.6** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch redirects).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -115,7 +115,7 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.5"}
+# → {"status":"ok","version":"1.0.6"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -241,7 +241,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5** adds a background DRM asset sweep so DRM stations are dropped from M3U/EPG without waiting for a failed tune. Pull pre-release with `ghcr.io/cbodden/fbtv:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. Pull pre-release with `ghcr.io/cbodden/fbtv:dev`.
 
 ### Using Emby and Jellyfin together
 

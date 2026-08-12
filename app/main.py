@@ -248,6 +248,7 @@ def drm_scan_status() -> dict[str, Any]:
             "interval_hours": stats.get("drm_scan_interval_hours"),
             "max_age_hours": stats.get("drm_scan_max_age_hours"),
             "concurrency": stats.get("drm_scan_concurrency"),
+            "delay_ms": stats.get("drm_scan_delay_ms"),
         },
     }
 

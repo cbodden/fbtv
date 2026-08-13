@@ -61,7 +61,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | Credentials | Sign in on fubo.tv in a browser with the same email/password |
 | Region / plan | Confirm the account still has live TV packages |
 | Logs | Look for `Sign-in failed` or channel path warnings |
-| API drift | Fubo may have changed endpoints; update `app/fubo_client.py` |
+| API drift | Fubo may have changed endpoints; update `app/fubo/` (re-exported via `app/fubo_client.py`) |
 | Status | `curl -sS http://127.0.0.1:7777/status.json` — warms channel lineup; look at `fubo.signed_in` / `channel_count` |
 
 ---
@@ -116,7 +116,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.8`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.9`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |

@@ -7,13 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-08-13
+
+### Added
+
+- Docs: split `app/fubo/` + pytest notes in README, CONTRIBUTING, ARCHITECTURE, STATUS, TROUBLESHOOTING, CONTEXT
+- Split Fubo client into `app/fubo/` (models, client facade, DRM, lineup, schedule); `app/fubo_client.py` remains a stable re-export
+- pytest runner (`pytest.ini`, `pytest` in `requirements.txt`); CI runs `pytest`
+
+### Changed
+
+- Image/app version **1.0.9**
+
 ## [1.0.8] - 2026-08-13
 
 ### Added
 
 - `/`, `/status`, and `/status.json` warm the Fubo channel lineup; `/metrics` stays cache-only
 - Docs: hygiene endpoints and multi-arch notes across README, setup guides, MEDIA_SERVERS, TROUBLESHOOTING, CONFIGURATION, SECURITY (README env table includes `ADMIN_TOKEN`)
-- GitHub Actions workflow runs `tests/test_builders.py` on push/PR (`main`/`dev`)
+- GitHub Actions workflow runs unit tests on push/PR (`main`/`dev`); **1.0.8** used a script runner (**1.0.9** switches to pytest)
 - Multi-arch GHCR images: `linux/amd64` and `linux/arm64`
 - Optional `ADMIN_TOKEN`: when set, `GET`/`POST /admin/drm-scan` require `Authorization: Bearer …` or `X-Admin-Token`
 - `GET /ready` readiness probe (credentials resolvable, no live Fubo call); `/health` stays liveness-only
@@ -102,7 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for M3U and XMLTV builders
 - Project documentation under `docs/`
 
-[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.8...HEAD
+[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.9...HEAD
+[1.0.9]: https://github.com/cbodden/fbtv/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/cbodden/fbtv/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/cbodden/fbtv/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/cbodden/fbtv/compare/v1.0.0...v1.0.6

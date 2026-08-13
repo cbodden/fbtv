@@ -2,38 +2,32 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (v1.0.8 release to `main`)  
-**Active version:** 1.0.8  
-**Phase:** Release 1.0.8  
+**Last updated:** 2026-08-13 (v1.0.9 release to `main`)  
+**Active version:** 1.0.9  
+**Phase:** Release 1.0.9  
 **Git:** `dev` → `main`
 
 ---
 
 ## Resume here (this session)
 
-**1.0.8** cut: hygiene C, status warm, no sequential `tvg-chno`.
+**1.0.9** shipped: `app/fubo/` split + pytest.
 
-Next after merge: remaining D (split `fubo_client`, pytest) when requested.
+Backlog empty.
 
 ---
 
 ## Backlog
 
-### A / B / C / D12–13 — done (1.0.8; tvg-chno reverted)
-
-### D remaining
-
-10. Split `app/fubo_client.py`
-11. pytest conversion
+_(None open.)_
 
 ---
 
 ## Current focus
 
-- Ship 1.0.8 to `main` / `:latest`.
+- Ship 1.0.9 to `main` / `:latest`.
 
 ## Scratch
 
+_Public imports stay `from app.fubo_client import …`._
 _Guide join = tvg-id call sign only._
-_Status warm does not fetch EPG schedules._
-_Multi-arch lengthens docker CI._

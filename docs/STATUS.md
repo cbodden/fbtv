@@ -33,7 +33,7 @@ Snapshots **do not** include passwords, bearer tokens, or raw stream URLs.
 
 DRM sweep status is also at `GET /admin/drm-scan` (includes `settings.concurrency` / `settings.delay_ms` and last-result `rate_limited`); start with `POST /admin/drm-scan?force=true`. When `ADMIN_TOKEN` is set, pass `Authorization: Bearer …` or `X-Admin-Token`. Scans are paced for Fubo rate limits — see [CONFIGURATION.md](CONFIGURATION.md#drm-scan).
 
-`dev` image: `ghcr.io/cbodden/fbtv:dev` (multi-arch `amd64`/`arm64`). Stable `:latest` from **`main`** (**1.0.8+**).
+`dev` image: `ghcr.io/cbodden/fbtv:dev` (multi-arch `amd64`/`arm64`). Stable `:latest` from **`main`** (**1.0.9+**).
 
 ## Quick checks
 
@@ -60,5 +60,5 @@ open http://127.0.0.1:7777/status
 | --- | --- |
 | `app/status.py` | Snapshot builder + HTML / Prometheus renderers |
 | `app/main.py` | Routes `/`, `/status`, `/status.json`, `/metrics`; request counters |
-| `app/fubo_client.py` | `runtime_stats()` (token, channels, DRM skips, credentials source path — not the password) |
+| `app/fubo/` (`fubo_client` re-exports) | `runtime_stats()` (token, channels, DRM skips, credentials source path — not the password) |
 | `app/epg.py` | `EpgCache.runtime_stats()` |

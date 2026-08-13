@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.8** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
+**Version 1.0.9** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -128,9 +128,9 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.8"}
+# → {"status":"ok","version":"1.0.9"}
 curl -sS http://127.0.0.1:7777/ready
-# → {"status":"ready","version":"1.0.8"}
+# → {"status":"ready","version":"1.0.9"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -269,7 +269,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. **1.0.8** adds CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`, status channel warm, and omits sequential `tvg-chno` (Emby Guide Data safe). Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.8**). Pre-release: `:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. **1.0.8** adds CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`, status channel warm, and omits sequential `tvg-chno` (Emby Guide Data safe). **1.0.9** splits the Fubo client into `app/fubo/` and runs **pytest** in CI. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.9**). Pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -403,20 +403,21 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 ```text
 app/
   main.py             # FastAPI routes
-  fubo_client.py      # Auth (client 5.40.0), channels, watch, schedule
+  fubo_client.py      # Public re-exports (FuboClient, Channel, …)
+  fubo/               # Auth, lineup, DRM scan, schedule implementation
   config.py           # Settings + credentials file / FUBO_PASS_B64
   set_credentials.py  # Write credentials.json from stdin
   m3u.py / epg.py / status.py
 docs/                 # Deep-dive documentation
-tests/                # Unit checks (no live Fubo calls)
+tests/                # pytest unit checks (no live Fubo calls)
 credentials.env.example
 .github/workflows/docker.yml  # Multi-arch GHCR (main → :latest, dev → :dev)
-.github/workflows/test.yml    # Unit tests (test_builders.py)
+.github/workflows/test.yml    # pytest
 docker-compose.yml            # On `main` pulls ghcr.io/cbodden/fbtv:latest (`dev` branch uses :dev)
 ```
 
 ```bash
-PYTHONPATH=. python tests/test_builders.py
+pytest
 ```
 
 ---

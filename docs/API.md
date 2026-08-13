@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -138,7 +138,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.8"}
+{"status": "ok", "version": "1.0.9"}
 ```
 
 ## `GET /ready`
@@ -148,7 +148,7 @@ Readiness probe: returns **200** when Fubo credentials can be resolved from the 
 **Response:** `200 application/json`
 
 ```json
-{"status": "ready", "version": "1.0.8"}
+{"status": "ready", "version": "1.0.9"}
 ```
 
 **Errors:** `503` with `{"status":"not_ready","reason":"missing_credentials"}` or `not_initialized`.

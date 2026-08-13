@@ -34,10 +34,11 @@ docker compose logs -f fbtv
 
 Optional remux (`STREAM_PROXY=true`) needs **ffmpeg** on `PATH` for local uvicorn; the Docker image already installs it. Optional DRM allow/deny uses `config/drm_overrides.json` (see `drm_overrides.example.json`) or `DRM_*` env vars.
 
-Run builder tests (no Fubo credentials required):
+Run unit tests (no Fubo credentials required):
 
 ```bash
-PYTHONPATH=. python tests/test_builders.py
+pip install -r requirements.txt
+pytest
 ```
 
 ## Guidelines
@@ -45,7 +46,7 @@ PYTHONPATH=. python tests/test_builders.py
 - Prefer small, focused changes over broad refactors
 - Do not commit `.env`, `config/credentials.*`, tokens, or real credentials
 - Match existing style in `app/` (type hints, dataclasses, clear error messages)
-- When Fubo endpoints or client headers change, update `app/fubo_client.py` and note it in `CHANGELOG.md`
+- When Fubo endpoints or client headers change, update `app/fubo/` (public re-exports in `app/fubo_client.py`) and note it in `CHANGELOG.md`
 - When status/metrics fields change, update `docs/STATUS.md` and `docs/API.md`
 - Document user-facing behavior in `README.md` and the relevant file under `docs/`
 - Treat **Emby and Jellyfin** as equal first-class targets in copy (avoid Emby-only framing)
@@ -55,7 +56,7 @@ PYTHONPATH=. python tests/test_builders.py
 
 ## Pull request checklist
 
-- [ ] `PYTHONPATH=. python tests/test_builders.py` passes
+- [ ] `pytest` passes
 - [ ] `CHANGELOG.md` updated under `[Unreleased]`
 - [ ] Docs updated if endpoints, env vars, credentials, status/metrics, naming, or Emby/Jellyfin setup steps changed
 - [ ] `CREDITS.md` updated if new dependencies or borrowed approaches were introduced

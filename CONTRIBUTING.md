@@ -18,7 +18,7 @@ Run the server:
 uvicorn app.main:app --host 0.0.0.0 --port 7777 --reload
 ```
 
-Or with Compose (pulls GHCR; default `latest` from **`main`**, or set `image: ghcr.io/cbodden/fbtv:dev` for the **`dev`** branch; no project `.env` / `env_file`):
+Or with Compose (pulls GHCR; this **`dev`** branch Compose uses `ghcr.io/cbodden/fbtv:dev`; **`main`** should use `:latest`; no project `.env` / `env_file`):
 
 ```bash
 # alphanumeric:
@@ -31,6 +31,8 @@ docker compose up -d
 #   FUBO_PASS_B64=…
 docker compose logs -f fbtv
 ```
+
+Optional remux (`STREAM_PROXY=true`) needs **ffmpeg** on `PATH` for local uvicorn; the Docker image already installs it. Optional DRM allow/deny uses `config/drm_overrides.json` (see `drm_overrides.example.json`) or `DRM_*` env vars.
 
 Run builder tests (no Fubo credentials required):
 

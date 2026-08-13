@@ -7,10 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
+## [1.0.7] - 2026-08-13
 
-- Optional MPEG-TS remux / stream proxy for clients that do not share egress IP with the bridge
-- Configurable DRM allow/deny lists (manual overrides on top of scan)
+### Added
+
+- Docs: topology sketches (README, ARCHITECTURE, Emby/Jellyfin/MEDIA_SERVERS) cover default 302 and optional `STREAM_PROXY` remux paths
+- Configurable DRM allow/deny overrides via `config/drm_overrides.json` and/or `DRM_DENY_IDS` / `DRM_ALLOW_IDS` / `DRM_*_CALL_SIGNS` (deny wins; allow keeps false-positive skips in the lineup — does not decrypt DRM)
+- Optional MPEG-TS remux: `STREAM_PROXY=true` makes GET `/watch/{id}` stream `video/mp2t` via ffmpeg (`-c copy`) instead of 302; `STREAM_PROXY_MAX` (default 3), `FFMPEG_PATH`; Docker image installs ffmpeg; HEAD Content-Type follows mode
+- Compose on **`main`** defaults to `ghcr.io/cbodden/fbtv:latest`; the **`dev`** branch Compose should use `:dev` for pre-release
+- `HEAD /watch/{id}` returns 200 (`application/vnd.apple.mpegurl` when proxy off) without calling Fubo; GET still 302s to live HLS when proxy is off
+- `EPG_EMPTY_CACHE_SECONDS` (default 120): channel-only XMLTV is not held for the full `EPG_CACHE_SECONDS` hour
+- `/epg` programme mapping also joins on `stationId` / `callSign` (not only `channel.id`); unmatched samples logged when 0 programmes map
+
+### Changed
+
+- Image/app version **1.0.7**
+- Field-verified on Emby: playlist + EPG (~7600 programmes) + default 302 tune
 
 ## [1.0.6] - 2026-08-12
 
@@ -70,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for M3U and XMLTV builders
 - Project documentation under `docs/`
 
-[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/cbodden/fbtv/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/cbodden/fbtv/compare/v1.0.0...v1.0.6
 [1.0.0]: https://github.com/cbodden/fbtv/releases/tag/v1.0.0

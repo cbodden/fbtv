@@ -50,7 +50,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | `pass_fp` mismatch | The file/env password is not the one you think; regenerate `FUBO_PASS_B64` with `printf '%s' '…' \| base64 -w0` |
 | Account lockout | Many 401s can block the account; reset password / wait / contact Fubo |
 | VPN | Sign-in from a normal residential egress; Fubo often blocks datacenter/VPN IPs |
-| Image still old / missing EPG fix | GHCR `:latest` is **`main`** only; for pre-release use `image: ghcr.io/cbodden/fbtv:dev` + `pull_policy: always`, then `docker compose pull` |
+| Image still old / missing EPG or remux fix | On **`dev`**, Compose should use `ghcr.io/cbodden/fbtv:dev` + `pull_policy: always`, then `docker compose pull && docker compose up -d`. `:latest` is **`main`** only |
 
 ---
 
@@ -69,16 +69,44 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 ## Channels import but will not play (Emby or Jellyfin)
 
 1. Confirm the channel is not DRM-filtered (premium movie nets often are)
-2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry
+2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry. To keep a **false positive** in the playlist, add an **allow** override (see [CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides)); real DRM still cannot play.
 3. Prefer a full DRM sweep so the playlist is clean before Emby imports: `POST /admin/drm-scan?force=true`, wait for `GET /admin/drm-scan` to show `running: false`, then refresh M3U + EPG
-4. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC (**GET**, not HEAD/`curl -I`)
+4. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC (**GET**). `HEAD` / `curl -I` on the bridge now returns **200** without tuning; it does not prove CDN playback.
 5. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
 6. If VLC fails with the redirected CDN URL, you likely hit **IP binding** or a Cloudflare 403 on the CDN (bridge already 302'd — not the DRM 502 path):
    - Run the bridge on the same machine as Emby/Jellyfin, or
-   - Ensure they use the same public egress (no split VPN)
+   - Ensure they use the same public egress (no split VPN), or
+   - Set `STREAM_PROXY=true` so the bridge remuxes HLS → MPEG-TS (needs ffmpeg; CPU cost; see [CONFIGURATION.md](CONFIGURATION.md))
 7. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
 
-v1 uses HTTP 302 redirects only (no local remux). DRM decryption is out of scope.
+Default is HTTP 302 redirects. Optional remux (`STREAM_PROXY`) pulls the CDN from the bridge. DRM decryption is out of scope.
+
+---
+
+## DRM allow / deny overrides
+
+Use these when a station is wrongly kept out of (or left in) the playlist.
+
+| Goal | Action |
+| --- | --- |
+| Force-drop a channel | Add its station id or call sign to **deny** (`config/drm_overrides.json` or `DRM_DENY_*`) |
+| Bring back a false-positive DRM skip | Add it to **allow** (`DRM_ALLOW_*`). Does **not** decrypt real DRM — tune may still **502** |
+| Same id in both lists | **Deny wins** |
+
+After editing, restart the container (or wait ~30 minutes for the channel cache) and refresh the M3U tuner. Confirm via `/status.json` → `fubo.drm_overrides`. Details: [CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides).
+
+---
+
+## Stream proxy (`STREAM_PROXY`)
+
+When Emby/Jellyfin cannot share the bridge’s public egress, set `STREAM_PROXY=true` (Compose/env). The Docker image includes ffmpeg.
+
+| Check | Action |
+| --- | --- |
+| Still 302 | Confirm env is `true` / `1` / `on` and restart; `/status.json` → `stream_proxy.enabled` |
+| `502` with ffmpeg message | Binary missing locally — install ffmpeg or set `FFMPEG_PATH`; image should already have it |
+| `503` stream proxy at capacity | Raise `STREAM_PROXY_MAX` or lower simultaneous streams in Emby/Jellyfin |
+| High CPU | Expected while remuxing; prefer shared egress + `STREAM_PROXY=false` when possible |
 
 ---
 
@@ -88,7 +116,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.6`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.7`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
@@ -106,7 +134,7 @@ Workarounds:
 - **Emby (recommended while programmes are empty):** Emby Guide Data **FuboTV** lineup + manual map — see [EMBY_SETUP.md](EMBY_SETUP.md)
 - **Jellyfin:** use Schedules Direct **or** another XMLTV source (not both with bridge XMLTV at once) and map under **Live TV → Channels**
 - After deploying 1.0.4+ (`:latest`, `:dev`, or a local build), refresh `/epg.xml` and check logs for `Loaded N programmes from epg` / `EPG schedule complete`
-- Lower `EPG_CACHE_SECONDS` temporarily after an API fix so a stale empty body is not reused
+- Lower `EPG_EMPTY_CACHE_SECONDS` (default 120) or set it to `0` so a stale empty body is not reused; `EPG_CACHE_SECONDS` only applies when programmes were mapped
 - Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
 - Remember: `"Loaded N programmes"` appears in **container logs**, not inside the XML body
 
@@ -125,7 +153,8 @@ curl -sS http://127.0.0.1:7777/metrics | head
 | --- | --- |
 | `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — check `credentials_source`, `pass_fp` in logs, then hit playlist |
 | `channel_count` set, `drm_skipped_count` / `drm_learned_count` high | Expected for DRM packages; those channels stay out of the M3U after learn/refresh |
-| `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (schedule probe empty) |
+| `drm_overrides` counts non-zero | Manual allow/deny file or env is active |
+| `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (empty-guide TTL, default 120s) |
 | `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |
 | Status routes return 404 | Process predates metrics — restart uvicorn / Compose |
 
@@ -171,6 +200,7 @@ curl -sS http://127.0.0.1:7777/admin/drm-scan
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head
-# Watch must be GET (not HEAD / curl -I) — HEAD often fails incorrectly
+# HEAD is a probe (200, no Fubo tune). GET still 302s to HLS.
+curl -sSI http://127.0.0.1:7777/watch/<stationId>
 curl -sS -D - -o /dev/null http://127.0.0.1:7777/watch/<stationId>
 ```

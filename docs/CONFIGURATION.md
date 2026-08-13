@@ -11,13 +11,21 @@
 | `HOST` | no | `0.0.0.0` | Bind address for uvicorn |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
 | `CONFIG_DIR` | no | `./config` | Writable directory for device id, credentials file, and learned DRM skip list |
-| `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
+| `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` when programmes were found |
+| `EPG_EMPTY_CACHE_SECONDS` | no | `120` | Seconds to reuse **channel-only** XMLTV (`programme_count` 0). `0` = do not cache empty guides |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
 | `DRM_SCAN_ON_START` | no | `true` | Run a background DRM asset sweep after startup (skipped if last full scan is fresh) |
 | `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep low — Fubo returns **429** when pressed) |
 | `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes (global pace lock) |
 | `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is newer than this (0 = always scan) |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan interval (0 = disabled) |
+| `STREAM_PROXY` | no | `false` | When `true`, GET `/watch/{id}` remuxes Fubo HLS to MPEG-TS via ffmpeg (for split-egress). Default keeps HTTP 302 |
+| `STREAM_PROXY_MAX` | no | `3` | Max concurrent ffmpeg remux processes; further tunes return `503` |
+| `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary (image includes `ffmpeg` on `PATH`) |
+| `DRM_DENY_IDS` | no | — | Comma-separated station ids always dropped from M3U/EPG |
+| `DRM_ALLOW_IDS` | no | — | Comma-separated station ids kept despite learned/heuristic DRM skip (not decryption) |
+| `DRM_DENY_CALL_SIGNS` | no | — | Comma-separated call signs always dropped |
+| `DRM_ALLOW_CALL_SIGNS` | no | — | Comma-separated call signs kept despite skip heuristics |
 
 Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, `FUBO_PASS_B64`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe). `FUBO_PASS_B64` wins over plain `FUBO_PASS` in the same source.
 
@@ -70,7 +78,7 @@ Service/container name is **`fbtv`**. Image is pulled from GHCR (no local `build
 ```yaml
 services:
   fbtv:
-    image: ghcr.io/cbodden/fbtv:latest
+    image: ghcr.io/cbodden/fbtv:latest   # `main`; use :dev on the `dev` branch
     pull_policy: always
     container_name: fbtv
     environment:
@@ -85,7 +93,7 @@ services:
 Useful overrides:
 
 ```bash
-PORT=7788 EPG_CACHE_SECONDS=7200 docker compose up -d
+PORT=7788 EPG_CACHE_SECONDS=7200 EPG_EMPTY_CACHE_SECONDS=120 docker compose up -d
 docker compose logs -f fbtv
 ```
 
@@ -97,11 +105,11 @@ GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main`**
 | `dev` | `dev`, `sha-<commit>` (does **not** move `latest`) |
 
 ```yaml
-# Stable (main)
+# Stable (main branch Compose — default in this file on `main`)
 image: ghcr.io/cbodden/fbtv:latest
 pull_policy: always
 
-# Pre-release from the `dev` branch
+# Pre-release (`dev` branch Compose)
 image: ghcr.io/cbodden/fbtv:dev
 pull_policy: always
 ```
@@ -115,9 +123,32 @@ pull_policy: always
 | `config/credentials.json` | Same secrets as JSON (`python -m app.set_credentials`) |
 | `config/device.json` | Stable Fubo `x-device-id` |
 | `config/drm_skipped.json` | Learned/scanned DRM station ids (+ playable records, `last_scan_at`) excluded from M3U/EPG |
+| `config/drm_overrides.json` | Optional manual allow/deny station ids and call signs (see below) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
 Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction). Delete `config/drm_skipped.json` only if you want previously learned DRM stations to reappear in the M3U until they fail again.
+
+## DRM allow / deny overrides
+
+Manual overrides sit **on top of** heuristics + `drm_skipped.json` + background scan. They do **not** decrypt DRM.
+
+| Action | Effect |
+| --- | --- |
+| **Deny** | Always drop from `/playlist.m3u` / EPG mapping |
+| **Allow** | Keep a station that would otherwise be skipped as DRM (false-positive recovery). Real `drmProtected` streams still **502** on tune |
+
+Prefer a file on the config volume (example: `drm_overrides.example.json`):
+
+```json
+{
+  "deny_station_ids": ["12345"],
+  "allow_station_ids": ["67890"],
+  "deny_call_signs": ["BADHD"],
+  "allow_call_signs": []
+}
+```
+
+Env vars `DRM_DENY_IDS`, `DRM_ALLOW_IDS`, `DRM_DENY_CALL_SIGNS`, `DRM_ALLOW_CALL_SIGNS` are merged with the file (union). If the same id/call sign is both denied and allowed, **deny wins**. Restart (or wait for channel-cache expiry) after changes. Counts appear under `fubo.drm_overrides` in `/status.json`.
 
 ## Reverse proxy tips
 
@@ -145,6 +176,16 @@ No extra environment variables are required. When the process is running:
 | `/health` | Liveness only |
 
 See [STATUS.md](STATUS.md).
+
+## Stream proxy (optional remux)
+
+When Emby/Jellyfin cannot share the bridge’s public IP with Fubo CDN redirects:
+
+```bash
+STREAM_PROXY=true STREAM_PROXY_MAX=3 docker compose up -d
+```
+
+`/status.json` → `stream_proxy.enabled` / `active` / `max`. Over capacity returns HTTP **503**. Prefer shared egress + `STREAM_PROXY=false` when possible (lower CPU).
 
 ## DRM scan
 

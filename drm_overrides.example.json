@@ -1,0 +1,6 @@
+{
+  "deny_station_ids": [],
+  "allow_station_ids": [],
+  "deny_call_signs": [],
+  "allow_call_signs": []
+}

@@ -20,17 +20,18 @@ Full field reference and examples: [API.md](API.md).
 | Area | Fields |
 | --- | --- |
 | Process | `version`, `uptime_seconds`, `started_at`, listen `host`/`port` |
-| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count`, `drm_learned_count`, `drm_playable_count`, `drm_last_scan_at`, `drm_scan_running`, `drm_scan_last_result`, scan settings |
+| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count`, `drm_learned_count`, `drm_playable_count`, `drm_overrides`, `drm_last_scan_at`, `drm_scan_running`, `drm_scan_last_result`, scan settings |
 | EPG | `cached`, cache age, TTL, last-build `programme_count` / `channel_count` |
+| Stream proxy | `enabled`, `active`, `max`, `ffmpeg_path` |
 | Requests | OK/error counters for playlist, EPG, and watch |
 
-Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/epg.xml`, `/watch/{id}`, or a DRM sweep. Opening `/status` alone does not force a Fubo refresh. After restart, fetch the playlist (or EPG) once to populate counts. `drm_learned_count` includes tune-time and scan-time `drmProtected` stations in `config/drm_skipped.json`. `epg.programme_count` of `0` with `cached: true` means channel-only XMLTV (schedule probe empty or unmapped). Success/failure details are in **container logs** (`Loaded N programmes…` / `DRM scan complete…`), not inside the XML body.
+Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/epg.xml`, `/watch/{id}`, or a DRM sweep. Opening `/status` alone does not force a Fubo refresh. After restart, fetch the playlist (or EPG) once to populate counts. `drm_learned_count` includes tune-time and scan-time `drmProtected` stations in `config/drm_skipped.json`. `epg.programme_count` of `0` with `cached: true` means channel-only XMLTV (schedule probe empty or unmapped) held for `EPG_EMPTY_CACHE_SECONDS` (default 120), not the full hour. Success/failure details are in **container logs** (`Loaded N programmes…` / `DRM scan complete…`), not inside the XML body.
 
 Snapshots **do not** include passwords, bearer tokens, or raw stream URLs.
 
 DRM sweep status is also at `GET /admin/drm-scan` (includes `settings.concurrency` / `settings.delay_ms` and last-result `rate_limited`); start with `POST /admin/drm-scan?force=true`. Scans are paced for Fubo rate limits — see [CONFIGURATION.md](CONFIGURATION.md#drm-scan).
 
-Pre-release image: `ghcr.io/cbodden/fbtv:dev` (from the `dev` branch). Stable: `:latest` from **`main`** (**1.0.6+**).
+`dev` image: `ghcr.io/cbodden/fbtv:dev`. Stable `:latest` from **`main`** (**1.0.7+**).
 
 ## Quick checks
 

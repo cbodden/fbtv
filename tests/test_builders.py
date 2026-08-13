@@ -20,6 +20,7 @@ def _settings(config_dir: Path) -> Settings:
         port=7777,
         config_dir=config_dir,
         epg_cache_seconds=3600,
+        epg_empty_cache_seconds=120,
         epg_days=2,
         credentials_source="test",
         drm_scan_on_start=False,
@@ -27,6 +28,9 @@ def _settings(config_dir: Path) -> Settings:
         drm_scan_delay_ms=0,
         drm_scan_max_age_hours=24,
         drm_scan_interval_hours=0,
+        stream_proxy=False,
+        stream_proxy_max=3,
+        ffmpeg_path="ffmpeg",
     )
 
 
@@ -72,6 +76,23 @@ def test_epg_cache_stats() -> None:
     assert stats["cached"] is True
     assert stats["programme_count"] == 3
     assert stats["channel_count"] == 2
+    assert stats["ttl_seconds"] == 60
+
+
+def test_epg_empty_cache_uses_short_ttl() -> None:
+    cache = EpgCache(ttl_seconds=3600, empty_ttl_seconds=0)
+    cache.set("<tv/>", programme_count=0, channel_count=2)
+    stats = cache.runtime_stats()
+    assert stats["programme_count"] == 0
+    assert stats["ttl_seconds"] == 0
+    assert stats["cached"] is False
+    assert cache.get() is None
+
+    cache.set("<tv/>", programme_count=4, channel_count=2)
+    stats = cache.runtime_stats()
+    assert stats["ttl_seconds"] == 3600
+    assert stats["cached"] is True
+    assert cache.get() == "<tv/>"
 
 
 def test_prometheus_snapshot() -> None:
@@ -308,6 +329,349 @@ def test_epg_assets_parsing() -> None:
         client.close()
 
 
+def test_epg_assets_match_station_id_and_call_sign() -> None:
+    from app.fubo_client import FuboClient
+
+    settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    client = FuboClient(settings)
+    try:
+        channels = [Channel(id="16689", call_sign="ESPN", name="ESPN")]
+        program_block = {
+            "program": {
+                "title": "SportsCenter",
+                "shortDescription": "Highlights",
+                "genres": [{"name": "Sports"}],
+            },
+            "assets": [
+                {
+                    "accessRights": {
+                        "startTime": "2026-08-12T18:00:00.000Z",
+                        "endTime": "2026-08-12T19:00:00.000Z",
+                    }
+                }
+            ],
+        }
+        by_station = {
+            "response": [
+                {
+                    "type": "channelWithProgramAssets",
+                    "data": {
+                        "channel": {"stationId": 16689},
+                        "programsWithAssets": [program_block],
+                    },
+                }
+            ]
+        }
+        by_call = {
+            "response": [
+                {
+                    "type": "channelWithProgramAssets",
+                    "data": {
+                        "channel": {"callSign": "ESPN"},
+                        "programsWithAssets": [program_block],
+                    },
+                }
+            ]
+        }
+        lookup = {ch.id: ch for ch in channels}
+        station_found = client._programmes_from_epg_assets(by_station, lookup)
+        call_found = client._programmes_from_epg_assets(by_call, lookup)
+        assert len(station_found) == 1 and station_found[0].channel_id == "ESPN"
+        assert len(call_found) == 1 and call_found[0].channel_id == "ESPN"
+    finally:
+        client.close()
+
+
+def test_watch_head_does_not_tune() -> None:
+    from unittest.mock import MagicMock
+
+    from starlette.requests import Request
+
+    from app import main as mainmod
+
+    fake = MagicMock()
+    mainmod.settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "HEAD",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    response = mainmod.watch("123", Request(scope))
+    fake.watch.assert_not_called()
+    assert response.status_code == 200
+    assert response.media_type == "application/vnd.apple.mpegurl"
+
+
+def test_watch_redirect_when_proxy_off() -> None:
+    from unittest.mock import MagicMock
+
+    from fastapi.responses import RedirectResponse
+    from starlette.requests import Request
+
+    from app import main as mainmod
+
+    fake = MagicMock()
+    fake.watch.return_value = "https://cdn.example/live.m3u8"
+    mainmod.settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = None
+    mainmod.runtime = RuntimeState()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    response = mainmod.watch("123", Request(scope))
+    assert isinstance(response, RedirectResponse)
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://cdn.example/live.m3u8"
+    assert mainmod.runtime.counters.watch_ok == 1
+
+
+def test_watch_proxy_streams_mpegts() -> None:
+    from unittest.mock import MagicMock
+
+    from fastapi.responses import StreamingResponse
+    from starlette.requests import Request
+
+    from app import main as mainmod
+    from app.stream_proxy import StreamProxy
+
+    fake = MagicMock()
+    fake.watch.return_value = "https://cdn.example/live.m3u8"
+    cfg = _settings(Path(__import__("tempfile").mkdtemp()))
+    # frozen dataclass — rebuild with proxy on
+    from dataclasses import replace
+
+    cfg = replace(cfg, stream_proxy=True, stream_proxy_max=2)
+    proxy = StreamProxy(ffmpeg_path="ffmpeg", max_streams=2)
+    proxy.iter_mpegts = lambda url: iter([b"tsdata", b"more"])  # type: ignore[method-assign]
+
+    mainmod.settings = cfg
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = proxy
+    mainmod.runtime = RuntimeState()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    response = mainmod.watch("123", Request(scope))
+    assert isinstance(response, StreamingResponse)
+    assert response.media_type == "video/mp2t"
+    assert mainmod.runtime.counters.watch_ok == 1
+
+    head_scope = {**scope, "method": "HEAD"}
+    head = mainmod.watch("123", Request(head_scope))
+    fake.watch.assert_called_once()
+    assert head.status_code == 200
+    assert head.media_type == "video/mp2t"
+
+
+def test_watch_proxy_at_capacity() -> None:
+    from unittest.mock import MagicMock
+
+    from fastapi import HTTPException
+    from starlette.requests import Request
+
+    from app import main as mainmod
+    from app.stream_proxy import StreamProxy
+    from dataclasses import replace
+
+    fake = MagicMock()
+    fake.watch.return_value = "https://cdn.example/live.m3u8"
+    cfg = replace(
+        _settings(Path(__import__("tempfile").mkdtemp())),
+        stream_proxy=True,
+        stream_proxy_max=1,
+    )
+    proxy = StreamProxy(ffmpeg_path="ffmpeg", max_streams=1)
+    proxy._active = 1  # noqa: SLF001 — force full
+
+    mainmod.settings = cfg
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = proxy
+    mainmod.runtime = RuntimeState()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    try:
+        mainmod.watch("123", Request(scope))
+        raise AssertionError("expected HTTPException")
+    except HTTPException as exc:
+        assert exc.status_code == 503
+    assert mainmod.runtime.counters.watch_error == 1
+
+
+def test_stream_proxy_busy_raises() -> None:
+    from app.stream_proxy import StreamProxy, StreamProxyBusy
+
+    proxy = StreamProxy(ffmpeg_path="ffmpeg", max_streams=1)
+    proxy._active = 1  # noqa: SLF001
+    try:
+        list(proxy.iter_mpegts("https://example/x.m3u8"))
+        raise AssertionError("expected StreamProxyBusy")
+    except StreamProxyBusy:
+        pass
+    assert proxy.runtime_stats()["active"] == 1
+
+
+def test_drm_overrides_file_and_deny_wins() -> None:
+    import tempfile
+
+    from app.drm_overrides import load_drm_overrides
+
+    config_dir = Path(tempfile.mkdtemp())
+    (config_dir / "drm_overrides.json").write_text(
+        json.dumps(
+            {
+                "deny_station_ids": ["1", "2"],
+                "allow_station_ids": ["2", "3"],
+                "deny_call_signs": ["BAD"],
+                "allow_call_signs": ["BAD", "GOOD"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    overrides = load_drm_overrides(config_dir)
+    assert overrides.is_denied(station_id="1")
+    assert overrides.is_denied(station_id="2")  # deny wins
+    assert not overrides.is_allowed(station_id="2")
+    assert overrides.is_allowed(station_id="3")
+    assert overrides.is_denied(station_id="9", call_sign="BAD")
+    assert not overrides.is_allowed(station_id="9", call_sign="BAD")
+    assert overrides.is_allowed(station_id="9", call_sign="GOOD")
+
+
+def test_drm_allow_keeps_learned_station_in_lineup() -> None:
+    from app.fubo_client import FuboClient
+    from app.drm_overrides import DrmOverrides
+
+    config_dir = Path(__import__("tempfile").mkdtemp())
+    settings = _settings(config_dir)
+    client = FuboClient(settings)
+    try:
+        client._drm_overrides = DrmOverrides(  # noqa: SLF001
+            allow_ids=frozenset({"99"}),
+            source="test",
+        )
+        client._drm_learned_ids.add("99")
+        client._drm_learned_ids.add("88")
+        keep = Channel(id="99", call_sign="KEEP", name="Keep")
+        drop = Channel(id="88", call_sign="DROP", name="Drop")
+        ok = Channel(id="1", call_sign="OK", name="Ok")
+
+        def fake_subs() -> dict[str, Channel]:
+            return {"99": keep, "88": drop, "1": ok}
+
+        client._channels_from_subscriptions = fake_subs  # type: ignore[method-assign]
+        channels = client.channels(force=True)
+        ids = {ch.id for ch in channels}
+        assert "99" in ids
+        assert "1" in ids
+        assert "88" not in ids
+
+        client.mark_drm_station("99", via="test")
+        assert "99" not in client._drm_learned_ids
+    finally:
+        client.close()
+
+
+def test_drm_deny_drops_station() -> None:
+    from app.fubo_client import FuboClient
+    from app.drm_overrides import DrmOverrides
+
+    config_dir = Path(__import__("tempfile").mkdtemp())
+    client = FuboClient(_settings(config_dir))
+    try:
+        client._drm_overrides = DrmOverrides(  # noqa: SLF001
+            deny_ids=frozenset({"7"}),
+            deny_call_signs=frozenset({"NOPE"}),
+            source="test",
+        )
+        stations: dict = {}
+        client._add_station(
+            stations,
+            station_id="7",
+            call_sign="X",
+            name="Denied Id",
+            logo=None,
+            network_type=None,
+            group="basic",
+            source=None,
+            raw={},
+        )
+        client._add_station(
+            stations,
+            station_id="8",
+            call_sign="NOPE",
+            name="Denied Call",
+            logo=None,
+            network_type=None,
+            group="basic",
+            source=None,
+            raw={},
+        )
+        client._add_station(
+            stations,
+            station_id="9",
+            call_sign="YES",
+            name="Ok",
+            logo=None,
+            network_type=None,
+            group="basic",
+            source=None,
+            raw={},
+        )
+        assert "7" not in stations and "8" not in stations
+        assert "9" in stations
+    finally:
+        client.close()
+
+
 def test_drm_scan_persists_and_skips_when_fresh() -> None:
     from app.fubo_client import FuboClient
 
@@ -348,6 +712,7 @@ if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
     test_epg_cache_stats()
+    test_epg_empty_cache_uses_short_ttl()
     test_prometheus_snapshot()
     test_strip_wrapping_quotes()
     test_credentials_file_beats_env()
@@ -357,5 +722,14 @@ if __name__ == "__main__":
     test_is_drm_channel_flags()
     test_papi_program_cell_parsing()
     test_epg_assets_parsing()
+    test_epg_assets_match_station_id_and_call_sign()
+    test_watch_head_does_not_tune()
+    test_watch_redirect_when_proxy_off()
+    test_watch_proxy_streams_mpegts()
+    test_watch_proxy_at_capacity()
+    test_stream_proxy_busy_raises()
+    test_drm_overrides_file_and_deny_wins()
+    test_drm_allow_keeps_learned_station_in_lineup()
+    test_drm_deny_drops_station()
     test_drm_scan_persists_and_skips_when_fresh()
     print("ok")

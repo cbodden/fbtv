@@ -27,6 +27,7 @@ class Settings:
     port: int
     config_dir: Path
     epg_cache_seconds: int
+    epg_empty_cache_seconds: int
     epg_days: int
     credentials_source: str
     drm_scan_on_start: bool
@@ -34,6 +35,9 @@ class Settings:
     drm_scan_delay_ms: int
     drm_scan_max_age_hours: int
     drm_scan_interval_hours: int
+    stream_proxy: bool
+    stream_proxy_max: int
+    ffmpeg_path: str
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -184,6 +188,7 @@ def load_settings() -> Settings:
         port=int(os.environ.get("PORT", "7777")),
         config_dir=config_dir,
         epg_cache_seconds=int(os.environ.get("EPG_CACHE_SECONDS", "3600")),
+        epg_empty_cache_seconds=_env_int("EPG_EMPTY_CACHE_SECONDS", 120, minimum=0),
         epg_days=int(os.environ.get("EPG_DAYS", "2")),
         credentials_source=source,
         drm_scan_on_start=_env_bool("DRM_SCAN_ON_START", True),
@@ -192,10 +197,14 @@ def load_settings() -> Settings:
         drm_scan_delay_ms=_env_int("DRM_SCAN_DELAY_MS", 750, minimum=0),
         drm_scan_max_age_hours=_env_int("DRM_SCAN_MAX_AGE_HOURS", 24, minimum=0),
         drm_scan_interval_hours=_env_int("DRM_SCAN_INTERVAL_HOURS", 24, minimum=0),
+        stream_proxy=_env_bool("STREAM_PROXY", False),
+        stream_proxy_max=_env_int("STREAM_PROXY_MAX", 3, minimum=1),
+        ffmpeg_path=os.environ.get("FFMPEG_PATH", "ffmpeg").strip() or "ffmpeg",
     )
     logger.info(
         "Fubo credentials source=%s user=%s pass_len=%d pass_fp=%s "
-        "pass_classes=%s has_dollar=%s wrapping_quotes_stripped=%s",
+        "pass_classes=%s has_dollar=%s wrapping_quotes_stripped=%s "
+        "stream_proxy=%s stream_proxy_max=%s",
         source,
         user,
         len(password),
@@ -203,5 +212,7 @@ def load_settings() -> Settings:
         classes,
         "$" in password,
         quotes_stripped,
+        settings.stream_proxy,
+        settings.stream_proxy_max,
     )
     return settings

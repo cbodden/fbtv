@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -45,6 +45,13 @@ Machine-readable JSON status (same payload as the HTML page).
     "drm_skipped_count": 12,
     "drm_learned_count": 3,
     "drm_playable_count": 180,
+    "drm_overrides": {
+      "source": "none",
+      "deny_ids": 0,
+      "allow_ids": 0,
+      "deny_call_signs": 0,
+      "allow_call_signs": 0
+    },
     "drm_last_scan_at": "2026-08-12T22:00:00Z",
     "drm_scan_running": false
   },
@@ -54,6 +61,12 @@ Machine-readable JSON status (same payload as the HTML page).
     "ttl_seconds": 3600,
     "programme_count": 0,
     "channel_count": 198
+  },
+  "stream_proxy": {
+    "enabled": false,
+    "max": 3,
+    "active": 0,
+    "ffmpeg_path": "ffmpeg"
   },
   "requests": {
     "watch_ok": 3,
@@ -123,7 +136,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.6"}
+{"status": "ok", "version": "1.0.7"}
 ```
 
 ## `GET /playlist.m3u`
@@ -166,7 +179,7 @@ Returns XMLTV. Channel ids equal playlist `tvg-id` values (call signs). Programm
 </tv>
 ```
 
-Cached for `EPG_CACHE_SECONDS` after a successful build.
+Cached for `EPG_CACHE_SECONDS` when programmes were mapped; empty (channel-only) builds use `EPG_EMPTY_CACHE_SECONDS` (default 120).
 
 **Errors**
 
@@ -175,9 +188,14 @@ Cached for `EPG_CACHE_SECONDS` after a successful build.
 | `502` | Fubo channel fetch failed |
 | `503` | Service not initialized |
 
-## `GET /watch/{channel_id}`
+## `GET` / `HEAD /watch/{channel_id}`
 
-Resolves a live stream for the Fubo station id and redirects.
+**GET** resolves a live stream for the Fubo station id.
+
+- Default (`STREAM_PROXY=false`): **302** to an HLS URL.
+- With `STREAM_PROXY=true`: **200** streaming body, `Content-Type: video/mp2t` (ffmpeg remux). Caps at `STREAM_PROXY_MAX` concurrent remuxes.
+
+**HEAD** is a probe only: **200** and **no** Fubo `vapi/asset` call (does not mint a stream or count as `watch_ok`). Content-Type is `application/vnd.apple.mpegurl` in redirect mode, or `video/mp2t` when the stream proxy is enabled.
 
 **Parameters**
 
@@ -185,13 +203,17 @@ Resolves a live stream for the Fubo station id and redirects.
 | --- | --- | --- |
 | `channel_id` | path | Fubo station id from `channel-id` / watch URL in the M3U |
 
-**Response:** `302` with `Location` set to an HLS URL
+**GET response (redirect mode):** `302` with `Location` set to an HLS URL
 
-**Errors**
+**GET response (proxy mode):** `200` `video/mp2t` MPEG-TS stream
+
+**HEAD response:** `200` empty body; Content-Type matches mode
+
+**Errors (GET)**
 
 | Status | When |
 | --- | --- |
-| `502` | DRM protected (station is learned and dropped from later playlists), missing URL, or Fubo API error |
-| `503` | Service not initialized |
+| `502` | DRM protected (station is learned and dropped from later playlists), missing URL, Fubo API error, or ffmpeg remux failure |
+| `503` | Service not initialized, or stream proxy at `STREAM_PROXY_MAX` capacity |
 
-Emby, Jellyfin, or VLC must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream.
+In redirect mode, Emby/Jellyfin/VLC must fetch the redirected URL from an IP Fubo accepts. In proxy mode the bridge pulls the CDN. `curl -I` / HEAD must not be used to judge CDN playback.

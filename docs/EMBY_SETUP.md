@@ -45,35 +45,40 @@ Fubo’s private schedule APIs have been unreliable (many paths 404). **Until br
 
 ### Optional: bridge XMLTV
 
-You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Use `ghcr.io/cbodden/fbtv:latest` (**1.0.6+**) or `:dev` for pre-release. Check after a refresh:
+You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:latest` (**1.0.7+**) or `:dev` for pre-release. Check after a refresh:
 
 ```bash
-curl -sS http://<bridge-host>:7777/health          # version should be 1.0.6+ for paced DRM sweep
+curl -sS http://<bridge-host>:7777/health          # 1.0.6+ paced DRM; 1.0.7+ remux / HEAD watch / DRM overrides
 curl -sS http://<bridge-host>:7777/status.json      # epg.programme_count
 curl -sS http://<bridge-host>:7777/epg.xml | grep -c '<programme'
 # "Loaded N programmes" appears in container logs, not in the XML body
 ```
 
-If `programme_count` stays `0`, keep Emby Guide Data as the guide source and treat bridge XMLTV as optional.
+If `programme_count` stays `0`, keep Emby Guide Data as the guide source and treat bridge XMLTV as optional. Empty (channel-only) XMLTV is cached only for `EPG_EMPTY_CACHE_SECONDS` (default 120), not the full hour — see [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Playback checklist
 
 1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on **1.0.6+** (paced; may take several minutes), then refresh M3U + guide
 2. From Emby, tune a non-DRM channel (news/sports basics usually work better than premium nets)
 3. If tune fails immediately, check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
-4. Refresh the M3U tuner after DRM learns so Emby drops dead entries
+4. Refresh the M3U tuner after DRM learns so Emby drops dead entries. To keep a false-positive skip in the playlist, add an **allow** override ([CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides)); real DRM still cannot play.
 5. If logs show `vapi/asset` **429**, raise `DRM_SCAN_DELAY_MS` — see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-6. If tune starts then fails, suspect **IP binding** — move bridge onto Emby’s host/network egress
-7. Confirm `/watch/{id}` in a browser/VLC on the Emby host redirects to an `.m3u8` URL
+6. If tune starts then fails, suspect **IP binding** — move bridge onto Emby’s host/network egress, **or** set `STREAM_PROXY=true` (MPEG-TS remux; see [CONFIGURATION.md](CONFIGURATION.md))
+7. Confirm `/watch/{id}` in a browser/VLC on the Emby host (**GET**): default mode redirects to an `.m3u8`; with `STREAM_PROXY=true` expect a `video/mp2t` stream. `HEAD` / `curl -I` is a 200 probe and does not mint a stream.
 
 ## Suggested topology
 
 ```text
-Same host (best for v1 redirect model)
-  Emby Server  ──LAN──►  fbtv:7777  ──►  api.fubo.tv / CDN
+Same host / same egress (best for default 302 redirect)
+  Emby Server  ──LAN──►  fbtv:7777  ──302──►  Fubo CDN
+                         │
+                         └── api.fubo.tv (auth / lineup / asset)
+
+Split egress (optional remux)
+  Emby elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  Fubo CDN
 ```
 
-Remote Emby over Tailscale/VPN with the bridge elsewhere often breaks HLS redirects because the stream URL was minted for a different IP.
+Remote Emby over Tailscale/VPN with the bridge elsewhere often breaks **302** HLS redirects because the stream URL was minted for a different IP — use shared egress or `STREAM_PROXY`.
 
 ## Using Emby and Jellyfin together
 

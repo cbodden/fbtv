@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.7** release to `main`: topologies, `STREAM_PROXY`, DRM allow/deny, HEAD watch, EPG join).
+**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.8** release: hygiene C, status warm, no sequential `tvg-chno`).
 
 ## What this is
 
@@ -11,7 +11,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Docker:** Compose service/container `fbtv` — on **`main`** pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); on **`dev`** use `:dev`. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
 - **Workspace:** `/home/cbodden/git/mine/fbtv` (also historically `/home/cbodden/git/mine/fubo_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
-- **Version:** 1.0.7 (`app/__version__`; see `CHANGELOG.md`)
+- **Version:** 1.0.8 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
@@ -23,6 +23,8 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
   - `GET /status.json` → JSON status snapshot
   - `GET /metrics` → Prometheus metrics
   - `GET /health` → `{"status":"ok","version":"…"}` (liveness only; does not verify Fubo credentials)
+  - `GET /ready` → credentials resolvable (no live Fubo call); **503** if missing
+  - `GET`/`POST /admin/drm-scan` → DRM sweep status/start; optional `ADMIN_TOKEN` (Bearer or `X-Admin-Token`)
   - `GET /docs` / `/openapi.json` → FastAPI OpenAPI UI
 
 **Emby:** Premiere required for Live TV. **Jellyfin:** Live TV included. One bridge instance can feed either or both — see `docs/MEDIA_SERVERS.md`. Operator metrics: `docs/STATUS.md`.
@@ -33,7 +35,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** **v1.0.7** on `main` / GHCR `:latest` (field-verified: EPG + playlist + 302 tune). Pre-release work continues on `dev` / `:dev`.
+**Status:** **v1.0.8** on `main` / GHCR `:latest` (hygiene C, status warm, Emby guide-safe playlist). Pre-release continues on `dev` / `:dev`.
 
 ## Non-goals (v1)
 
@@ -51,7 +53,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 | Fubo HTTP | httpx |
 | Remux (opt-in) | ffmpeg (`STREAM_PROXY`) |
 | Config | python-dotenv (`interpolate=False`); credentials file / `FUBO_PASS_B64` / env |
-| Deploy | Docker Compose pulls GHCR; CI builds `:latest` from `main`, `:dev` from `dev` |
+| Deploy | Docker Compose pulls GHCR; CI builds multi-arch (`amd64`/`arm64`) `:latest` from `main`, `:dev` from `dev`; unit tests in Actions |
 
 ## Key paths
 
@@ -63,7 +65,8 @@ app/drm_overrides.py        # manual DRM allow/deny lists
 app/m3u.py / epg.py / status.py / config.py / set_credentials.py
 docs/                       # full documentation
 docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG empty
-.github/workflows/docker.yml   # GHCR on main + dev
+.github/workflows/docker.yml   # GHCR multi-arch on main + dev
+.github/workflows/test.yml     # unit tests
 ```
 
 ## Guide (from docs)
@@ -76,17 +79,18 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 ## Product decisions (locked)
 
 1. Sidecar over plugin
-2. `tvg-id` = Fubo call sign
+2. `tvg-id` = Fubo call sign (no sequential `tvg-chno` — breaks Emby Guide Data matching)
 3. Watch URLs local (`/watch/{id}`); GET default 302 (shared egress); optional `STREAM_PROXY` MPEG-TS remux; HEAD = probe (no Fubo call)
 4. Credentials file wins; `FUBO_PASS_B64` for `$`/`!`
 5. Emby and Jellyfin equal first-class targets
 6. Short name `fbtv`; GHCR `:latest` from `main`, `:dev` from `dev`
 7. EPG best-effort; Emby Guide Data as operator workaround when empty
 8. Credit prior art in `CREDITS.md`
+9. `/`, `/status`, `/status.json` warm channel lineup; `/metrics` cache-only
 
 ## Planned
 
-_None currently — next backlog is hygiene (CI tests, arm64, admin auth, `/ready`)._
+_None currently — remaining backlog: split `fubo_client`, pytest conversion._
 
 ## Agent guidance
 

@@ -108,14 +108,14 @@ Operators can read the same in-process snapshot as:
 | `/status.json` | JSON |
 | `/metrics` | Prometheus text (`fubo_bridge_*`) |
 
-`/health` stays liveness-only. Status fields are cache-backed (playlist/EPG/watch warm them); they do not embed secrets. See [STATUS.md](STATUS.md) and [API.md](API.md).
+`/health` stays liveness-only; `/ready` checks that credentials are resolvable (no live Fubo). `/`, `/status`, and `/status.json` warm the channel lineup; `/metrics` stays cache-only. Status fields do not embed secrets. See [STATUS.md](STATUS.md) and [API.md](API.md).
 
 ## Design choices
 
 - **Sidecar over native plugins** — uses built-in M3U/XMLTV on Emby and Jellyfin; simpler to deploy and debug
 - **Redirect over remux (default)** — lower CPU; requires shared egress IP. Opt-in `STREAM_PROXY` remux when split egress is unavoidable
-- **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
+- **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers (do not invent sequential `tvg-chno`; it breaks Emby Guide Data FuboTV matching)
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
 - **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar
-- **Deploy as `fbtv`** — Compose on **`main`** pulls `ghcr.io/cbodden/fbtv:latest`; on **`dev`** use `:dev`. CI publishes `:latest` from **`main`** and `:dev` from **`dev`**
+- **Deploy as `fbtv`** — Compose on **`main`** pulls `ghcr.io/cbodden/fbtv:latest`; on **`dev`** use `:dev`. CI publishes multi-arch (`amd64`/`arm64`) `:latest` from **`main`** and `:dev` from **`dev`**; unit tests via `.github/workflows/test.yml`
 - **Credentials on the config volume** — `FUBO_PASS_B64` / `credentials.json` so `$` is not interpolated by Portainer or shells

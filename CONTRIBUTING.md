@@ -49,7 +49,7 @@ PYTHONPATH=. python tests/test_builders.py
 - When status/metrics fields change, update `docs/STATUS.md` and `docs/API.md`
 - Document user-facing behavior in `README.md` and the relevant file under `docs/`
 - Treat **Emby and Jellyfin** as equal first-class targets in copy (avoid Emby-only framing)
-- Keep the short name **`fbtv`** for the GitHub repo, Compose service, and GHCR package (`ghcr.io/cbodden/fbtv`); CI on `main` + `dev` lives in `.github/workflows/docker.yml` (`:latest` from `main` only; `:dev` from `dev`)
+- Keep the short name **`fbtv`** for the GitHub repo, Compose service, and GHCR package (`ghcr.io/cbodden/fbtv`); CI on `main` + `dev` lives in `.github/workflows/docker.yml` (multi-arch; `:latest` from `main` only; `:dev` from `dev`) and `.github/workflows/test.yml`
 - Credit new prior art or dependencies in `CREDITS.md`
 - Keep `CONTEXT.md` accurate for lasting decisions; refresh `WORKING_MEMORY.md` for current focus/blockers
 

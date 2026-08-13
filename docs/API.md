@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -79,7 +79,7 @@ Machine-readable JSON status (same payload as the HTML page).
 }
 ```
 
-Channel / DRM / EPG fields reflect **cached** state (warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`). They do not force a Fubo refresh.
+Channel / DRM fields on `/`, `/status`, and `/status.json` warm the channel lineup when needed. `/metrics` is cache-only. EPG programme counts still need `/epg.xml` (or a prior build).
 
 ## `GET /metrics`
 
@@ -90,6 +90,8 @@ Prometheus text exposition of key gauges/counters from the same snapshot.
 ## `GET /admin/drm-scan`
 
 DRM sweep status (running flag, last result, learned/playable counts, settings). From **1.0.6**, settings include `delay_ms`; last result may include `rate_limited`.
+
+When `ADMIN_TOKEN` is set, send `Authorization: Bearer <token>` or `X-Admin-Token: <token>` (otherwise open). Missing/wrong token → **401**.
 
 **Response:** `200 application/json`
 
@@ -123,11 +125,11 @@ DRM sweep status (running flag, last result, learned/playable counts, settings).
 
 ## `POST /admin/drm-scan`
 
-Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded.
+Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded. Same optional `ADMIN_TOKEN` auth as GET.
 
 **Response:** `200 application/json` with `{"status":"started",...}`
 
-**Errors:** `409` if a scan is already running; `503` if not initialized.
+**Errors:** `401` if `ADMIN_TOKEN` is set and missing/wrong; `409` if a scan is already running; `503` if not initialized.
 
 ## `GET /health`
 
@@ -136,8 +138,20 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.7"}
+{"status": "ok", "version": "1.0.8"}
 ```
+
+## `GET /ready`
+
+Readiness probe: returns **200** when Fubo credentials can be resolved from the configured sources (file / env). Does **not** call Fubo. Use for orchestrator readiness; keep `/health` for liveness.
+
+**Response:** `200 application/json`
+
+```json
+{"status": "ready", "version": "1.0.8"}
+```
+
+**Errors:** `503` with `{"status":"not_ready","reason":"missing_credentials"}` or `not_initialized`.
 
 ## `GET /playlist.m3u`
 
@@ -151,6 +165,8 @@ Builds an M3U of non-DRM subscribed channels (known DRM packages plus stations l
 #EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" channel-id="12345" tvg-logo="https://..." group-title="fubotv-basic",ESPN
 http://192.168.1.10:7777/watch/12345
 ```
+
+`tvg-id` is the Fubo call sign (XMLTV join key). Sequential `tvg-chno` is **not** emitted — it conflicted with Emby Guide Data FuboTV channel numbers.
 
 **Errors**
 

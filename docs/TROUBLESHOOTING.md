@@ -62,7 +62,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | Region / plan | Confirm the account still has live TV packages |
 | Logs | Look for `Sign-in failed` or channel path warnings |
 | API drift | Fubo may have changed endpoints; update `app/fubo_client.py` |
-| Status | `curl -sS http://127.0.0.1:7777/status.json` — look at `fubo.signed_in` / errors after a playlist attempt |
+| Status | `curl -sS http://127.0.0.1:7777/status.json` — warms channel lineup; look at `fubo.signed_in` / `channel_count` |
 
 ---
 
@@ -116,12 +116,23 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.7`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.8`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
 
 A slow, complete sweep is expected with hundreds of stations (roughly delay × station count).
+
+---
+
+## Guide shows wrong programme for the channel tuned
+
+Usually a **guide↔tuner mapping** problem in Emby/Jellyfin, not a bad stream.
+
+- Guide join key is **`tvg-id` = Fubo call sign**. The bridge does **not** emit sequential `tvg-chno` (that conflicted with Emby Guide Data FuboTV channel numbers).
+- After refreshing the M3U: rematch channels by **name / call sign** under Emby Live TV guide mapping (or Jellyfin **Live TV → Channels**).
+- Confirm playlist lines have `tvg-id="…"` and no `tvg-chno=` (`curl -sS …/playlist.m3u | head`).
+- Prefer Emby Guide Data **FuboTV** while relying on call-sign mapping — see [EMBY_SETUP.md](EMBY_SETUP.md).
 
 ---
 
@@ -164,7 +175,7 @@ Guide: [STATUS.md](STATUS.md).
 
 ## Emby or Jellyfin cannot reach the bridge
 
-- From that host: `curl -sS http://<bridge>:7777/health` (or `/status.json`)
+- From that host: `curl -sS http://<bridge>:7777/health` and `/ready` (or `/status.json`)
 - If Emby or Jellyfin is in Docker and the bridge is on the host, use `host.docker.internal` or the host LAN IP — not `localhost` inside the container
 - Check firewall / published ports (`7777:7777` or your `PORT`)
 
@@ -195,8 +206,10 @@ Delete `config/device.json` only as a last resort, then restart so a new device 
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/ready
 curl -sS http://127.0.0.1:7777/status.json
 curl -sS http://127.0.0.1:7777/admin/drm-scan
+# If ADMIN_TOKEN is set: -H "Authorization: Bearer $ADMIN_TOKEN"
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head

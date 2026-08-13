@@ -31,5 +31,6 @@ services:
       - DRM_ALLOW_IDS=${DRM_ALLOW_IDS:-}
       - DRM_DENY_CALL_SIGNS=${DRM_DENY_CALL_SIGNS:-}
       - DRM_ALLOW_CALL_SIGNS=${DRM_ALLOW_CALL_SIGNS:-}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
     volumes:
       - ./config:/app/config

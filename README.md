@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.7** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
+**Version 1.0.8** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -16,6 +16,7 @@ This is **not** a native Emby plugin or Jellyfin plugin. Both servers already su
 | `http://<host>:7777/status.json` | JSON status |
 | `http://<host>:7777/metrics` | Prometheus metrics |
 | `http://<host>:7777/health` | Liveness check (`{"status":"ok","version":"…"}`) |
+| `http://<host>:7777/ready` | Readiness (`credentials` resolvable; no live Fubo call) |
 
 ---
 
@@ -42,7 +43,7 @@ Fubo does not offer an official Emby or Jellyfin plugin. This bridge fills that 
 
 1. **Signs in** to `api.fubo.tv` with your email/password and a stable device id (`config/device.json`).
 2. **Discovers your lineup** from Fubo subscription / plan APIs and **skips DRM** (known packages, learned/scanned `drmProtected`, plus optional allow/deny overrides).
-3. **Serves an M3U** whose each channel points at this bridge (`/watch/<stationId>`), not at a raw CDN URL.
+3. **Serves an M3U** whose each channel points at this bridge (`/watch/<stationId>`), not at a raw CDN URL. Lines include `tvg-id` (call sign) for guide join — not sequential channel numbers.
 4. **On tune**, resolves a live HLS URL from Fubo and either **HTTP 302 redirects** to that stream (default; shared egress) or **remuxes to MPEG-TS** when `STREAM_PROXY=true` (split egress).
 5. **Builds XMLTV** from Fubo guide data when available (prefers `/epg`, then `papi/v1/guide/epg`); otherwise still emits channel rows so Emby and Jellyfin can map by call sign (`tvg-id`). Emby operators can use **Guide Data FuboTV** when programmes are empty.
 
@@ -117,9 +118,9 @@ docker compose up -d
 
 Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config`, and sets `pull_policy: always`.
 
-Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`, `DRM_DENY_IDS` / `DRM_ALLOW_IDS` (prefer `config/drm_overrides.json`). Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`, `ADMIN_TOKEN`, `DRM_DENY_IDS` / `DRM_ALLOW_IDS` (prefer `config/drm_overrides.json`). Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
-GitHub Actions: `.github/workflows/docker.yml` (tags: `latest`, `sha-<commit>`).
+GitHub Actions: `.github/workflows/docker.yml` (multi-arch `amd64`/`arm64`; tags `latest` / `dev` / `sha-<commit>`) and `.github/workflows/test.yml` (unit tests).
 
 If the GHCR package is private, authenticate once: `echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin`.
 
@@ -127,7 +128,9 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.7"}
+# → {"status":"ok","version":"1.0.8"}
+curl -sS http://127.0.0.1:7777/ready
+# → {"status":"ready","version":"1.0.8"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -192,6 +195,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary path |
 | `DRM_DENY_IDS` / `DRM_ALLOW_IDS` | no | — | Optional station-id overrides (prefer `config/drm_overrides.json`) |
 | `DRM_DENY_CALL_SIGNS` / `DRM_ALLOW_CALL_SIGNS` | no | — | Optional call-sign overrides |
+| `ADMIN_TOKEN` | no | — | When set, require Bearer or `X-Admin-Token` on `/admin/drm-scan` |
 
 **Runtime files**
 
@@ -220,7 +224,7 @@ Emby and Jellyfin use the **same** bridge URLs. Differences are mostly license (
 ### Shared prerequisites
 
 1. Bridge is running.
-2. From each **media server host**, `http://<bridge-host>:7777/health` returns OK.
+2. From each **media server host**, `http://<bridge-host>:7777/health` and `/ready` return OK.
 3. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist.
 4. Prefer **same machine or same public egress IP** for the bridge and every server that will tune.
 
@@ -265,7 +269,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.7**). Pre-release: `:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. **1.0.8** adds CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`, status channel warm, and omits sequential `tvg-chno` (Emby Guide Data safe). Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.8**). Pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -300,8 +304,9 @@ Operators can inspect runtime state without scraping logs:
 | `http://<host>:7777/status.json` | Same snapshot as JSON |
 | `http://<host>:7777/metrics` | Prometheus text metrics (`fubo_bridge_*`) |
 | `http://<host>:7777/health` | Liveness only (`status` + `version`) — does **not** verify Fubo |
+| `http://<host>:7777/ready` | Readiness — credentials resolvable (no live Fubo call) |
 
-Counts reflect **in-process caches**. After a restart, hit `/playlist.m3u` (or `/epg.xml`) once so channel/DRM/EPG fields populate. Snapshots do not include passwords or bearer tokens.
+Counts on `/`, `/status`, and `/status.json` **warm the channel lineup** (cached ~30 minutes). `/metrics` stays cache-only. EPG programme fields still need `/epg.xml`. Snapshots do not include passwords or bearer tokens.
 
 Guide: [docs/STATUS.md](docs/STATUS.md). API details: [docs/API.md](docs/API.md).
 
@@ -313,6 +318,7 @@ Run these from a machine that can reach the bridge (ideally each Emby / Jellyfin
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/ready
 curl -sS http://127.0.0.1:7777/status.json
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
@@ -362,9 +368,10 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; GET `/watch/{id}` (302 or `video/mp2t` if `STREAM_PROXY`); fix shared egress / Cloudflare 403 or enable remux |
 | Logs show `vapi/asset` **429** during DRM scan | Use **1.0.6+** (`:latest` or `:dev`); keep `DRM_SCAN_CONCURRENCY=1`; raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
 | Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
+| Guide show ≠ what plays when tuned | Remap by call sign / name after M3U refresh; bridge uses `tvg-id` only (no `tvg-chno`) — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Want to force-drop or un-skip a channel | `config/drm_overrides.json` deny/allow — [docs/CONFIGURATION.md](docs/CONFIGURATION.md#drm-allow--deny-overrides) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
-| Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
+| Status shows empty channel count after restart | Open `/` or `/status.json` (they warm the lineup), or hit `/playlist.m3u` |
 | Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |
 
 More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
@@ -379,8 +386,8 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 | [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md) | Emby & Jellyfin comparison; one bridge for both |
 | [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md) | Emby Live TV wiring |
 | [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
-| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`) |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files |
+| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/` `/status` `/status.json` warm channels; `/metrics` cache-only; `/health` `/ready`) |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files (incl. `ADMIN_TOKEN`, `STREAM_PROXY`) |
 | [docs/API.md](docs/API.md) | HTTP API reference |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design and data flow |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common failures and curl checks |
@@ -403,7 +410,8 @@ app/
 docs/                 # Deep-dive documentation
 tests/                # Unit checks (no live Fubo calls)
 credentials.env.example
-.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main → :latest, dev → :dev)
+.github/workflows/docker.yml  # Multi-arch GHCR (main → :latest, dev → :dev)
+.github/workflows/test.yml    # Unit tests (test_builders.py)
 docker-compose.yml            # On `main` pulls ghcr.io/cbodden/fbtv:latest (`dev` branch uses :dev)
 ```
 

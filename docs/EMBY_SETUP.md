@@ -7,8 +7,8 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 ## Prerequisites
 
 1. Bridge is running and reachable from the Emby Server host
-2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`
-3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts after warming `/playlist.m3u` — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
+2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`; `/ready` returns `{"status":"ready"}` when credentials are configured
+3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts (status endpoints warm the lineup) — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
 4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
 5. Prefer **same machine or same public egress IP** for Emby and the bridge
 
@@ -41,14 +41,14 @@ Fubo’s private schedule APIs have been unreliable (many paths 404). **Until br
 2. Choose **Emby Guide Data** (not XMLTV)
 3. Set your ZIP / country, then select a **FuboTV** lineup when offered (scroll — US lists are long; Guide Data plugin **1.0.18+** added FuboTV)
 4. Save and refresh guide data
-5. Map channels by name / call sign where Emby does not auto-match
+5. Map channels by name / call sign where Emby does not auto-match. Do **not** expect sequential M3U channel numbers — the bridge omits `tvg-chno` so Guide Data FuboTV numbers are not overridden.
 
 ### Optional: bridge XMLTV
 
-You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:latest` (**1.0.7+**) or `:dev` for pre-release. Check after a refresh:
+You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:latest` (**1.0.8+**) or `:dev` for pre-release. Check after a refresh:
 
 ```bash
-curl -sS http://<bridge-host>:7777/health          # 1.0.6+ paced DRM; 1.0.7+ remux / HEAD watch / DRM overrides
+curl -sS http://<bridge-host>:7777/health          # 1.0.8+ hygiene / ready / admin token; 1.0.7+ remux / HEAD watch / DRM overrides
 curl -sS http://<bridge-host>:7777/status.json      # epg.programme_count
 curl -sS http://<bridge-host>:7777/epg.xml | grep -c '<programme'
 # "Loaded N programmes" appears in container logs, not in the XML body
@@ -58,7 +58,7 @@ If `programme_count` stays `0`, keep Emby Guide Data as the guide source and tre
 
 ## Playback checklist
 
-1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on **1.0.6+** (paced; may take several minutes), then refresh M3U + guide
+1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on **1.0.6+** (paced; may take several minutes; send `Authorization: Bearer …` or `X-Admin-Token` if `ADMIN_TOKEN` is set), then refresh M3U + guide
 2. From Emby, tune a non-DRM channel (news/sports basics usually work better than premium nets)
 3. If tune fails immediately, check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
 4. Refresh the M3U tuner after DRM learns so Emby drops dead entries. To keep a false-positive skip in the playlist, add an **allow** override ([CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides)); real DRM still cannot play.

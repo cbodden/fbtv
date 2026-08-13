@@ -6,11 +6,12 @@ import logging
 import threading
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Annotated, Any, AsyncIterator
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import (
     HTMLResponse,
+    JSONResponse,
     PlainTextResponse,
     RedirectResponse,
     Response,
@@ -18,7 +19,7 @@ from fastapi.responses import (
 )
 
 from app import __version__
-from app.config import Settings, load_settings
+from app.config import Settings, credentials_are_configured, load_settings
 from app.epg import EpgCache, build_epg
 from app.fubo_client import FuboClient, FuboError
 from app.m3u import build_m3u
@@ -155,6 +156,24 @@ def _require_client() -> tuple[Settings, FuboClient, EpgCache]:
     return settings, client, epg_cache
 
 
+def _require_admin(
+    authorization: str | None = None,
+    x_admin_token: str | None = None,
+) -> None:
+    """When ADMIN_TOKEN is set, require Bearer or X-Admin-Token."""
+    assert settings is not None
+    expected = settings.admin_token
+    if not expected:
+        return
+    provided = ""
+    if x_admin_token and x_admin_token.strip():
+        provided = x_admin_token.strip()
+    elif authorization and authorization.lower().startswith("bearer "):
+        provided = authorization[7:].strip()
+    if not provided or provided != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 def _base_url(request: Request) -> str:
     # Prefer proxy headers when present (Docker / reverse proxy)
     forwarded_proto = request.headers.get("x-forwarded-proto")
@@ -165,8 +184,13 @@ def _base_url(request: Request) -> str:
     return str(request.base_url).rstrip("/")
 
 
-def _snapshot() -> dict[str, Any]:
+def _snapshot(*, warm_channels: bool = False) -> dict[str, Any]:
     cfg, fubo, cache = _require_client()
+    if warm_channels:
+        try:
+            fubo.channels()
+        except FuboError as exc:
+            logger.warning("Status channel warm failed: %s", exc)
     if stream_proxy is not None:
         proxy_stats = stream_proxy.runtime_stats()
     else:
@@ -191,7 +215,7 @@ def _snapshot() -> dict[str, Any]:
 def index(request: Request) -> str:
     base = _base_url(request)
     try:
-        snap = _snapshot()
+        snap = _snapshot(warm_channels=True)
     except HTTPException:
         snap = {
             "uptime_seconds": 0,
@@ -204,17 +228,18 @@ def index(request: Request) -> str:
 
 @app.get("/status", response_class=HTMLResponse)
 def status_page(request: Request) -> str:
-    return render_status_html(_base_url(request), _snapshot())
+    return render_status_html(_base_url(request), _snapshot(warm_channels=True))
 
 
 @app.get("/status.json")
 def status_json() -> dict[str, Any]:
-    return _snapshot()
+    return _snapshot(warm_channels=True)
 
 
 @app.get("/metrics")
 def metrics() -> PlainTextResponse:
-    body = render_prometheus(_snapshot())
+    # Cache-only: scrapers should not trigger Fubo channel fetches.
+    body = render_prometheus(_snapshot(warm_channels=False))
     return PlainTextResponse(body, media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
@@ -300,7 +325,11 @@ def watch(channel_id: str, request: Request) -> Response:
 
 
 @app.get("/admin/drm-scan")
-def drm_scan_status() -> dict[str, Any]:
+def drm_scan_status(
+    authorization: Annotated[str | None, Header()] = None,
+    x_admin_token: Annotated[str | None, Header(alias="X-Admin-Token")] = None,
+) -> dict[str, Any]:
+    _require_admin(authorization=authorization, x_admin_token=x_admin_token)
     _, fubo, _ = _require_client()
     stats = fubo.runtime_stats()
     return {
@@ -322,8 +351,13 @@ def drm_scan_status() -> dict[str, Any]:
 
 
 @app.post("/admin/drm-scan")
-def drm_scan_start(force: bool = False) -> dict[str, Any]:
+def drm_scan_start(
+    force: bool = False,
+    authorization: Annotated[str | None, Header()] = None,
+    x_admin_token: Annotated[str | None, Header(alias="X-Admin-Token")] = None,
+) -> dict[str, Any]:
     """Start a background DRM asset sweep (non-blocking)."""
+    _require_admin(authorization=authorization, x_admin_token=x_admin_token)
     _, fubo, _ = _require_client()
     if fubo._scan_running:  # noqa: SLF001
         raise HTTPException(status_code=409, detail="DRM scan already running")
@@ -343,3 +377,19 @@ def drm_scan_start(force: bool = False) -> dict[str, Any]:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": __version__}
+
+
+@app.get("/ready", response_model=None)
+def ready() -> JSONResponse:
+    """Readiness: credentials resolvable (no live Fubo call)."""
+    if settings is None:
+        return JSONResponse(
+            {"status": "not_ready", "reason": "not_initialized"},
+            status_code=503,
+        )
+    if not credentials_are_configured(settings.config_dir):
+        return JSONResponse(
+            {"status": "not_ready", "reason": "missing_credentials"},
+            status_code=503,
+        )
+    return JSONResponse({"status": "ready", "version": __version__})

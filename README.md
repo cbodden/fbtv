@@ -118,9 +118,9 @@ docker compose up -d
 
 Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config`, and sets `pull_policy: always`.
 
-Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`, `DRM_DENY_IDS` / `DRM_ALLOW_IDS` (prefer `config/drm_overrides.json`). Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`, `ADMIN_TOKEN`, `DRM_DENY_IDS` / `DRM_ALLOW_IDS` (prefer `config/drm_overrides.json`). Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
-GitHub Actions: `.github/workflows/docker.yml` (tags: `latest`, `sha-<commit>`).
+GitHub Actions: `.github/workflows/docker.yml` (multi-arch `amd64`/`arm64`; tags `latest` / `dev` / `sha-<commit>`) and `.github/workflows/test.yml` (unit tests).
 
 If the GHCR package is private, authenticate once: `echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin`.
 
@@ -195,6 +195,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary path |
 | `DRM_DENY_IDS` / `DRM_ALLOW_IDS` | no | — | Optional station-id overrides (prefer `config/drm_overrides.json`) |
 | `DRM_DENY_CALL_SIGNS` / `DRM_ALLOW_CALL_SIGNS` | no | — | Optional call-sign overrides |
+| `ADMIN_TOKEN` | no | — | When set, require Bearer or `X-Admin-Token` on `/admin/drm-scan` |
 
 **Runtime files**
 
@@ -268,7 +269,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.7**). Pre-release: `:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Unreleased on `:dev`: CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.7**). Pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -384,8 +385,8 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 | [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md) | Emby & Jellyfin comparison; one bridge for both |
 | [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md) | Emby Live TV wiring |
 | [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
-| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`) |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files |
+| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`, `/health`, `/ready`, `/admin/drm-scan`) |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files (incl. `ADMIN_TOKEN`, `STREAM_PROXY`) |
 | [docs/API.md](docs/API.md) | HTTP API reference |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design and data flow |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common failures and curl checks |
@@ -408,7 +409,8 @@ app/
 docs/                 # Deep-dive documentation
 tests/                # Unit checks (no live Fubo calls)
 credentials.env.example
-.github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main → :latest, dev → :dev)
+.github/workflows/docker.yml  # Multi-arch GHCR (main → :latest, dev → :dev)
+.github/workflows/test.yml    # Unit tests (test_builders.py)
 docker-compose.yml            # On `main` pulls ghcr.io/cbodden/fbtv:latest (`dev` branch uses :dev)
 ```
 

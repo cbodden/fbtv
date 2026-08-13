@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (hygiene on `dev`: CI tests, multi-arch, `ADMIN_TOKEN`, `/ready`).
+**Synced from:** `docs/` + root docs on 2026-08-13 (hygiene on `dev`: CI tests, multi-arch, `ADMIN_TOKEN`, `/ready`; README env table complete).
 
 ## What this is
 

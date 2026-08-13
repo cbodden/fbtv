@@ -2,7 +2,7 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (hygiene C committed + pushed to `dev`)  
+**Last updated:** 2026-08-13 (docs polish: README `ADMIN_TOKEN` + CI notes)  
 **Active version:** 1.0.7 (+ Unreleased hygiene on `dev` → `:dev`)  
 **Phase:** Hygiene C complete  
 **Git:** `dev`
@@ -11,9 +11,9 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Resume here (this session)
 
-**C** shipped on `dev`: CI tests, multi-arch GHCR, `ADMIN_TOKEN`, `/ready`.
+**C** on `dev`. Docs aligned (README env/CI notes included).
 
-Next: field-check `:dev` image after GHCR rebuild, or **D** later items when requested.
+Next: field-check `:dev` after GHCR, or **D** when requested.
 
 ---
 
@@ -32,7 +32,7 @@ Next: field-check `:dev` image after GHCR rebuild, or **D** later items when req
 
 ## Current focus
 
-- Hygiene C on `dev`; next backlog is D.
+- Docs current on `dev`.
 
 ## Scratch
 

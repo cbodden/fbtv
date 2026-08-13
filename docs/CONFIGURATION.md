@@ -74,7 +74,7 @@ Service/container name is **`fbtv`**. Image is pulled from GHCR (no local `build
 ```yaml
 services:
   fbtv:
-    image: ghcr.io/cbodden/fbtv:latest
+    image: ghcr.io/cbodden/fbtv:dev   # `dev` branch; use :latest on `main`
     pull_policy: always
     container_name: fbtv
     environment:
@@ -101,11 +101,11 @@ GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main`**
 | `dev` | `dev`, `sha-<commit>` (does **not** move `latest`) |
 
 ```yaml
-# Stable (main)
+# Stable (main branch Compose)
 image: ghcr.io/cbodden/fbtv:latest
 pull_policy: always
 
-# Pre-release from the `dev` branch
+# Pre-release (`dev` branch Compose — default in this branch’s docker-compose.yml)
 image: ghcr.io/cbodden/fbtv:dev
 pull_policy: always
 ```

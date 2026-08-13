@@ -82,7 +82,7 @@ Personal / home-LAN use only. Respect Fubo’s terms of service. Do not redistri
 
 ### Option A — Docker (recommended)
 
-Compose **pulls** `ghcr.io/cbodden/fbtv:latest` by default (no local build) and does **not** load a project `.env` file. GHCR publishes on pushes to **`main`** (`:latest`) and **`dev`** (`:dev`); use `image: ghcr.io/cbodden/fbtv:dev` + `pull_policy: always` to track the pre-release branch.
+Compose **pulls** `ghcr.io/cbodden/fbtv:dev` on this **`dev`** branch (no local build) and does **not** load a project `.env` file. GHCR publishes on pushes to **`main`** (`:latest`) and **`dev`** (`:dev`). The **`main`** branch Compose should use `:latest` for stable.
 
 **Credentials (pick one; file wins over env):**
 
@@ -388,7 +388,7 @@ docs/                 # Deep-dive documentation
 tests/                # Unit checks (no live Fubo calls)
 credentials.env.example
 .github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main → :latest, dev → :dev)
-docker-compose.yml            # Pulls ghcr.io/cbodden/fbtv:latest (use :dev for pre-release)
+docker-compose.yml            # On `dev` pulls ghcr.io/cbodden/fbtv:dev (main uses :latest)
 ```
 
 ```bash

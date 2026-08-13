@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Optional MPEG-TS remux: `STREAM_PROXY=true` makes GET `/watch/{id}` stream `video/mp2t` via ffmpeg (`-c copy`) instead of 302; `STREAM_PROXY_MAX` (default 3), `FFMPEG_PATH`; Docker image installs ffmpeg; HEAD Content-Type follows mode
+- Compose on the **`dev`** branch defaults to `ghcr.io/cbodden/fbtv:dev` (not `:latest`); flip back to `:latest` when merging Compose to **`main`**
 - `HEAD /watch/{id}` returns 200 (`application/vnd.apple.mpegurl`) without calling Fubo; GET still 302s to live HLS when proxy is off
 - `EPG_EMPTY_CACHE_SECONDS` (default 120): channel-only XMLTV is not held for the full `EPG_CACHE_SECONDS` hour
 - `/epg` programme mapping also joins on `stationId` / `callSign` (not only `channel.id`); unmatched samples logged when 0 programmes map

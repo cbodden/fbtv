@@ -18,7 +18,7 @@ Run the server:
 uvicorn app.main:app --host 0.0.0.0 --port 7777 --reload
 ```
 
-Or with Compose (pulls GHCR; default `latest` from **`main`**, or set `image: ghcr.io/cbodden/fbtv:dev` for the **`dev`** branch; no project `.env` / `env_file`):
+Or with Compose (pulls GHCR; this **`dev`** branch Compose uses `ghcr.io/cbodden/fbtv:dev`; **`main`** should use `:latest`; no project `.env` / `env_file`):
 
 ```bash
 # alphanumeric:

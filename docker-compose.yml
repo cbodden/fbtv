@@ -1,7 +1,7 @@
 services:
   fbtv:
-    # Default: stable from main. For pre-release: ghcr.io/cbodden/fbtv:dev
-    image: ghcr.io/cbodden/fbtv:latest
+    # `dev` branch Compose tracks the pre-release image. On `main`, use :latest.
+    image: ghcr.io/cbodden/fbtv:dev
     pull_policy: always
     container_name: fbtv
     restart: unless-stopped

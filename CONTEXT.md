@@ -8,7 +8,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 
 - **Name:** Fubo → Emby & Jellyfin Bridge — short name **`fbtv`**
 - **GitHub:** https://github.com/cbodden/fbtv (public)
-- **Docker:** Compose service/container `fbtv` pulls `ghcr.io/cbodden/fbtv:latest` by default (`pull_policy: always`); use `ghcr.io/cbodden/fbtv:dev` for pre-release. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
+- **Docker:** Compose service/container `fbtv` — on the **`dev`** branch the file pulls `ghcr.io/cbodden/fbtv:dev` (`pull_policy: always`); on **`main`** it should pull `:latest`. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
 - **Workspace:** `/home/cbodden/git/mine/fbtv` (also historically `/home/cbodden/git/mine/fubo_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
 - **Version:** 1.0.6 (`app/__version__`; see `CHANGELOG.md`)

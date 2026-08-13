@@ -50,7 +50,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | `pass_fp` mismatch | The file/env password is not the one you think; regenerate `FUBO_PASS_B64` with `printf '%s' '…' \| base64 -w0` |
 | Account lockout | Many 401s can block the account; reset password / wait / contact Fubo |
 | VPN | Sign-in from a normal residential egress; Fubo often blocks datacenter/VPN IPs |
-| Image still old / missing EPG fix | GHCR `:latest` is **`main`** only; for pre-release use `image: ghcr.io/cbodden/fbtv:dev` + `pull_policy: always`, then `docker compose pull` |
+| Image still old / missing EPG or remux fix | On **`dev`**, Compose should use `ghcr.io/cbodden/fbtv:dev` + `pull_policy: always`, then `docker compose pull && docker compose up -d`. `:latest` is **`main`** only |
 
 ---
 

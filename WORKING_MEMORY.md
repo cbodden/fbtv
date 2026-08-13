@@ -2,7 +2,7 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (B1 docs + commit/push to `dev`)  
+**Last updated:** 2026-08-13 (`dev` Compose image → `:dev`)  
 **Active version:** 1.0.6 (Unreleased on `dev` → `:dev`)  
 **Phase:** Post-1.0.6 hardening on `dev`  
 **Git:** `dev` (B1 STREAM_PROXY)

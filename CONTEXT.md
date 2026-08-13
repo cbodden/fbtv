@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.8** release: hygiene C, status warm, no sequential `tvg-chno`).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: split `app/fubo/`, pytest).
 
 ## What this is
 
@@ -59,14 +59,15 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 ```text
 app/main.py                 # routes, lifespan, base URL detection
-app/fubo_client.py          # auth, channels, watch, schedule (/epg + papi)
+app/fubo_client.py          # stable re-exports (FuboClient, Channel, Programme, FuboError)
+app/fubo/                   # client facade + DRM / lineup / schedule modules
 app/stream_proxy.py         # optional ffmpeg HLS → MPEG-TS
 app/drm_overrides.py        # manual DRM allow/deny lists
 app/m3u.py / epg.py / status.py / config.py / set_credentials.py
 docs/                       # full documentation
 docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG empty
 .github/workflows/docker.yml   # GHCR multi-arch on main + dev
-.github/workflows/test.yml     # unit tests
+.github/workflows/test.yml     # pytest
 ```
 
 ## Guide (from docs)
@@ -90,7 +91,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 ## Planned
 
-_None currently — remaining backlog: split `fubo_client`, pytest conversion._
+_None currently — backlog D complete on `dev` (split client + pytest)._
 
 ## Agent guidance
 

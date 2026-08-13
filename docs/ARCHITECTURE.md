@@ -40,7 +40,7 @@ Split egress (optional remux)
 | `app/main.py` | HTTP routes, lifespan wiring, base URL detection |
 | `app/config.py` | Credentials file / `FUBO_PASS_B64` / env → `Settings` (no `$` interpolation) |
 | `app/set_credentials.py` | Write `config/credentials.json` from stdin |
-| `app/fubo_client.py` | Device id, `PUT /signin` (client **5.40.0**), channel list, watch URL, schedule probe |
+| `app/fubo/` (+ `fubo_client.py` re-exports) | Device id, `PUT /signin` (client **5.40.0**), channel list, watch URL, schedule probe, DRM scan |
 | `app/m3u.py` | EXTINF playlist generation |
 | `app/epg.py` | XMLTV generation + TTL cache |
 | `app/stream_proxy.py` | Optional ffmpeg HLS → MPEG-TS remux (`STREAM_PROXY`) |

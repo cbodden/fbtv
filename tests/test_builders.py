@@ -830,33 +830,3 @@ def test_ready_and_health() -> None:
         "version": mainmod.__version__,
     }
     assert mainmod.health()["status"] == "ok"
-
-
-if __name__ == "__main__":
-    test_build_m3u()
-    test_build_xmltv()
-    test_epg_cache_stats()
-    test_epg_empty_cache_uses_short_ttl()
-    test_prometheus_snapshot()
-    test_strip_wrapping_quotes()
-    test_credentials_file_beats_env()
-    test_credentials_json()
-    test_credentials_pass_b64()
-    test_mark_drm_station_removes_from_cache_and_persists()
-    test_is_drm_channel_flags()
-    test_papi_program_cell_parsing()
-    test_epg_assets_parsing()
-    test_epg_assets_match_station_id_and_call_sign()
-    test_watch_head_does_not_tune()
-    test_watch_redirect_when_proxy_off()
-    test_watch_proxy_streams_mpegts()
-    test_watch_proxy_at_capacity()
-    test_stream_proxy_busy_raises()
-    test_drm_overrides_file_and_deny_wins()
-    test_drm_allow_keeps_learned_station_in_lineup()
-    test_drm_deny_drops_station()
-    test_drm_scan_persists_and_skips_when_fresh()
-    test_status_warms_channels()
-    test_admin_token_gate()
-    test_ready_and_health()
-    print("ok")

@@ -403,20 +403,21 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 ```text
 app/
   main.py             # FastAPI routes
-  fubo_client.py      # Auth (client 5.40.0), channels, watch, schedule
+  fubo_client.py      # Public re-exports (FuboClient, Channel, …)
+  fubo/               # Auth, lineup, DRM scan, schedule implementation
   config.py           # Settings + credentials file / FUBO_PASS_B64
   set_credentials.py  # Write credentials.json from stdin
   m3u.py / epg.py / status.py
 docs/                 # Deep-dive documentation
-tests/                # Unit checks (no live Fubo calls)
+tests/                # pytest unit checks (no live Fubo calls)
 credentials.env.example
 .github/workflows/docker.yml  # Multi-arch GHCR (main → :latest, dev → :dev)
-.github/workflows/test.yml    # Unit tests (test_builders.py)
+.github/workflows/test.yml    # pytest
 docker-compose.yml            # On `main` pulls ghcr.io/cbodden/fbtv:latest (`dev` branch uses :dev)
 ```
 
 ```bash
-PYTHONPATH=. python tests/test_builders.py
+pytest
 ```
 
 ---

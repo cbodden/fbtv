@@ -60,5 +60,5 @@ open http://127.0.0.1:7777/status
 | --- | --- |
 | `app/status.py` | Snapshot builder + HTML / Prometheus renderers |
 | `app/main.py` | Routes `/`, `/status`, `/status.json`, `/metrics`; request counters |
-| `app/fubo_client.py` | `runtime_stats()` (token, channels, DRM skips, credentials source path — not the password) |
+| `app/fubo/` (`fubo_client` re-exports) | `runtime_stats()` (token, channels, DRM skips, credentials source path — not the password) |
 | `app/epg.py` | `EpgCache.runtime_stats()` |

@@ -32,6 +32,8 @@ docker compose up -d
 docker compose logs -f fbtv
 ```
 
+Optional remux (`STREAM_PROXY=true`) needs **ffmpeg** on `PATH` for local uvicorn; the Docker image already installs it.
+
 Run builder tests (no Fubo credentials required):
 
 ```bash

@@ -75,10 +75,24 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 5. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
 6. If VLC fails with the redirected CDN URL, you likely hit **IP binding** or a Cloudflare 403 on the CDN (bridge already 302'd — not the DRM 502 path):
    - Run the bridge on the same machine as Emby/Jellyfin, or
-   - Ensure they use the same public egress (no split VPN)
+   - Ensure they use the same public egress (no split VPN), or
+   - Set `STREAM_PROXY=true` so the bridge remuxes HLS → MPEG-TS (needs ffmpeg; CPU cost; see [CONFIGURATION.md](CONFIGURATION.md))
 7. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
 
-v1 uses HTTP 302 redirects only (no local remux). DRM decryption is out of scope.
+Default is HTTP 302 redirects. Optional remux (`STREAM_PROXY`) pulls the CDN from the bridge. DRM decryption is out of scope.
+
+---
+
+## Stream proxy (`STREAM_PROXY`)
+
+When Emby/Jellyfin cannot share the bridge’s public egress, set `STREAM_PROXY=true` (Compose/env). The Docker image includes ffmpeg.
+
+| Check | Action |
+| --- | --- |
+| Still 302 | Confirm env is `true` / `1` / `on` and restart; `/status.json` → `stream_proxy.enabled` |
+| `502` with ffmpeg message | Binary missing locally — install ffmpeg or set `FFMPEG_PATH`; image should already have it |
+| `503` stream proxy at capacity | Raise `STREAM_PROXY_MAX` or lower simultaneous streams in Emby/Jellyfin |
+| High CPU | Expected while remuxing; prefer shared egress + `STREAM_PROXY=false` when possible |
 
 ---
 

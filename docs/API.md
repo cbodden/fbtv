@@ -55,6 +55,12 @@ Machine-readable JSON status (same payload as the HTML page).
     "programme_count": 0,
     "channel_count": 198
   },
+  "stream_proxy": {
+    "enabled": false,
+    "max": 3,
+    "active": 0,
+    "ffmpeg_path": "ffmpeg"
+  },
   "requests": {
     "watch_ok": 3,
     "watch_error": 0,
@@ -177,9 +183,12 @@ Cached for `EPG_CACHE_SECONDS` when programmes were mapped; empty (channel-only)
 
 ## `GET` / `HEAD /watch/{channel_id}`
 
-**GET** resolves a live stream for the Fubo station id and redirects (302).
+**GET** resolves a live stream for the Fubo station id.
 
-**HEAD** is a probe only: **200** with `Content-Type: application/vnd.apple.mpegurl` and **no** Fubo `vapi/asset` call (does not mint a stream or count as `watch_ok`).
+- Default (`STREAM_PROXY=false`): **302** to an HLS URL.
+- With `STREAM_PROXY=true`: **200** streaming body, `Content-Type: video/mp2t` (ffmpeg remux). Caps at `STREAM_PROXY_MAX` concurrent remuxes.
+
+**HEAD** is a probe only: **200** and **no** Fubo `vapi/asset` call (does not mint a stream or count as `watch_ok`). Content-Type is `application/vnd.apple.mpegurl` in redirect mode, or `video/mp2t` when the stream proxy is enabled.
 
 **Parameters**
 
@@ -187,15 +196,17 @@ Cached for `EPG_CACHE_SECONDS` when programmes were mapped; empty (channel-only)
 | --- | --- | --- |
 | `channel_id` | path | Fubo station id from `channel-id` / watch URL in the M3U |
 
-**GET response:** `302` with `Location` set to an HLS URL
+**GET response (redirect mode):** `302` with `Location` set to an HLS URL
 
-**HEAD response:** `200` empty body, `Content-Type: application/vnd.apple.mpegurl`
+**GET response (proxy mode):** `200` `video/mp2t` MPEG-TS stream
+
+**HEAD response:** `200` empty body; Content-Type matches mode
 
 **Errors (GET)**
 
 | Status | When |
 | --- | --- |
-| `502` | DRM protected (station is learned and dropped from later playlists), missing URL, or Fubo API error |
-| `503` | Service not initialized |
+| `502` | DRM protected (station is learned and dropped from later playlists), missing URL, Fubo API error, or ffmpeg remux failure |
+| `503` | Service not initialized, or stream proxy at `STREAM_PROXY_MAX` capacity |
 
-Emby, Jellyfin, or VLC must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream. `curl -I` / HEAD must not be used to judge CDN playback — use GET for the 302.
+In redirect mode, Emby/Jellyfin/VLC must fetch the redirected URL from an IP Fubo accepts. In proxy mode the bridge pulls the CDN. `curl -I` / HEAD must not be used to judge CDN playback.

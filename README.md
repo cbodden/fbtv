@@ -105,7 +105,7 @@ docker compose up -d
 
 Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config`, and sets `pull_policy: always`.
 
-Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`. Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`. Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 GitHub Actions: `.github/workflows/docker.yml` (tags: `latest`, `sha-<commit>`).
 
@@ -175,6 +175,9 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes |
 | `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is fresh |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan (0 = off) |
+| `STREAM_PROXY` | no | `false` | Remux HLS→MPEG-TS via ffmpeg on `/watch` (split egress) |
+| `STREAM_PROXY_MAX` | no | `3` | Max concurrent remuxes |
+| `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary path |
 
 **Runtime files**
 
@@ -224,7 +227,7 @@ Use a hostname/IP Emby and Jellyfin can resolve (LAN IP or `host.docker.internal
 2. **Guide (recommended while bridge programmes are empty):** **TV Guide Data Providers → +** → **Emby Guide Data** → **FuboTV** lineup for your ZIP
 3. Optional: also add **XMLTV** → `http://<bridge-host>:7777/epg.xml` once `/status.json` shows `epg.programme_count` > 0
 4. Set simultaneous streams to match your Fubo plan (lower if Jellyfin also uses this bridge)
-5. Tune a non-DRM channel; if playback fails after redirect, fix shared egress
+5. Tune a non-DRM channel; if playback fails after redirect, fix shared egress or enable `STREAM_PROXY`
 
 Premiere is required. Full walkthrough: [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md).
 
@@ -234,7 +237,7 @@ Premiere is required. Full walkthrough: [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md)
 2. **TV Guide Data Providers → +** → **XMLTV** → `http://<bridge-host>:7777/epg.xml`
 3. Set simultaneous streams to match your Fubo plan (lower if Emby also uses this bridge)
 4. If guide rows do not auto-map, edit channels under **Live TV → Channels**
-5. Tune a non-DRM channel; if playback fails after redirect, fix shared egress
+5. Tune a non-DRM channel; if playback fails after redirect, fix shared egress or enable `STREAM_PROXY`
 
 Live TV needs no Premiere equivalent. Full walkthrough: [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md).
 
@@ -313,7 +316,7 @@ curl -sS -D - -o /dev/null http://127.0.0.1:7777/watch/<stationId>  # GET: 302 +
 2. `PUT /signin` with Android TV–style client headers; cache bearer token ~4 hours.
 3. Build lineup via subscriptions APIs, with plan-manager + recurly packages as fallback; drop DRM sources and previously learned/scanned DRM station ids. Optional background DRM sweep probes assets and updates the skip list.
 4. Serve M3U with absolute `/watch/…` URLs (honors `X-Forwarded-Host` / `X-Forwarded-Proto`).
-5. On watch **GET**: call `vapi/asset/v1?channelId=…&type=live`; reject `drmProtected` (and remember the station for future playlists); otherwise **302** to HLS. **HEAD** returns 200 without calling Fubo (probe only).
+5. On watch **GET**: call `vapi/asset/v1?channelId=…&type=live`; reject `drmProtected` (and remember the station for future playlists); otherwise **302** to HLS, or **MPEG-TS remux** when `STREAM_PROXY=true`. **HEAD** returns 200 without calling Fubo (probe only; Content-Type follows mode).
 6. On EPG: probe `/epg` (`channelWithProgramAssets`, join by `id` / `stationId` / `callSign`), then `papi/v1/guide/epg`, then older fallbacks; map to call signs; cache XMLTV (`EPG_CACHE_SECONDS`, or `EPG_EMPTY_CACHE_SECONDS` when programmes are empty).
 
 Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/API.md](docs/API.md).
@@ -324,9 +327,9 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 
 - **Unofficial API** — Fubo does not document this for third-party use. Endpoints/headers can change without notice.
 - **DRM** — Protected packages are skipped; tune-time and background-scan `drmProtected` stations are remembered and dropped from later playlists/EPG (`config/drm_skipped.json`). Decryption is out of scope.
-- **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress as Emby and Jellyfin is strongly recommended.
+- **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress is recommended for **302** mode. Set `STREAM_PROXY=true` to remux through the bridge when egress cannot be shared (CPU cost).
 - **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse. Empty guides are cached only briefly (`EPG_EMPTY_CACHE_SECONDS`).
-- **No remux in v1** — Redirect only (no streamlink/ffmpeg MPEG-TS proxy yet; see CHANGELOG Unreleased).
+- **Remux is opt-in** — Default remains redirect-only; enable `STREAM_PROXY` when needed (see CHANGELOG Unreleased / CONFIGURATION).
 
 > **Personal use — Your own paid account only.**
 >
@@ -341,7 +344,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Process exits mentioning credentials | Set `config/credentials.env` (`FUBO_PASS_B64` if the password has `$`), or env / local `.env` |
 | Sign-in 401 `INVALID_USERNAME_PASSWORD` | Use `FUBO_PASS_B64` or `python -m app.set_credentials`; do not quote passwords — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
-| Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; GET `/watch/{id}` for 302 (HEAD is a 200 probe only); fix shared egress / Cloudflare 403 |
+| Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; GET `/watch/{id}` (302 or `video/mp2t` if `STREAM_PROXY`); fix shared egress / Cloudflare 403 or enable remux |
 | Logs show `vapi/asset` **429** during DRM scan | Use **1.0.6+** (`:latest` or `:dev`); keep `DRM_SCAN_CONCURRENCY=1`; raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
 | Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |

@@ -35,6 +35,9 @@ class Settings:
     drm_scan_delay_ms: int
     drm_scan_max_age_hours: int
     drm_scan_interval_hours: int
+    stream_proxy: bool
+    stream_proxy_max: int
+    ffmpeg_path: str
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -194,10 +197,14 @@ def load_settings() -> Settings:
         drm_scan_delay_ms=_env_int("DRM_SCAN_DELAY_MS", 750, minimum=0),
         drm_scan_max_age_hours=_env_int("DRM_SCAN_MAX_AGE_HOURS", 24, minimum=0),
         drm_scan_interval_hours=_env_int("DRM_SCAN_INTERVAL_HOURS", 24, minimum=0),
+        stream_proxy=_env_bool("STREAM_PROXY", False),
+        stream_proxy_max=_env_int("STREAM_PROXY_MAX", 3, minimum=1),
+        ffmpeg_path=os.environ.get("FFMPEG_PATH", "ffmpeg").strip() or "ffmpeg",
     )
     logger.info(
         "Fubo credentials source=%s user=%s pass_len=%d pass_fp=%s "
-        "pass_classes=%s has_dollar=%s wrapping_quotes_stripped=%s",
+        "pass_classes=%s has_dollar=%s wrapping_quotes_stripped=%s "
+        "stream_proxy=%s stream_proxy_max=%s",
         source,
         user,
         len(password),
@@ -205,5 +212,7 @@ def load_settings() -> Settings:
         classes,
         "$" in password,
         quotes_stripped,
+        settings.stream_proxy,
+        settings.stream_proxy_max,
     )
     return settings

@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (`dev` Do-first: HEAD watch, empty EPG TTL, `/epg` join keys).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: HEAD watch, empty EPG TTL, `/epg` join, optional `STREAM_PROXY`).
 
 ## What this is
 
@@ -33,13 +33,12 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** **v1.0.6** on `main` / GHCR `:latest` (EPG `/epg` parser, DRM background scan with 429 pacing). Pre-release continues on `dev` → `:dev`.
+**Status:** **v1.0.6** on `main` / GHCR `:latest`. **`dev` / `:dev`:** HEAD `/watch`, empty-EPG short TTL, `/epg` join keys, optional `STREAM_PROXY` ffmpeg MPEG-TS remux.
 
 ## Non-goals (v1)
 
 - Native Emby `ITunerHost` or Jellyfin Live TV plugins
 - DRM decryption / playback of Disney, Starz, Showtime, Max/HBO, etc.
-- MPEG-TS remux via streamlink/ffmpeg (planned under Unreleased)
 - Public redistribution of streams or credentials
 - Gracenote / Schedules Direct as a first-class guide path (Emby Guide Data / Jellyfin Schedules Direct may be used separately)
 
@@ -50,6 +49,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 | Language | Python 3.11+ (dev venv used 3.14 locally) |
 | HTTP | FastAPI + Uvicorn |
 | Fubo HTTP | httpx |
+| Remux (opt-in) | ffmpeg (`STREAM_PROXY`) |
 | Config | python-dotenv (`interpolate=False`); credentials file / `FUBO_PASS_B64` / env |
 | Deploy | Docker Compose pulls GHCR; CI builds `:latest` from `main`, `:dev` from `dev` |
 
@@ -58,6 +58,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 ```text
 app/main.py                 # routes, lifespan, base URL detection
 app/fubo_client.py          # auth, channels, watch, schedule (/epg + papi)
+app/stream_proxy.py         # optional ffmpeg HLS → MPEG-TS
 app/m3u.py / epg.py / status.py / config.py / set_credentials.py
 docs/                       # full documentation
 docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG empty
@@ -75,7 +76,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 1. Sidecar over plugin
 2. `tvg-id` = Fubo call sign
-3. Watch URLs local (`/watch/{id}`); GET tune = 302 (shared egress); HEAD = probe (no Fubo call)
+3. Watch URLs local (`/watch/{id}`); GET default 302 (shared egress); optional `STREAM_PROXY` MPEG-TS remux; HEAD = probe (no Fubo call)
 4. Credentials file wins; `FUBO_PASS_B64` for `$`/`!`
 5. Emby and Jellyfin equal first-class targets
 6. Short name `fbtv`; GHCR `:latest` from `main`, `:dev` from `dev`
@@ -84,7 +85,6 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 ## Planned
 
-- Optional MPEG-TS remux / stream proxy
 - Configurable DRM allow/deny lists (manual overrides on top of scan)
 
 ## Agent guidance

@@ -18,8 +18,8 @@ The bridge authenticates to Fubo with the subscriber’s credentials and transla
        │                                                       │ sign-in, lineup,
        │  GET /watch/{id}                                      │ schedule, stream
        └───────────────────────────────────────────────────────┤
-                         302 → HLS URL                         ▼
-                                                        ┌─────────────┐
+              302 → HLS  (default)                             ▼
+              or video/mp2t remux (STREAM_PROXY)        ┌─────────────┐
                                                         │ api.fubo.tv │
                                                         └─────────────┘
 ```
@@ -34,6 +34,7 @@ The bridge authenticates to Fubo with the subscriber’s credentials and transla
 | `app/fubo_client.py` | Device id, `PUT /signin` (client **5.40.0**), channel list, watch URL, schedule probe |
 | `app/m3u.py` | EXTINF playlist generation |
 | `app/epg.py` | XMLTV generation + TTL cache |
+| `app/stream_proxy.py` | Optional ffmpeg HLS → MPEG-TS remux (`STREAM_PROXY`) |
 | `app/status.py` | Status snapshot + HTML/Prometheus rendering |
 
 ## Auth flow
@@ -56,12 +57,13 @@ Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` fla
 ## Tune path
 
 1. Emby or Jellyfin opens `http://bridge/watch/{stationId}` from the M3U
-2. **HEAD** returns 200 (`application/vnd.apple.mpegurl`) without calling Fubo (probe only)
+2. **HEAD** returns 200 without calling Fubo (probe only). Content-Type is `application/vnd.apple.mpegurl` when redirect mode, or `video/mp2t` when `STREAM_PROXY=true`
 3. **GET** calls `vapi/asset/v1?channelId=…&type=live`
 4. If `drmProtected` is true → record station id, drop from channel cache, HTTP 502
-5. Otherwise **302** to the HLS URL
+5. If `STREAM_PROXY=false` (default) → **302** to the HLS URL (shared egress required)
+6. If `STREAM_PROXY=true` → bridge runs `ffmpeg -i <hls> -c copy -f mpegts -` and streams **`video/mp2t`** (up to `STREAM_PROXY_MAX` concurrent; over capacity → 503). The media server never fetches the CDN URL directly
 
-Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin, and the bridge should share the same egress (typically same host / Docker network path).
+Fubo often binds stream URLs to the **requester’s public IP**. Prefer shared egress with **302**; use the remux when Emby/Jellyfin cannot share that egress (higher CPU on the bridge).
 
 ## Guide path
 
@@ -100,7 +102,7 @@ Operators can read the same in-process snapshot as:
 ## Design choices
 
 - **Sidecar over native plugins** — uses built-in M3U/XMLTV on Emby and Jellyfin; simpler to deploy and debug
-- **Redirect over remux (v1)** — lower CPU; requires shared egress IP
+- **Redirect over remux (default)** — lower CPU; requires shared egress IP. Opt-in `STREAM_PROXY` remux when split egress is unavoidable
 - **Call sign as `tvg-id`** — stable join key between playlist and XMLTV for auto-mapping on both servers
 - **One HTTP surface for Emby and Jellyfin** — no per-server API fork; document quirks in [MEDIA_SERVERS.md](MEDIA_SERVERS.md)
 - **In-process metrics** — HTML + JSON + Prometheus without a separate metrics sidecar

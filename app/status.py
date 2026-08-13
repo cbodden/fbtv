@@ -32,9 +32,16 @@ def build_snapshot(
     epg_stats: dict[str, Any],
     host: str,
     port: int,
+    stream_proxy_stats: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     now = time.time()
     uptime = max(0, int(now - runtime.started_at))
+    proxy = stream_proxy_stats or {
+        "enabled": False,
+        "max": 0,
+        "active": 0,
+        "ffmpeg_path": "ffmpeg",
+    }
     return {
         "status": "ok",
         "version": version,
@@ -43,6 +50,7 @@ def build_snapshot(
         "listen": {"host": host, "port": port},
         "fubo": fubo_stats,
         "epg": epg_stats,
+        "stream_proxy": proxy,
         "requests": {
             "watch_ok": runtime.counters.watch_ok,
             "watch_error": runtime.counters.watch_error,
@@ -103,6 +111,7 @@ def render_index_html(base: str, version: str, snapshot: dict[str, Any]) -> str:
     <div class="stat"><span class="muted">EPG programmes</span><strong>{_fmt(epg.get("programme_count"))}</strong></div>
     <div class="stat"><span class="muted">Uptime</span><strong>{_fmt(snapshot.get("uptime_seconds"))}s</strong></div>
     <div class="stat"><span class="muted">Watch OK / err</span><strong>{_fmt(req.get("watch_ok"))} / {_fmt(req.get("watch_error"))}</strong></div>
+    <div class="stat"><span class="muted">Stream proxy</span><strong>{"on" if (snapshot.get("stream_proxy") or {}).get("enabled") else "off"}</strong></div>
   </div>
   <nav>
     <a href="{escape(base)}/status">Status (HTML)</a>
@@ -121,6 +130,7 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
     epg = snapshot.get("epg") or {}
     req = snapshot.get("requests") or {}
     listen = snapshot.get("listen") or {}
+    proxy = snapshot.get("stream_proxy") or {}
     rows = [
         ("Version", snapshot.get("version")),
         ("Uptime (seconds)", snapshot.get("uptime_seconds")),
@@ -138,6 +148,9 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
         ("DRM playable (scanned)", fubo.get("drm_playable_count")),
         ("DRM last full scan", fubo.get("drm_last_scan_at")),
         ("DRM scan running", "yes" if fubo.get("drm_scan_running") else "no"),
+        ("Stream proxy enabled", "yes" if proxy.get("enabled") else "no"),
+        ("Stream proxy active / max", f"{proxy.get('active')} / {proxy.get('max')}"),
+        ("ffmpeg path", proxy.get("ffmpeg_path")),
         ("EPG cached", "yes" if epg.get("cached") else "no"),
         ("EPG cache age (seconds)", epg.get("age_seconds")),
         ("EPG TTL (seconds)", epg.get("ttl_seconds")),
@@ -188,6 +201,7 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
     fubo = snapshot.get("fubo") or {}
     epg = snapshot.get("epg") or {}
     req = snapshot.get("requests") or {}
+    proxy = snapshot.get("stream_proxy") or {}
     version = str(snapshot.get("version") or "unknown").replace("\\", "\\\\").replace('"', '\\"')
     lines = [
         "# HELP fubo_bridge_up Bridge process is up.",
@@ -211,13 +225,22 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
         "# HELP fubo_bridge_drm_learned Unique DRM stations learned at tune time.",
         "# TYPE fubo_bridge_drm_learned gauge",
         f"fubo_bridge_drm_learned {int(fubo.get('drm_learned_count') or 0)}",
+        "# HELP fubo_bridge_stream_proxy_enabled Whether MPEG-TS remux is enabled.",
+        "# TYPE fubo_bridge_stream_proxy_enabled gauge",
+        f"fubo_bridge_stream_proxy_enabled {1 if proxy.get('enabled') else 0}",
+        "# HELP fubo_bridge_stream_proxy_active Active ffmpeg remux processes.",
+        "# TYPE fubo_bridge_stream_proxy_active gauge",
+        f"fubo_bridge_stream_proxy_active {int(proxy.get('active') or 0)}",
+        "# HELP fubo_bridge_stream_proxy_max Max concurrent ffmpeg remux processes.",
+        "# TYPE fubo_bridge_stream_proxy_max gauge",
+        f"fubo_bridge_stream_proxy_max {int(proxy.get('max') or 0)}",
         "# HELP fubo_bridge_epg_cached Whether a warm XMLTV body is cached.",
         "# TYPE fubo_bridge_epg_cached gauge",
         f"fubo_bridge_epg_cached {1 if epg.get('cached') else 0}",
         "# HELP fubo_bridge_epg_programmes Programme rows from last EPG build.",
         "# TYPE fubo_bridge_epg_programmes gauge",
         f"fubo_bridge_epg_programmes {int(epg.get('programme_count') or 0)}",
-        "# HELP fubo_bridge_watch_ok_total Successful /watch redirects.",
+        "# HELP fubo_bridge_watch_ok_total Successful /watch redirects or remux starts.",
         "# TYPE fubo_bridge_watch_ok_total counter",
         f"fubo_bridge_watch_ok_total {int(req.get('watch_ok') or 0)}",
         "# HELP fubo_bridge_watch_error_total Failed /watch attempts.",

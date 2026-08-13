@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import (
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 
 from app import __version__
 from app.config import Settings, load_settings
@@ -22,6 +29,7 @@ from app.status import (
     render_prometheus,
     render_status_html,
 )
+from app.stream_proxy import StreamProxy, StreamProxyBusy, StreamProxyError
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +40,7 @@ logger = logging.getLogger(__name__)
 settings: Settings | None = None
 client: FuboClient | None = None
 epg_cache: EpgCache | None = None
+stream_proxy: StreamProxy | None = None
 runtime = RuntimeState()
 _drm_stop = threading.Event()
 _drm_threads: list[threading.Thread] = []
@@ -90,20 +99,29 @@ def _drm_interval_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    global settings, client, epg_cache, runtime
+    global settings, client, epg_cache, stream_proxy, runtime
     settings = load_settings()
     client = FuboClient(settings)
     epg_cache = EpgCache(
         settings.epg_cache_seconds,
         empty_ttl_seconds=settings.epg_empty_cache_seconds,
     )
+    stream_proxy = (
+        StreamProxy(
+            ffmpeg_path=settings.ffmpeg_path,
+            max_streams=settings.stream_proxy_max,
+        )
+        if settings.stream_proxy
+        else None
+    )
     runtime = RuntimeState()
     _drm_stop.clear()
     logger.info(
-        "Fubo Emby & Jellyfin bridge v%s ready on %s:%s",
+        "Fubo Emby & Jellyfin bridge v%s ready on %s:%s (stream_proxy=%s)",
         __version__,
         settings.host,
         settings.port,
+        settings.stream_proxy,
     )
     if settings.drm_scan_on_start:
         _start_drm_scan_thread(force=False, name="drm-scan-startup")
@@ -149,6 +167,15 @@ def _base_url(request: Request) -> str:
 
 def _snapshot() -> dict[str, Any]:
     cfg, fubo, cache = _require_client()
+    if stream_proxy is not None:
+        proxy_stats = stream_proxy.runtime_stats()
+    else:
+        proxy_stats = {
+            "enabled": False,
+            "max": cfg.stream_proxy_max,
+            "active": 0,
+            "ffmpeg_path": cfg.ffmpeg_path,
+        }
     return build_snapshot(
         version=__version__,
         runtime=runtime,
@@ -156,6 +183,7 @@ def _snapshot() -> dict[str, Any]:
         epg_stats=cache.runtime_stats(),
         host=cfg.host,
         port=cfg.port,
+        stream_proxy_stats=proxy_stats,
     )
 
 
@@ -220,14 +248,16 @@ def epg() -> PlainTextResponse:
 
 @app.api_route("/watch/{channel_id}", methods=["GET", "HEAD"])
 def watch(channel_id: str, request: Request) -> Response:
-    """GET resolves HLS and 302s. HEAD is a cheap probe — no Fubo tune."""
+    """GET: 302 to HLS, or MPEG-TS remux when STREAM_PROXY=true. HEAD: probe only."""
+    cfg, fubo, cache = _require_client()
+    head_type = (
+        "video/mp2t"
+        if cfg.stream_proxy
+        else "application/vnd.apple.mpegurl"
+    )
     if request.method == "HEAD":
-        return Response(
-            status_code=200,
-            media_type="application/vnd.apple.mpegurl",
-        )
+        return Response(status_code=200, media_type=head_type)
 
-    _, fubo, cache = _require_client()
     try:
         url = fubo.watch(channel_id)
     except FuboError as exc:
@@ -237,8 +267,36 @@ def watch(channel_id: str, request: Request) -> Response:
             cache.clear()
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    if not cfg.stream_proxy or stream_proxy is None:
+        runtime.counters.watch_ok += 1
+        return RedirectResponse(url=url, status_code=302)
+
+    if not stream_proxy.can_accept():
+        runtime.counters.watch_error += 1
+        raise HTTPException(
+            status_code=503,
+            detail=f"Stream proxy at capacity ({cfg.stream_proxy_max} concurrent)",
+        )
+
+    try:
+        chunks = stream_proxy.iter_mpegts(url)
+        first = next(chunks)
+    except StopIteration as exc:
+        runtime.counters.watch_error += 1
+        raise HTTPException(status_code=502, detail="ffmpeg produced no MPEG-TS output") from exc
+    except StreamProxyBusy as exc:
+        runtime.counters.watch_error += 1
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except StreamProxyError as exc:
+        runtime.counters.watch_error += 1
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    def _body() -> Iterator[bytes]:
+        yield first
+        yield from chunks
+
     runtime.counters.watch_ok += 1
-    return RedirectResponse(url=url, status_code=302)
+    return StreamingResponse(_body(), media_type="video/mp2t")
 
 
 @app.get("/admin/drm-scan")

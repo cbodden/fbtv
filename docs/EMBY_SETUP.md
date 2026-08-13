@@ -63,17 +63,20 @@ If `programme_count` stays `0`, keep Emby Guide Data as the guide source and tre
 3. If tune fails immediately, check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
 4. Refresh the M3U tuner after DRM learns so Emby drops dead entries
 5. If logs show `vapi/asset` **429**, raise `DRM_SCAN_DELAY_MS` — see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-6. If tune starts then fails, suspect **IP binding** — move bridge onto Emby’s host/network egress
-7. Confirm `/watch/{id}` in a browser/VLC on the Emby host (**GET**) redirects to an `.m3u8` URL. `HEAD` / `curl -I` on the bridge is a 200 probe and does not mint a stream.
+6. If tune starts then fails, suspect **IP binding** — move bridge onto Emby’s host/network egress, **or** set `STREAM_PROXY=true` (MPEG-TS remux; see [CONFIGURATION.md](CONFIGURATION.md))
+7. Confirm `/watch/{id}` in a browser/VLC on the Emby host (**GET**): default mode redirects to an `.m3u8`; with `STREAM_PROXY=true` expect a `video/mp2t` stream. `HEAD` / `curl -I` is a 200 probe and does not mint a stream.
 
 ## Suggested topology
 
 ```text
-Same host (best for v1 redirect model)
+Same host (best for default 302 redirect)
   Emby Server  ──LAN──►  fbtv:7777  ──►  api.fubo.tv / CDN
+
+Split egress (optional remux)
+  Emby elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  CDN
 ```
 
-Remote Emby over Tailscale/VPN with the bridge elsewhere often breaks HLS redirects because the stream URL was minted for a different IP.
+Remote Emby over Tailscale/VPN with the bridge elsewhere often breaks **302** HLS redirects because the stream URL was minted for a different IP — use shared egress or `STREAM_PROXY`.
 
 ## Using Emby and Jellyfin together
 

@@ -28,6 +28,9 @@ def _settings(config_dir: Path) -> Settings:
         drm_scan_delay_ms=0,
         drm_scan_max_age_hours=24,
         drm_scan_interval_hours=0,
+        stream_proxy=False,
+        stream_proxy_max=3,
+        ffmpeg_path="ffmpeg",
     )
 
 
@@ -410,6 +413,152 @@ def test_watch_head_does_not_tune() -> None:
     assert response.media_type == "application/vnd.apple.mpegurl"
 
 
+def test_watch_redirect_when_proxy_off() -> None:
+    from unittest.mock import MagicMock
+
+    from fastapi.responses import RedirectResponse
+    from starlette.requests import Request
+
+    from app import main as mainmod
+
+    fake = MagicMock()
+    fake.watch.return_value = "https://cdn.example/live.m3u8"
+    mainmod.settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = None
+    mainmod.runtime = RuntimeState()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    response = mainmod.watch("123", Request(scope))
+    assert isinstance(response, RedirectResponse)
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://cdn.example/live.m3u8"
+    assert mainmod.runtime.counters.watch_ok == 1
+
+
+def test_watch_proxy_streams_mpegts() -> None:
+    from unittest.mock import MagicMock
+
+    from fastapi.responses import StreamingResponse
+    from starlette.requests import Request
+
+    from app import main as mainmod
+    from app.stream_proxy import StreamProxy
+
+    fake = MagicMock()
+    fake.watch.return_value = "https://cdn.example/live.m3u8"
+    cfg = _settings(Path(__import__("tempfile").mkdtemp()))
+    # frozen dataclass — rebuild with proxy on
+    from dataclasses import replace
+
+    cfg = replace(cfg, stream_proxy=True, stream_proxy_max=2)
+    proxy = StreamProxy(ffmpeg_path="ffmpeg", max_streams=2)
+    proxy.iter_mpegts = lambda url: iter([b"tsdata", b"more"])  # type: ignore[method-assign]
+
+    mainmod.settings = cfg
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = proxy
+    mainmod.runtime = RuntimeState()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    response = mainmod.watch("123", Request(scope))
+    assert isinstance(response, StreamingResponse)
+    assert response.media_type == "video/mp2t"
+    assert mainmod.runtime.counters.watch_ok == 1
+
+    head_scope = {**scope, "method": "HEAD"}
+    head = mainmod.watch("123", Request(head_scope))
+    fake.watch.assert_called_once()
+    assert head.status_code == 200
+    assert head.media_type == "video/mp2t"
+
+
+def test_watch_proxy_at_capacity() -> None:
+    from unittest.mock import MagicMock
+
+    from fastapi import HTTPException
+    from starlette.requests import Request
+
+    from app import main as mainmod
+    from app.stream_proxy import StreamProxy
+    from dataclasses import replace
+
+    fake = MagicMock()
+    fake.watch.return_value = "https://cdn.example/live.m3u8"
+    cfg = replace(
+        _settings(Path(__import__("tempfile").mkdtemp())),
+        stream_proxy=True,
+        stream_proxy_max=1,
+    )
+    proxy = StreamProxy(ffmpeg_path="ffmpeg", max_streams=1)
+    proxy._active = 1  # noqa: SLF001 — force full
+
+    mainmod.settings = cfg
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = proxy
+    mainmod.runtime = RuntimeState()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    try:
+        mainmod.watch("123", Request(scope))
+        raise AssertionError("expected HTTPException")
+    except HTTPException as exc:
+        assert exc.status_code == 503
+    assert mainmod.runtime.counters.watch_error == 1
+
+
+def test_stream_proxy_busy_raises() -> None:
+    from app.stream_proxy import StreamProxy, StreamProxyBusy
+
+    proxy = StreamProxy(ffmpeg_path="ffmpeg", max_streams=1)
+    proxy._active = 1  # noqa: SLF001
+    try:
+        list(proxy.iter_mpegts("https://example/x.m3u8"))
+        raise AssertionError("expected StreamProxyBusy")
+    except StreamProxyBusy:
+        pass
+    assert proxy.runtime_stats()["active"] == 1
+
+
 def test_drm_scan_persists_and_skips_when_fresh() -> None:
     from app.fubo_client import FuboClient
 
@@ -462,5 +611,9 @@ if __name__ == "__main__":
     test_epg_assets_parsing()
     test_epg_assets_match_station_id_and_call_sign()
     test_watch_head_does_not_tune()
+    test_watch_redirect_when_proxy_off()
+    test_watch_proxy_streams_mpegts()
+    test_watch_proxy_at_capacity()
+    test_stream_proxy_busy_raises()
     test_drm_scan_persists_and_skips_when_fresh()
     print("ok")

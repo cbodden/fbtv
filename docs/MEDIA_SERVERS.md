@@ -1,6 +1,6 @@
 # Emby and Jellyfin
 
-**Emby and Jellyfin are equal first-class targets.** One bridge instance serves both. There is no Emby-only or Jellyfin-only mode: both consume the same M3U tuner URL, XMLTV guide URL, and `/watch/{id}` HLS redirects.
+**Emby and Jellyfin are equal first-class targets.** One bridge instance serves both. There is no Emby-only or Jellyfin-only mode: both consume the same M3U tuner URL, XMLTV guide URL, and `/watch/{id}` (default HLS redirect, or MPEG-TS remux when `STREAM_PROXY=true`).
 
 | Topic | Emby | Jellyfin |
 | --- | --- | --- |
@@ -9,7 +9,7 @@
 | Guide type | XMLTV (and/or Emby Guide Data) | XMLTV (or Schedules Direct — not both at once) |
 | Setup guide | [EMBY_SETUP.md](EMBY_SETUP.md) | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) |
 | Playlist join key | `tvg-id` = Fubo call sign | `tvg-id` = Fubo call sign |
-| Shared egress with bridge | Required for v1 302 HLS | Required for v1 302 HLS |
+| Shared egress with bridge | Required for default 302 HLS; optional with `STREAM_PROXY=true` | Required for default 302 HLS; optional with `STREAM_PROXY=true` |
 | DRM packages | Skipped / scanned / learned / 502 (paced sweep 1.0.6+) | Skipped / scanned / learned / 502 (paced sweep 1.0.6+) |
 
 ## Shared URLs
@@ -34,7 +34,7 @@ Status / metrics details: [STATUS.md](STATUS.md).
 Supported. Each server imports channels independently.
 
 - Cap **simultaneous streams** on each tuner so the **combined** concurrency stays within your Fubo plan.
-- Prefer the **same public egress IP** for the bridge and **every** server that will tune (or put remux on the roadmap if that is impossible).
+- Prefer the **same public egress IP** for the bridge and **every** server that will tune, **or** set `STREAM_PROXY=true` so the bridge remuxes HLS → MPEG-TS (CPU cost; see [CONFIGURATION.md](CONFIGURATION.md)).
 - Fetch the playlist via a hostname each server can resolve; avoid baking `localhost` into the M3U unless that loopback is shared.
 
 ## Quirks that differ

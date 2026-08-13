@@ -19,6 +19,9 @@
 | `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes (global pace lock) |
 | `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is newer than this (0 = always scan) |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan interval (0 = disabled) |
+| `STREAM_PROXY` | no | `false` | When `true`, GET `/watch/{id}` remuxes Fubo HLS to MPEG-TS via ffmpeg (for split-egress). Default keeps HTTP 302 |
+| `STREAM_PROXY_MAX` | no | `3` | Max concurrent ffmpeg remux processes; further tunes return `503` |
+| `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary (image includes `ffmpeg` on `PATH`) |
 
 Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, `FUBO_PASS_B64`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe). `FUBO_PASS_B64` wins over plain `FUBO_PASS` in the same source.
 
@@ -146,6 +149,16 @@ No extra environment variables are required. When the process is running:
 | `/health` | Liveness only |
 
 See [STATUS.md](STATUS.md).
+
+## Stream proxy (optional remux)
+
+When Emby/Jellyfin cannot share the bridge’s public IP with Fubo CDN redirects:
+
+```bash
+STREAM_PROXY=true STREAM_PROXY_MAX=3 docker compose up -d
+```
+
+`/status.json` → `stream_proxy.enabled` / `active` / `max`. Over capacity returns HTTP **503**. Prefer shared egress + `STREAM_PROXY=false` when possible (lower CPU).
 
 ## DRM scan
 

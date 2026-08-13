@@ -2,16 +2,16 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (release/1.0.7 → main PR; Compose `:latest`)  
+**Last updated:** 2026-08-13 (1.0.7 merged to `main`; `dev` Compose restored to `:dev`)  
 **Active version:** 1.0.7  
-**Phase:** Release 1.0.7 to `main`  
-**Git:** `release/1.0.7` (PR into `main`); keep `dev` Compose on `:dev` after merge
+**Phase:** Post-1.0.7 hygiene on `dev`  
+**Git:** `dev` (Compose `:dev`); `main` / `:latest` = 1.0.7
 
 ---
 
 ## Resume here (this session)
 
-Ship **1.0.7** to `main` / `:latest`. After merge: restore `dev` Compose to `:dev` if needed, then **C** hygiene.
+**1.0.7** shipped to `main` (PR #1). Next: **C** hygiene when requested.
 
 ---
 
@@ -37,7 +37,7 @@ Ship **1.0.7** to `main` / `:latest`. After merge: restore `dev` Compose to `:de
 
 ## Current focus
 
-- Merge release PR; wait for GHCR `:latest`.
+- Wait for GHCR `:latest` = 1.0.7; then hygiene C.
 
 ## Scratch
 

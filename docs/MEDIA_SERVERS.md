@@ -10,7 +10,7 @@
 | Setup guide | [EMBY_SETUP.md](EMBY_SETUP.md) | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) |
 | Playlist join key | `tvg-id` = Fubo call sign | `tvg-id` = Fubo call sign |
 | Shared egress with bridge | Required for default 302 HLS; optional with `STREAM_PROXY=true` | Required for default 302 HLS; optional with `STREAM_PROXY=true` |
-| DRM packages | Skipped / scanned / learned / 502; optional allow/deny overrides (paced sweep 1.0.6+) | Skipped / scanned / learned / 502; optional allow/deny overrides (paced sweep 1.0.6+) |
+| DRM packages | Skipped / scanned / learned / 502; allow/deny overrides (**1.0.7+**); paced sweep (**1.0.6+**) | Same |
 
 ## Shared URLs
 

@@ -1,3 +1,3 @@
-"""Fubo → Emby Python bridge package."""
+"""Fubo → Emby & Jellyfin Bridge."""
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"

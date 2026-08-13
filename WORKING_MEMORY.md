@@ -2,16 +2,16 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (topology docs synced; push to `dev`)  
-**Active version:** 1.0.6 (Unreleased on `dev` → `:dev`)  
-**Phase:** Post-1.0.6 hardening on `dev`  
+**Last updated:** 2026-08-13 (v1.0.7 bumped; Emby field-verified; push to `dev`)  
+**Active version:** 1.0.7 (`dev` → `:dev`)  
+**Phase:** Post-1.0.7 hygiene on `dev`  
 **Git:** `dev`
 
 ---
 
 ## Resume here (this session)
 
-Section **B** done. Topology sketches updated across README / ARCHITECTURE / setup guides.
+**1.0.7** cut on `dev` after Emby verification (playlist, ~7600 programmes, 302 tune).
 
 Next: **C** hygiene when requested.
 
@@ -19,7 +19,7 @@ Next: **C** hygiene when requested.
 
 ## Backlog
 
-### A / B — done
+### A / B — done (shipped in 1.0.7)
 
 ### C. Hygiene — next
 
@@ -39,9 +39,10 @@ Next: **C** hygiene when requested.
 
 ## Current focus
 
-- Docs topologies current; ready for C.
+- Version **1.0.7**; ready for C.
 
 ## Scratch
 
 _Deny wins over allow. Allow is not DRM decrypt._
 _STREAM_PROXY default false; ffmpeg -c copy -f mpegts._
+_main / :latest still 1.0.6 until merge; flip Compose image back to :latest on that merge._

@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -136,7 +136,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.6"}
+{"status": "ok", "version": "1.0.7"}
 ```
 
 ## `GET /playlist.m3u`

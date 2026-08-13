@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.6** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
+**Version 1.0.7** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -127,7 +127,7 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.6"}
+# → {"status":"ok","version":"1.0.7"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -265,7 +265,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. Stable image: `ghcr.io/cbodden/fbtv:latest`; pre-release: `:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.6** until merge); current `dev` image: `:dev` (**1.0.7**).
 
 ### Using Emby and Jellyfin together
 
@@ -344,7 +344,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 - **DRM** — Protected packages are skipped; tune-time and background-scan `drmProtected` stations are remembered and dropped from later playlists/EPG (`config/drm_skipped.json`). Optional allow/deny overrides adjust that list (`config/drm_overrides.json`). Decryption is out of scope.
 - **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress is recommended for **302** mode. Set `STREAM_PROXY=true` to remux through the bridge when egress cannot be shared (CPU cost).
 - **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse. Empty guides are cached only briefly (`EPG_EMPTY_CACHE_SECONDS`).
-- **Remux is opt-in** — Default remains redirect-only; enable `STREAM_PROXY` when needed (see CHANGELOG Unreleased / CONFIGURATION).
+- **Remux is opt-in** — Default remains redirect-only; enable `STREAM_PROXY` when needed (see CHANGELOG **1.0.7** / CONFIGURATION).
 
 > **Personal use — Your own paid account only.**
 >

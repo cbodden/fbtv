@@ -6,8 +6,8 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 | --- | --- |
 | [../README.md](../README.md) | **Primary guide:** what it does, install (Compose + GHCR), Emby & Jellyfin setup, status/metrics, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching, metrics, DRM scan, optional `STREAM_PROXY` remux |
-| [CONFIGURATION.md](CONFIGURATION.md) | Env vars, `FUBO_PASS_B64`, `EPG_EMPTY_CACHE_SECONDS`, `STREAM_PROXY*`, `DRM_SCAN_*`, Compose GHCR `:latest` / `:dev`, Portainer credentials file |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching, metrics, DRM scan/overrides, optional `STREAM_PROXY` remux |
+| [CONFIGURATION.md](CONFIGURATION.md) | Env vars, `FUBO_PASS_B64`, `EPG_EMPTY_CACHE_SECONDS`, `STREAM_PROXY*`, DRM allow/deny, `DRM_SCAN_*`, Compose GHCR `:latest` / `:dev`, Portainer credentials file |
 | [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both; naming |
 | [EMBY_SETUP.md](EMBY_SETUP.md) | Emby Live TV wiring |
 | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
@@ -22,4 +22,4 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 
 ## Version
 
-Current release: **1.0.6** on `main` / `:latest` (see `CHANGELOG.md`). Pre-release: `:dev` (Unreleased: HEAD watch, empty EPG TTL, `/epg` join, optional `STREAM_PROXY`).
+Current release: **1.0.6** on `main` / `:latest` (see `CHANGELOG.md`). Pre-release: `:dev` (Unreleased: HEAD watch, empty EPG TTL, `/epg` join, `STREAM_PROXY`, DRM allow/deny).

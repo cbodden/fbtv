@@ -35,6 +35,7 @@ The bridge authenticates to Fubo with the subscriber’s credentials and transla
 | `app/m3u.py` | EXTINF playlist generation |
 | `app/epg.py` | XMLTV generation + TTL cache |
 | `app/stream_proxy.py` | Optional ffmpeg HLS → MPEG-TS remux (`STREAM_PROXY`) |
+| `app/drm_overrides.py` | Manual DRM allow/deny lists (`drm_overrides.json` / `DRM_*`) |
 | `app/status.py` | Status snapshot + HTML/Prometheus rendering |
 
 ## Auth flow
@@ -52,7 +53,7 @@ Two discovery paths (first successful wins for a populated list):
 1. **Subscriptions** — `subscriptions`, `subscriptions/products`, plus `v3/plan-manager/plans` for source metadata
 2. **Plan manager fallback** — `v3/plan-manager/plans` + `user` recurly `purchased_packages`
 
-Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` flags on lineup metadata) are dropped before playlist generation. Stations discovered as `drmProtected` at tune time **or** during a background DRM asset sweep are remembered in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists and EPG channel mapping. Sweeps are optional/periodic (`DRM_SCAN_*`); they classify streams only — they do not decrypt DRM. From **1.0.6**, sweeps default to **one** concurrent probe, `DRM_SCAN_DELAY_MS` pacing (default 750), and exponential backoff on HTTP **429** from `vapi/asset`.
+Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` flags on lineup metadata) are dropped before playlist generation, unless listed in a **DRM allow** override. Stations discovered as `drmProtected` at tune time **or** during a background DRM asset sweep are remembered in `CONFIG_DIR/drm_skipped.json` and excluded from later playlists and EPG channel mapping (allowlisted ids are not added to the skip list). **Deny** overrides always drop matching stations. Sweeps are optional/periodic (`DRM_SCAN_*`); they classify streams only — they do not decrypt DRM. From **1.0.6**, sweeps default to **one** concurrent probe, `DRM_SCAN_DELAY_MS` pacing (default 750), and exponential backoff on HTTP **429** from `vapi/asset`.
 
 ## Tune path
 
@@ -84,6 +85,7 @@ Fubo often binds stream URLs to the **requester’s public IP**. Prefer shared e
 | XMLTV body | `EPG_CACHE_SECONDS` (default 1h) when programmes exist; `EPG_EMPTY_CACHE_SECONDS` (default 120s, or no cache if `0`) when `programme_count` is 0 | Process memory |
 | Device id | Permanent until deleted | `CONFIG_DIR/device.json` |
 | Learned / scanned DRM station ids | Permanent until deleted | `CONFIG_DIR/drm_skipped.json` (`station_ids`, `playable`, `last_scan_at`) |
+| DRM allow/deny overrides | Until file/env changed + restart (or channel-cache refresh) | `CONFIG_DIR/drm_overrides.json` and/or `DRM_*` env |
 | Request counters / uptime | Process lifetime | Process memory (`app/status.py` / `main`) |
 
 ## Status and metrics

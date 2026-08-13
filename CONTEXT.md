@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: HEAD watch, empty EPG TTL, `/epg` join, optional `STREAM_PROXY`).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: HEAD watch, empty EPG TTL, `/epg` join, `STREAM_PROXY`, DRM allow/deny).
 
 ## What this is
 
@@ -33,7 +33,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** **v1.0.6** on `main` / GHCR `:latest`. **`dev` / `:dev`:** HEAD `/watch`, empty-EPG short TTL, `/epg` join keys, optional `STREAM_PROXY` ffmpeg MPEG-TS remux.
+**Status:** **v1.0.6** on `main` / GHCR `:latest`. **`dev` / `:dev`:** HEAD `/watch`, empty-EPG short TTL, `/epg` join keys, optional `STREAM_PROXY` remux, DRM allow/deny overrides.
 
 ## Non-goals (v1)
 
@@ -59,6 +59,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 app/main.py                 # routes, lifespan, base URL detection
 app/fubo_client.py          # auth, channels, watch, schedule (/epg + papi)
 app/stream_proxy.py         # optional ffmpeg HLS → MPEG-TS
+app/drm_overrides.py        # manual DRM allow/deny lists
 app/m3u.py / epg.py / status.py / config.py / set_credentials.py
 docs/                       # full documentation
 docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG empty
@@ -85,7 +86,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 ## Planned
 
-- Configurable DRM allow/deny lists (manual overrides on top of scan)
+_None currently — next backlog is hygiene (CI tests, arm64, admin auth, `/ready`)._
 
 ## Agent guidance
 

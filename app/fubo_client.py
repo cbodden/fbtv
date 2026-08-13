@@ -16,6 +16,7 @@ from typing import Any, Callable
 import httpx
 
 from app.config import Settings
+from app.drm_overrides import DrmOverrides, load_drm_overrides
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ class FuboClient:
         self._drm_last_scan_at: float | None = None
         self._drm_learned_ids: set[str] = set()
         self._load_drm_state()
+        self._drm_overrides: DrmOverrides = load_drm_overrides(settings.config_dir)
         self._scan_lock = Lock()
         self._scan_running = False
         self._scan_started_at: float | None = None
@@ -190,6 +192,20 @@ class FuboClient:
         """Remember a station that Fubo flagged drmProtected; drop it from the M3U cache."""
         sid = str(station_id).strip()
         if not sid:
+            return
+        if self._drm_overrides.is_allowed(station_id=sid, call_sign=call_sign):
+            with self._lock:
+                was = sid in self._drm_learned_ids
+                self._drm_learned_ids.discard(sid)
+                self._drm_skipped_ids.discard(sid)
+                self._drm_skipped_count = len(self._drm_skipped_ids | self._drm_learned_ids)
+                if was and save:
+                    self._save_drm_state()
+            logger.info(
+                "Station %s is DRM-allowlisted; not adding to skip list (via=%s)",
+                sid,
+                via,
+            )
             return
         now_iso = (
             datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -640,12 +656,18 @@ class FuboClient:
     ) -> None:
         if not station_id:
             return
-        if self._is_drm_channel(raw):
-            self._drm_skipped_ids.add(str(station_id))
-            return
 
         sid = str(station_id)
         call = (call_sign or sid).strip()
+        if self._drm_overrides.is_denied(station_id=sid, call_sign=call):
+            self._drm_skipped_ids.add(sid)
+            return
+        if self._is_drm_channel(raw) and not self._drm_overrides.is_allowed(
+            station_id=sid, call_sign=call
+        ):
+            self._drm_skipped_ids.add(sid)
+            return
+
         display = (name or call).replace(",", "").strip()
         if not display:
             return
@@ -835,7 +857,14 @@ class FuboClient:
             raise FuboError("; ".join(errors) or "No channels returned from Fubo")
 
         for sid in list(stations.keys()):
-            if sid in learned:
+            ch = stations[sid]
+            if self._drm_overrides.is_denied(station_id=sid, call_sign=ch.call_sign):
+                del stations[sid]
+                self._drm_skipped_ids.add(sid)
+                continue
+            if sid in learned and not self._drm_overrides.is_allowed(
+                station_id=sid, call_sign=ch.call_sign
+            ):
                 del stations[sid]
                 self._drm_skipped_ids.add(sid)
 
@@ -856,6 +885,15 @@ class FuboClient:
                 logger.info(
                     "Excluded %s previously learned DRM stations from lineup",
                     len(learned),
+                )
+            if not self._drm_overrides.is_empty():
+                logger.info(
+                    "DRM overrides active source=%s deny=%s/%s allow=%s/%s",
+                    self._drm_overrides.source,
+                    len(self._drm_overrides.deny_ids),
+                    len(self._drm_overrides.deny_call_signs),
+                    len(self._drm_overrides.allow_ids),
+                    len(self._drm_overrides.allow_call_signs),
                 )
 
         return sorted_channels
@@ -884,6 +922,7 @@ class FuboClient:
                 "drm_skipped_count": self._drm_skipped_count,
                 "drm_learned_count": len(self._drm_learned_ids),
                 "drm_playable_count": len(self._drm_playable),
+                "drm_overrides": self._drm_overrides.runtime_stats(),
                 "drm_updated_at": (
                     datetime.fromtimestamp(self._drm_updated_at, tz=timezone.utc)
                     .isoformat()

@@ -45,6 +45,13 @@ Machine-readable JSON status (same payload as the HTML page).
     "drm_skipped_count": 12,
     "drm_learned_count": 3,
     "drm_playable_count": 180,
+    "drm_overrides": {
+      "source": "none",
+      "deny_ids": 0,
+      "allow_ids": 0,
+      "deny_call_signs": 0,
+      "allow_call_signs": 0
+    },
     "drm_last_scan_at": "2026-08-12T22:00:00Z",
     "drm_scan_running": false
   },

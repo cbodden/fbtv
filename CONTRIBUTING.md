@@ -32,7 +32,7 @@ docker compose up -d
 docker compose logs -f fbtv
 ```
 
-Optional remux (`STREAM_PROXY=true`) needs **ffmpeg** on `PATH` for local uvicorn; the Docker image already installs it.
+Optional remux (`STREAM_PROXY=true`) needs **ffmpeg** on `PATH` for local uvicorn; the Docker image already installs it. Optional DRM allow/deny uses `config/drm_overrides.json` (see `drm_overrides.example.json`) or `DRM_*` env vars.
 
 Run builder tests (no Fubo credentials required):
 

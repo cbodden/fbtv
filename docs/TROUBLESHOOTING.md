@@ -69,7 +69,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 ## Channels import but will not play (Emby or Jellyfin)
 
 1. Confirm the channel is not DRM-filtered (premium movie nets often are)
-2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry
+2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry. To keep a **false positive** in the playlist, add an **allow** override (see [CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides)); real DRM still cannot play.
 3. Prefer a full DRM sweep so the playlist is clean before Emby imports: `POST /admin/drm-scan?force=true`, wait for `GET /admin/drm-scan` to show `running: false`, then refresh M3U + EPG
 4. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC (**GET**). `HEAD` / `curl -I` on the bridge now returns **200** without tuning; it does not prove CDN playback.
 5. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
@@ -80,6 +80,20 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 7. Check `/status.json` → `requests.watch_error` climbing vs `watch_ok`
 
 Default is HTTP 302 redirects. Optional remux (`STREAM_PROXY`) pulls the CDN from the bridge. DRM decryption is out of scope.
+
+---
+
+## DRM allow / deny overrides
+
+Use these when a station is wrongly kept out of (or left in) the playlist.
+
+| Goal | Action |
+| --- | --- |
+| Force-drop a channel | Add its station id or call sign to **deny** (`config/drm_overrides.json` or `DRM_DENY_*`) |
+| Bring back a false-positive DRM skip | Add it to **allow** (`DRM_ALLOW_*`). Does **not** decrypt real DRM — tune may still **502** |
+| Same id in both lists | **Deny wins** |
+
+After editing, restart the container (or wait ~30 minutes for the channel cache) and refresh the M3U tuner. Confirm via `/status.json` → `fubo.drm_overrides`. Details: [CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides).
 
 ---
 
@@ -139,6 +153,7 @@ curl -sS http://127.0.0.1:7777/metrics | head
 | --- | --- |
 | `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — check `credentials_source`, `pass_fp` in logs, then hit playlist |
 | `channel_count` set, `drm_skipped_count` / `drm_learned_count` high | Expected for DRM packages; those channels stay out of the M3U after learn/refresh |
+| `drm_overrides` counts non-zero | Manual allow/deny file or env is active |
 | `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (empty-guide TTL, default 120s) |
 | `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |
 | Status routes return 404 | Process predates metrics — restart uvicorn / Compose |

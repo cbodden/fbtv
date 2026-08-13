@@ -20,7 +20,7 @@ Full field reference and examples: [API.md](API.md).
 | Area | Fields |
 | --- | --- |
 | Process | `version`, `uptime_seconds`, `started_at`, listen `host`/`port` |
-| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count`, `drm_learned_count`, `drm_playable_count`, `drm_last_scan_at`, `drm_scan_running`, `drm_scan_last_result`, scan settings |
+| Fubo | `signed_in`, token age / TTL remaining, `channel_count`, channels cache age, `channels_source`, `credentials_source`, `drm_skipped_count`, `drm_learned_count`, `drm_playable_count`, `drm_overrides`, `drm_last_scan_at`, `drm_scan_running`, `drm_scan_last_result`, scan settings |
 | EPG | `cached`, cache age, TTL, last-build `programme_count` / `channel_count` |
 | Stream proxy | `enabled`, `active`, `max`, `ffmpeg_path` |
 | Requests | OK/error counters for playlist, EPG, and watch |

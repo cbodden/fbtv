@@ -22,6 +22,10 @@
 | `STREAM_PROXY` | no | `false` | When `true`, GET `/watch/{id}` remuxes Fubo HLS to MPEG-TS via ffmpeg (for split-egress). Default keeps HTTP 302 |
 | `STREAM_PROXY_MAX` | no | `3` | Max concurrent ffmpeg remux processes; further tunes return `503` |
 | `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary (image includes `ffmpeg` on `PATH`) |
+| `DRM_DENY_IDS` | no | — | Comma-separated station ids always dropped from M3U/EPG |
+| `DRM_ALLOW_IDS` | no | — | Comma-separated station ids kept despite learned/heuristic DRM skip (not decryption) |
+| `DRM_DENY_CALL_SIGNS` | no | — | Comma-separated call signs always dropped |
+| `DRM_ALLOW_CALL_SIGNS` | no | — | Comma-separated call signs kept despite skip heuristics |
 
 Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, `FUBO_PASS_B64`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe). `FUBO_PASS_B64` wins over plain `FUBO_PASS` in the same source.
 
@@ -119,9 +123,32 @@ pull_policy: always
 | `config/credentials.json` | Same secrets as JSON (`python -m app.set_credentials`) |
 | `config/device.json` | Stable Fubo `x-device-id` |
 | `config/drm_skipped.json` | Learned/scanned DRM station ids (+ playable records, `last_scan_at`) excluded from M3U/EPG |
+| `config/drm_overrides.json` | Optional manual allow/deny station ids and call signs (see below) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
 Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction). Delete `config/drm_skipped.json` only if you want previously learned DRM stations to reappear in the M3U until they fail again.
+
+## DRM allow / deny overrides
+
+Manual overrides sit **on top of** heuristics + `drm_skipped.json` + background scan. They do **not** decrypt DRM.
+
+| Action | Effect |
+| --- | --- |
+| **Deny** | Always drop from `/playlist.m3u` / EPG mapping |
+| **Allow** | Keep a station that would otherwise be skipped as DRM (false-positive recovery). Real `drmProtected` streams still **502** on tune |
+
+Prefer a file on the config volume (example: `drm_overrides.example.json`):
+
+```json
+{
+  "deny_station_ids": ["12345"],
+  "allow_station_ids": ["67890"],
+  "deny_call_signs": ["BADHD"],
+  "allow_call_signs": []
+}
+```
+
+Env vars `DRM_DENY_IDS`, `DRM_ALLOW_IDS`, `DRM_DENY_CALL_SIGNS`, `DRM_ALLOW_CALL_SIGNS` are merged with the file (union). If the same id/call sign is both denied and allowed, **deny wins**. Restart (or wait for channel-cache expiry) after changes. Counts appear under `fubo.drm_overrides` in `/status.json`.
 
 ## Reverse proxy tips
 

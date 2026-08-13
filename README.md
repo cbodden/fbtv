@@ -105,7 +105,7 @@ docker compose up -d
 
 Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config`, and sets `pull_policy: always`.
 
-Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`. Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`, `STREAM_PROXY`, `STREAM_PROXY_MAX`, `DRM_DENY_IDS` / `DRM_ALLOW_IDS` (prefer `config/drm_overrides.json`). Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 GitHub Actions: `.github/workflows/docker.yml` (tags: `latest`, `sha-<commit>`).
 
@@ -166,7 +166,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `FUBO_PASS_B64` | no | — | Base64 UTF-8 password; wins over `FUBO_PASS` |
 | `HOST` | no | `0.0.0.0` | Bind address (local uvicorn) |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
-| `CONFIG_DIR` | no | `./config` | Writable dir for `device.json`, credentials files, `drm_skipped.json` |
+| `CONFIG_DIR` | no | `./config` | Writable dir for `device.json`, credentials files, `drm_skipped.json`, `drm_overrides.json` |
 | `EPG_CACHE_SECONDS` | no | `3600` | How long to reuse generated `epg.xml` when programmes exist |
 | `EPG_EMPTY_CACHE_SECONDS` | no | `120` | How long to reuse channel-only XMLTV (`0` = no cache) |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data exists |
@@ -178,6 +178,8 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `STREAM_PROXY` | no | `false` | Remux HLS→MPEG-TS via ffmpeg on `/watch` (split egress) |
 | `STREAM_PROXY_MAX` | no | `3` | Max concurrent remuxes |
 | `FFMPEG_PATH` | no | `ffmpeg` | ffmpeg binary path |
+| `DRM_DENY_IDS` / `DRM_ALLOW_IDS` | no | — | Optional station-id overrides (prefer `config/drm_overrides.json`) |
+| `DRM_DENY_CALL_SIGNS` / `DRM_ALLOW_CALL_SIGNS` | no | — | Optional call-sign overrides |
 
 **Runtime files**
 
@@ -188,6 +190,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `config/credentials.json` | Same secrets; write with `python -m app.set_credentials` |
 | `config/device.json` | Stable Fubo `x-device-id` (created on first run) |
 | `config/drm_skipped.json` | DRM station ids from tune or background scan (kept out of later playlists/EPG) |
+| `config/drm_overrides.json` | Optional manual DRM allow/deny station ids / call signs |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
 Delete `config/device.json` only if you intentionally want a new device identity (can trigger extra sign-in friction).
@@ -265,7 +268,7 @@ Once installed and wired:
 1. **Leave the bridge running** (Compose `restart: unless-stopped`, or a systemd/user service for uvicorn).
 2. Use **Emby** and/or **Jellyfin** Live TV as usual — channel change hits `/watch/{id}`, which redirects to Fubo HLS.
 3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS` (or `EPG_EMPTY_CACHE_SECONDS` when programmes are empty).
-4. **Credential / device changes:** update `config/credentials.env` (or JSON / env) and restart. Only delete `config/device.json` as a last resort. Delete `config/drm_skipped.json` only if you want previously learned DRM stations back in the playlist.
+4. **Credential / device changes:** update `config/credentials.env` (or JSON / env) and restart. Only delete `config/device.json` as a last resort. Delete `config/drm_skipped.json` only if you want previously learned DRM stations back in the playlist. Edit `config/drm_overrides.json` (or `DRM_*` env) to force-deny or allowlist stations — see [docs/CONFIGURATION.md](docs/CONFIGURATION.md#drm-allow--deny-overrides).
 5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
 6. **Status / metrics:** see [Status and metrics](#status-and-metrics) below.
 7. **OpenAPI:** while running, browse `http://<host>:7777/docs` for interactive endpoint docs.
@@ -326,7 +329,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 ## Limitations
 
 - **Unofficial API** — Fubo does not document this for third-party use. Endpoints/headers can change without notice.
-- **DRM** — Protected packages are skipped; tune-time and background-scan `drmProtected` stations are remembered and dropped from later playlists/EPG (`config/drm_skipped.json`). Decryption is out of scope.
+- **DRM** — Protected packages are skipped; tune-time and background-scan `drmProtected` stations are remembered and dropped from later playlists/EPG (`config/drm_skipped.json`). Optional allow/deny overrides adjust that list (`config/drm_overrides.json`). Decryption is out of scope.
 - **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress is recommended for **302** mode. Set `STREAM_PROXY=true` to remux through the bridge when egress cannot be shared (CPU cost).
 - **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse. Empty guides are cached only briefly (`EPG_EMPTY_CACHE_SECONDS`).
 - **Remux is opt-in** — Default remains redirect-only; enable `STREAM_PROXY` when needed (see CHANGELOG Unreleased / CONFIGURATION).
@@ -347,6 +350,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; GET `/watch/{id}` (302 or `video/mp2t` if `STREAM_PROXY`); fix shared egress / Cloudflare 403 or enable remux |
 | Logs show `vapi/asset` **429** during DRM scan | Use **1.0.6+** (`:latest` or `:dev`); keep `DRM_SCAN_CONCURRENCY=1`; raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
 | Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
+| Want to force-drop or un-skip a channel | `config/drm_overrides.json` deny/allow — [docs/CONFIGURATION.md](docs/CONFIGURATION.md#drm-allow--deny-overrides) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
 | Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
 | Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |

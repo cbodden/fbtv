@@ -27,5 +27,9 @@ services:
       - STREAM_PROXY=${STREAM_PROXY:-false}
       - STREAM_PROXY_MAX=${STREAM_PROXY_MAX:-3}
       - FFMPEG_PATH=${FFMPEG_PATH:-ffmpeg}
+      - DRM_DENY_IDS=${DRM_DENY_IDS:-}
+      - DRM_ALLOW_IDS=${DRM_ALLOW_IDS:-}
+      - DRM_DENY_CALL_SIGNS=${DRM_DENY_CALL_SIGNS:-}
+      - DRM_ALLOW_CALL_SIGNS=${DRM_ALLOW_CALL_SIGNS:-}
     volumes:
       - ./config:/app/config

@@ -2,35 +2,32 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (`dev` Compose image → `:dev`)  
+**Last updated:** 2026-08-13 (B2 DRM allow/deny docs + push to `dev`)  
 **Active version:** 1.0.6 (Unreleased on `dev` → `:dev`)  
 **Phase:** Post-1.0.6 hardening on `dev`  
-**Git:** `dev` (B1 STREAM_PROXY)
+**Git:** `dev`
 
 ---
 
 ## Resume here (this session)
 
-Section **B1** landed on `dev`. Field-check remux after GHCR `:dev` rebuilds:
+Section **B** complete on `dev` (STREAM_PROXY + DRM allow/deny).
 
-1. `STREAM_PROXY=false` — GET `/watch/<id>` still **302**
-2. `STREAM_PROXY=true` — GET `video/mp2t`; `/status.json` → `stream_proxy.enabled=true`
-3. Over `STREAM_PROXY_MAX` → **503**
+Field-check overrides after `:dev` rebuild:
 
-Next: **B2** DRM allow/deny lists when requested.
+1. Deny an id → missing from `/playlist.m3u` after refresh
+2. Allow a learned DRM id → back in playlist; real DRM still 502 on tune
+3. `/status.json` → `fubo.drm_overrides`
+
+Next: **C** hygiene when requested.
 
 ---
 
-## Backlog (section by section)
+## Backlog
 
-### A. Do first — done (field-checked)
+### A / B — done
 
-### B. Unreleased product
-
-4. Optional MPEG-TS remux / stream proxy — **done** (`STREAM_PROXY`)
-5. Configurable DRM allow/deny lists — **next**
-
-### C. Hygiene
+### C. Hygiene — next
 
 6. Run `tests/test_builders.py` in GitHub Actions
 7. Multi-arch `linux/arm64` GHCR image
@@ -48,9 +45,8 @@ Next: **B2** DRM allow/deny lists when requested.
 
 ## Current focus
 
-- B1 pushed; ready for B2 or field remux verify.
+- B2 pushed; ready for C or field override check.
 
 ## Scratch
 
-_Scratch: Classify DRM only — do not decrypt. Pace probes._
-_STREAM_PROXY default false; ffmpeg -c copy -f mpegts._
+_Deny wins over allow. Allow is not DRM decrypt._

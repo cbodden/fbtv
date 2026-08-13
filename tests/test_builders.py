@@ -559,6 +559,119 @@ def test_stream_proxy_busy_raises() -> None:
     assert proxy.runtime_stats()["active"] == 1
 
 
+def test_drm_overrides_file_and_deny_wins() -> None:
+    import tempfile
+
+    from app.drm_overrides import load_drm_overrides
+
+    config_dir = Path(tempfile.mkdtemp())
+    (config_dir / "drm_overrides.json").write_text(
+        json.dumps(
+            {
+                "deny_station_ids": ["1", "2"],
+                "allow_station_ids": ["2", "3"],
+                "deny_call_signs": ["BAD"],
+                "allow_call_signs": ["BAD", "GOOD"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    overrides = load_drm_overrides(config_dir)
+    assert overrides.is_denied(station_id="1")
+    assert overrides.is_denied(station_id="2")  # deny wins
+    assert not overrides.is_allowed(station_id="2")
+    assert overrides.is_allowed(station_id="3")
+    assert overrides.is_denied(station_id="9", call_sign="BAD")
+    assert not overrides.is_allowed(station_id="9", call_sign="BAD")
+    assert overrides.is_allowed(station_id="9", call_sign="GOOD")
+
+
+def test_drm_allow_keeps_learned_station_in_lineup() -> None:
+    from app.fubo_client import FuboClient
+    from app.drm_overrides import DrmOverrides
+
+    config_dir = Path(__import__("tempfile").mkdtemp())
+    settings = _settings(config_dir)
+    client = FuboClient(settings)
+    try:
+        client._drm_overrides = DrmOverrides(  # noqa: SLF001
+            allow_ids=frozenset({"99"}),
+            source="test",
+        )
+        client._drm_learned_ids.add("99")
+        client._drm_learned_ids.add("88")
+        keep = Channel(id="99", call_sign="KEEP", name="Keep")
+        drop = Channel(id="88", call_sign="DROP", name="Drop")
+        ok = Channel(id="1", call_sign="OK", name="Ok")
+
+        def fake_subs() -> dict[str, Channel]:
+            return {"99": keep, "88": drop, "1": ok}
+
+        client._channels_from_subscriptions = fake_subs  # type: ignore[method-assign]
+        channels = client.channels(force=True)
+        ids = {ch.id for ch in channels}
+        assert "99" in ids
+        assert "1" in ids
+        assert "88" not in ids
+
+        client.mark_drm_station("99", via="test")
+        assert "99" not in client._drm_learned_ids
+    finally:
+        client.close()
+
+
+def test_drm_deny_drops_station() -> None:
+    from app.fubo_client import FuboClient
+    from app.drm_overrides import DrmOverrides
+
+    config_dir = Path(__import__("tempfile").mkdtemp())
+    client = FuboClient(_settings(config_dir))
+    try:
+        client._drm_overrides = DrmOverrides(  # noqa: SLF001
+            deny_ids=frozenset({"7"}),
+            deny_call_signs=frozenset({"NOPE"}),
+            source="test",
+        )
+        stations: dict = {}
+        client._add_station(
+            stations,
+            station_id="7",
+            call_sign="X",
+            name="Denied Id",
+            logo=None,
+            network_type=None,
+            group="basic",
+            source=None,
+            raw={},
+        )
+        client._add_station(
+            stations,
+            station_id="8",
+            call_sign="NOPE",
+            name="Denied Call",
+            logo=None,
+            network_type=None,
+            group="basic",
+            source=None,
+            raw={},
+        )
+        client._add_station(
+            stations,
+            station_id="9",
+            call_sign="YES",
+            name="Ok",
+            logo=None,
+            network_type=None,
+            group="basic",
+            source=None,
+            raw={},
+        )
+        assert "7" not in stations and "8" not in stations
+        assert "9" in stations
+    finally:
+        client.close()
+
+
 def test_drm_scan_persists_and_skips_when_fresh() -> None:
     from app.fubo_client import FuboClient
 
@@ -615,5 +728,8 @@ if __name__ == "__main__":
     test_watch_proxy_streams_mpegts()
     test_watch_proxy_at_capacity()
     test_stream_proxy_busy_raises()
+    test_drm_overrides_file_and_deny_wins()
+    test_drm_allow_keeps_learned_station_in_lineup()
+    test_drm_deny_drops_station()
     test_drm_scan_persists_and_skips_when_fresh()
     print("ok")

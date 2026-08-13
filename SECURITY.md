@@ -5,7 +5,7 @@ Public repository: [cbodden/fbtv](https://github.com/cbodden/fbtv). Treat the tr
 ## Credentials
 
 - Store Fubo credentials in `config/credentials.env` (`FUBO_PASS_B64` preferred), `config/credentials.json`, process env, or a local-Python `.env` — never in the image
-- Never commit `.env`, `config/credentials.*`, `config/device.json`, `config/drm_skipped.json`, or logs containing access tokens
+- Never commit `.env`, `config/credentials.*`, `config/device.json`, `config/drm_skipped.json`, `config/drm_overrides.json` (if it encodes your private lineup choices), or logs containing access tokens
 - `.gitignore` excludes `.env` and `config/` runtime files (keeps `config/.gitkeep`)
 - Compose does **not** use `env_file`; Portainer should use the credentials file (base64 the password if it contains `$`)
 - Logs may include `pass_fp` (SHA-256 prefix) and `pass_len`, never the password itself

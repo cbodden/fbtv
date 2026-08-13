@@ -131,6 +131,14 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
     req = snapshot.get("requests") or {}
     listen = snapshot.get("listen") or {}
     proxy = snapshot.get("stream_proxy") or {}
+    overrides = fubo.get("drm_overrides") or {}
+    override_summary = (
+        f"{overrides.get('deny_ids')}/{overrides.get('deny_call_signs')}, "
+        f"{overrides.get('allow_ids')}/{overrides.get('allow_call_signs')} "
+        f"({overrides.get('source')})"
+        if overrides
+        else "—"
+    )
     rows = [
         ("Version", snapshot.get("version")),
         ("Uptime (seconds)", snapshot.get("uptime_seconds")),
@@ -146,6 +154,7 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
         ("DRM skipped (unique)", fubo.get("drm_skipped_count")),
         ("DRM learned", fubo.get("drm_learned_count")),
         ("DRM playable (scanned)", fubo.get("drm_playable_count")),
+        ("DRM overrides (deny ids/calls, allow ids/calls)", override_summary),
         ("DRM last full scan", fubo.get("drm_last_scan_at")),
         ("DRM scan running", "yes" if fubo.get("drm_scan_running") else "no"),
         ("Stream proxy enabled", "yes" if proxy.get("enabled") else "no"),
@@ -225,6 +234,12 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
         "# HELP fubo_bridge_drm_learned Unique DRM stations learned at tune time.",
         "# TYPE fubo_bridge_drm_learned gauge",
         f"fubo_bridge_drm_learned {int(fubo.get('drm_learned_count') or 0)}",
+        "# HELP fubo_bridge_drm_override_deny Manual DRM deny overrides (ids + call signs).",
+        "# TYPE fubo_bridge_drm_override_deny gauge",
+        f"fubo_bridge_drm_override_deny {int((fubo.get('drm_overrides') or {}).get('deny_ids') or 0) + int((fubo.get('drm_overrides') or {}).get('deny_call_signs') or 0)}",
+        "# HELP fubo_bridge_drm_override_allow Manual DRM allow overrides (ids + call signs).",
+        "# TYPE fubo_bridge_drm_override_allow gauge",
+        f"fubo_bridge_drm_override_allow {int((fubo.get('drm_overrides') or {}).get('allow_ids') or 0) + int((fubo.get('drm_overrides') or {}).get('allow_call_signs') or 0)}",
         "# HELP fubo_bridge_stream_proxy_enabled Whether MPEG-TS remux is enabled.",
         "# TYPE fubo_bridge_stream_proxy_enabled gauge",
         f"fubo_bridge_stream_proxy_enabled {1 if proxy.get('enabled') else 0}",

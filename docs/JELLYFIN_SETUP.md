@@ -31,7 +31,6 @@ Use a hostname/IP Jellyfin can resolve (LAN IP or `host.docker.internal` if Jell
 | M3U attribute | Meaning |
 | --- | --- |
 | `tvg-id` | Joins to XMLTV `channel id` (Fubo call sign) |
-| `tvg-chno` | 1-based channel number in current lineup order |
 | `tvg-name` / display name | Channel label |
 | `tvg-logo` | Artwork when present |
 | `group-title` | Package / plan grouping |
@@ -50,7 +49,7 @@ Optional: some IPTV setups set a custom **User Agent** on the M3U tuner. This br
 
 ## Channel mapping
 
-When `tvg-id` matches XMLTV channel ids, Jellyfin often maps automatically.
+When `tvg-id` matches XMLTV channel ids, Jellyfin often maps automatically. Prefer call-sign matching; the bridge does not emit `tvg-chno`.
 
 If programmes are missing or channels are unmatched:
 

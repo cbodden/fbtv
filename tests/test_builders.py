@@ -48,17 +48,8 @@ def test_build_m3u() -> None:
     m3u = build_m3u(channels, "http://localhost:7777")
     assert "#EXTM3U" in m3u
     assert 'tvg-id="ESPN"' in m3u
-    assert 'tvg-chno="1"' in m3u
+    assert "tvg-chno" not in m3u
     assert "http://localhost:7777/watch/123" in m3u
-
-    multi = build_m3u(
-        [
-            Channel(id="1", call_sign="A", name="Alpha"),
-            Channel(id="2", call_sign="B", name="Beta"),
-        ],
-        "http://x",
-    )
-    assert 'tvg-chno="1"' in multi and 'tvg-chno="2"' in multi
 
 
 def test_build_xmltv() -> None:

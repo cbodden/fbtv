@@ -28,7 +28,6 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 | M3U attribute | Meaning |
 | --- | --- |
 | `tvg-id` | Joins to XMLTV `channel id` (Fubo call sign) |
-| `tvg-chno` | 1-based channel number in current lineup order |
 | `tvg-name` / display name | Channel label |
 | `tvg-logo` | Channel artwork when present |
 | `group-title` | Package / plan grouping (imported as tags) |
@@ -42,7 +41,7 @@ Fubo’s private schedule APIs have been unreliable (many paths 404). **Until br
 2. Choose **Emby Guide Data** (not XMLTV)
 3. Set your ZIP / country, then select a **FuboTV** lineup when offered (scroll — US lists are long; Guide Data plugin **1.0.18+** added FuboTV)
 4. Save and refresh guide data
-5. Map channels by name / call sign where Emby does not auto-match
+5. Map channels by name / call sign where Emby does not auto-match. Do **not** expect sequential M3U channel numbers — the bridge omits `tvg-chno` so Guide Data FuboTV numbers are not overridden.
 
 ### Optional: bridge XMLTV
 

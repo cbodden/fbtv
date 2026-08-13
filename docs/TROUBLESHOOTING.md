@@ -125,6 +125,17 @@ A slow, complete sweep is expected with hundreds of stations (roughly delay × s
 
 ---
 
+## Guide shows wrong programme for the channel tuned
+
+Usually a **guide↔tuner mapping** problem in Emby/Jellyfin, not a bad stream.
+
+- Guide join key is **`tvg-id` = Fubo call sign**. The bridge does **not** emit sequential `tvg-chno` (that conflicted with Emby Guide Data FuboTV channel numbers).
+- After refreshing the M3U: rematch channels by **name / call sign** under Emby Live TV guide mapping (or Jellyfin **Live TV → Channels**).
+- Confirm playlist lines have `tvg-id="…"` and no `tvg-chno=` (`curl -sS …/playlist.m3u | head`).
+- Prefer Emby Guide Data **FuboTV** while relying on call-sign mapping — see [EMBY_SETUP.md](EMBY_SETUP.md).
+
+---
+
 ## Guide has channels but no programmes
 
 Expected when Fubo schedule endpoints are unavailable or changed. The bridge still emits `<channel>` rows for mapping. From **1.0.4** the primary probe is `/epg` (parsed as `channelWithProgramAssets`); `papi/v1/guide/epg` and older paths remain as fallback. Field logs showed `/epg` **200** while many other URLs **404** — older builds mapped zero programmes from that 200 because the JSON shape was not parsed.

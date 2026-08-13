@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: `tvg-chno`; status warm; hygiene C).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: status warm; `tvg-chno` removed after Emby guide mismatch).
 
 ## What this is
 
@@ -79,7 +79,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 ## Product decisions (locked)
 
 1. Sidecar over plugin
-2. `tvg-id` = Fubo call sign; `tvg-chno` = 1-based lineup order
+2. `tvg-id` = Fubo call sign (no sequential `tvg-chno` — breaks Emby Guide Data matching)
 3. Watch URLs local (`/watch/{id}`); GET default 302 (shared egress); optional `STREAM_PROXY` MPEG-TS remux; HEAD = probe (no Fubo call)
 4. Credentials file wins; `FUBO_PASS_B64` for `$`/`!`
 5. Emby and Jellyfin equal first-class targets
@@ -90,7 +90,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 ## Planned
 
-_None currently — D items remaining: split `fubo_client`, pytest conversion._
+_None currently — D remaining: split `fubo_client`, pytest. `tvg-chno` abandoned (Emby Guide Data conflict)._
 
 ## Agent guidance
 

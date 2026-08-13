@@ -162,11 +162,11 @@ Builds an M3U of non-DRM subscribed channels (known DRM packages plus stations l
 ```text
 #EXTM3U
 
-#EXTINF:-1 tvg-id="ESPN" tvg-chno="1" tvg-name="ESPN" channel-id="12345" tvg-logo="https://..." group-title="fubotv-basic",ESPN
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" channel-id="12345" tvg-logo="https://..." group-title="fubotv-basic",ESPN
 http://192.168.1.10:7777/watch/12345
 ```
 
-`tvg-chno` is **1-based** in current lineup order (OTA → RSN → other, then name). `tvg-id` remains the Fubo call sign for XMLTV join.
+`tvg-id` is the Fubo call sign (XMLTV join key). Sequential `tvg-chno` is **not** emitted — it conflicted with Emby Guide Data FuboTV channel numbers.
 
 **Errors**
 

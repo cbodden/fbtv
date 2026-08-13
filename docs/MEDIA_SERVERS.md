@@ -8,7 +8,7 @@
 | Tuner type | M3U Tuner | M3U Tuner |
 | Guide type | XMLTV (and/or Emby Guide Data) | XMLTV (or Schedules Direct — not both at once) |
 | Setup guide | [EMBY_SETUP.md](EMBY_SETUP.md) | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) |
-| Playlist join key | `tvg-id` = Fubo call sign; `tvg-chno` = 1-based lineup order | Same |
+| Playlist join key | `tvg-id` = Fubo call sign | `tvg-id` = Fubo call sign |
 | Shared egress with bridge | Required for default 302 HLS; optional with `STREAM_PROXY=true` | Required for default 302 HLS; optional with `STREAM_PROXY=true` |
 | DRM packages | Skipped / scanned / learned / 502; allow/deny overrides (**1.0.7+**); paced sweep (**1.0.6+**) | Same |
 

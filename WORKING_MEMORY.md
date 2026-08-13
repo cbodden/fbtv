@@ -2,41 +2,38 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (`tvg-chno` removed; pushed to `dev`)  
-**Active version:** 1.0.7 (+ Unreleased on `dev` → `:dev`)  
-**Phase:** Backlog D (partial)  
-**Git:** `dev`
+**Last updated:** 2026-08-13 (v1.0.8 release to `main`)  
+**Active version:** 1.0.8  
+**Phase:** Release 1.0.8  
+**Git:** `dev` → `main`
 
 ---
 
 ## Resume here (this session)
 
-**`tvg-chno` removed** after Emby Guide Data mismatch. Status channel warm remains.
+**1.0.8** cut: hygiene C, status warm, no sequential `tvg-chno`.
 
-Operator: refresh Emby M3U + rematch by call sign/name.
-
-Next: remaining D (split `fubo_client`, pytest) when requested.
+Next after merge: remaining D (split `fubo_client`, pytest) when requested.
 
 ---
 
 ## Backlog
 
-### A / B / C — done
+### A / B / C / D12–13 — done (1.0.8; tvg-chno reverted)
 
-### D
+### D remaining
 
-12. M3U `tvg-chno` — **reverted** (do not re-add sequential numbers)
-13. Warm caches on `/status` — **done** (channels only; metrics cache-only)
-10. Split `app/fubo_client.py` — later
-11. pytest conversion — later
+10. Split `app/fubo_client.py`
+11. pytest conversion
 
 ---
 
 ## Current focus
 
-- Docs current; `tvg-chno` gone on `dev`.
+- Ship 1.0.8 to `main` / `:latest`.
 
 ## Scratch
 
-_Guide join = tvg-id call sign only. Emby Guide Data FuboTV owns channel numbers._
+_Guide join = tvg-id call sign only._
 _Status warm does not fetch EPG schedules._
+_Multi-arch lengthens docker CI._

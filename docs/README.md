@@ -22,4 +22,4 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 
 ## Version
 
-App version **1.0.7** on `main` / `:latest` (see `CHANGELOG.md`). Pre-release / Unreleased on `:dev` (hygiene C + status channel warm; `tvg-chno` removed).
+App version **1.0.8** on `main` / `:latest` (see `CHANGELOG.md`). Pre-release: `:dev` from the `dev` branch.

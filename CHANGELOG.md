@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-08-13
+
 ### Added
 
 - `/`, `/status`, and `/status.json` warm the Fubo channel lineup; `/metrics` stays cache-only
@@ -20,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - M3U `tvg-chno` (sequential 1…N). It conflicted with Emby Guide Data FuboTV channel numbers and scrambled guide↔tuner mapping; join key remains `tvg-id` = call sign
 - Docs: TROUBLESHOOTING + Emby setup warn against sequential channel numbers; README guide-mismatch row
+
+### Changed
+
+- Image/app version **1.0.8**
 
 ## [1.0.7] - 2026-08-13
 
@@ -96,7 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for M3U and XMLTV builders
 - Project documentation under `docs/`
 
-[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/cbodden/fbtv/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/cbodden/fbtv/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/cbodden/fbtv/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/cbodden/fbtv/compare/v1.0.0...v1.0.6
 [1.0.0]: https://github.com/cbodden/fbtv/releases/tag/v1.0.0

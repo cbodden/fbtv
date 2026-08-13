@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: split `app/fubo/`, pytest).
+**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.9**: `app/fubo/` split, pytest).
 
 ## What this is
 
@@ -11,7 +11,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Docker:** Compose service/container `fbtv` — on **`main`** pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); on **`dev`** use `:dev`. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
 - **Workspace:** `/home/cbodden/git/mine/fbtv` (also historically `/home/cbodden/git/mine/fubo_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
-- **Version:** 1.0.8 (`app/__version__`; see `CHANGELOG.md`)
+- **Version:** 1.0.9 (`app/__version__`; see `CHANGELOG.md`)
 - **Kind:** Python FastAPI **sidecar**, not a native Emby or Jellyfin plugin
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
@@ -35,7 +35,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** **v1.0.8** on `main` / GHCR `:latest` (hygiene C, status warm, Emby guide-safe playlist). Pre-release continues on `dev` / `:dev`.
+**Status:** **v1.0.9** on `main` / GHCR `:latest` (`app/fubo/` split + pytest). Pre-release continues on `dev` / `:dev`.
 
 ## Non-goals (v1)
 
@@ -91,7 +91,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 ## Planned
 
-_None currently — backlog D complete on `dev` (split client + pytest)._
+_None currently._
 
 ## Agent guidance
 

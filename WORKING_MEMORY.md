@@ -2,24 +2,22 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (split + pytest committed to `dev`)  
-**Active version:** 1.0.8 (+ Unreleased on `dev` → `:dev`)  
-**Phase:** Backlog empty  
-**Git:** `dev`
+**Last updated:** 2026-08-13 (v1.0.9 release to `main`)  
+**Active version:** 1.0.9  
+**Phase:** Release 1.0.9  
+**Git:** `dev` → `main`
 
 ---
 
 ## Resume here (this session)
 
-**D complete** on `dev`: `app/fubo/` split + pytest.
+**1.0.9** shipped: `app/fubo/` split + pytest.
 
-No open planned backlog items.
+Backlog empty.
 
 ---
 
 ## Backlog
-
-### A / B / C / D — done
 
 _(None open.)_
 
@@ -27,7 +25,7 @@ _(None open.)_
 
 ## Current focus
 
-- Idle; pick new work when requested.
+- Ship 1.0.9 to `main` / `:latest`.
 
 ## Scratch
 

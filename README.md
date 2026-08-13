@@ -16,6 +16,7 @@ This is **not** a native Emby plugin or Jellyfin plugin. Both servers already su
 | `http://<host>:7777/status.json` | JSON status |
 | `http://<host>:7777/metrics` | Prometheus metrics |
 | `http://<host>:7777/health` | Liveness check (`{"status":"ok","version":"…"}`) |
+| `http://<host>:7777/ready` | Readiness (`credentials` resolvable; no live Fubo call) |
 
 ---
 
@@ -128,6 +129,8 @@ Check it:
 ```bash
 curl -sS http://127.0.0.1:7777/health
 # → {"status":"ok","version":"1.0.7"}
+curl -sS http://127.0.0.1:7777/ready
+# → {"status":"ready","version":"1.0.7"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -220,7 +223,7 @@ Emby and Jellyfin use the **same** bridge URLs. Differences are mostly license (
 ### Shared prerequisites
 
 1. Bridge is running.
-2. From each **media server host**, `http://<bridge-host>:7777/health` returns OK.
+2. From each **media server host**, `http://<bridge-host>:7777/health` and `/ready` return OK.
 3. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist.
 4. Prefer **same machine or same public egress IP** for the bridge and every server that will tune.
 
@@ -300,6 +303,7 @@ Operators can inspect runtime state without scraping logs:
 | `http://<host>:7777/status.json` | Same snapshot as JSON |
 | `http://<host>:7777/metrics` | Prometheus text metrics (`fubo_bridge_*`) |
 | `http://<host>:7777/health` | Liveness only (`status` + `version`) — does **not** verify Fubo |
+| `http://<host>:7777/ready` | Readiness — credentials resolvable (no live Fubo call) |
 
 Counts reflect **in-process caches**. After a restart, hit `/playlist.m3u` (or `/epg.xml`) once so channel/DRM/EPG fields populate. Snapshots do not include passwords or bearer tokens.
 
@@ -313,6 +317,7 @@ Run these from a machine that can reach the bridge (ideally each Emby / Jellyfin
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/ready
 curl -sS http://127.0.0.1:7777/status.json
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head

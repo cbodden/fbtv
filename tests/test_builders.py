@@ -31,6 +31,7 @@ def _settings(config_dir: Path) -> Settings:
         stream_proxy=False,
         stream_proxy_max=3,
         ffmpeg_path="ffmpeg",
+        admin_token="",
     )
 
 
@@ -708,6 +709,106 @@ def test_drm_scan_persists_and_skips_when_fresh() -> None:
         client.close()
 
 
+def test_admin_token_gate() -> None:
+    from dataclasses import replace
+    from unittest.mock import MagicMock
+
+    from fastapi import HTTPException
+
+    from app import main as mainmod
+
+    fake = MagicMock()
+    fake._scan_running = False
+    fake.runtime_stats.return_value = {
+        "drm_scan_running": False,
+        "drm_scan_started_at": None,
+        "drm_scan_finished_at": None,
+        "drm_scan_last_result": None,
+        "drm_learned_count": 0,
+        "drm_playable_count": 0,
+        "drm_updated_at": None,
+        "drm_scan_on_start": False,
+        "drm_scan_interval_hours": 0,
+        "drm_scan_max_age_hours": 24,
+        "drm_scan_concurrency": 1,
+        "drm_scan_delay_ms": 0,
+    }
+    cfg = replace(_settings(Path(__import__("tempfile").mkdtemp())), admin_token="")
+    mainmod.settings = cfg
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+
+    # Open when ADMIN_TOKEN empty
+    assert mainmod.drm_scan_status()["running"] is False
+
+    mainmod.settings = replace(cfg, admin_token="s3cret")
+    try:
+        mainmod.drm_scan_status()
+        raise AssertionError("expected 401")
+    except HTTPException as exc:
+        assert exc.status_code == 401
+
+    assert mainmod.drm_scan_status(authorization="Bearer s3cret")["running"] is False
+    assert mainmod.drm_scan_status(x_admin_token="s3cret")["running"] is False
+
+    try:
+        mainmod.drm_scan_start(force=True)
+        raise AssertionError("expected 401")
+    except HTTPException as exc:
+        assert exc.status_code == 401
+
+    started = mainmod.drm_scan_start(force=True, x_admin_token="s3cret")
+    assert started["status"] == "started"
+
+
+def test_ready_and_health() -> None:
+    import os
+
+    from app import main as mainmod
+    from app.config import credentials_are_configured
+    from fastapi.responses import JSONResponse
+
+    tmp = Path(__import__("tempfile").mkdtemp())
+    (tmp / "credentials.env").write_text(
+        "FUBO_USER=u@example.com\nFUBO_PASS=secret\n",
+        encoding="utf-8",
+    )
+    assert credentials_are_configured(tmp) is True
+
+    empty = Path(__import__("tempfile").mkdtemp())
+    env_keys = (
+        "FUBO_USER",
+        "FUBO_PASS",
+        "FUBO_PASS_B64",
+        "FUBO_USER_FILE",
+        "FUBO_PASS_FILE",
+    )
+    saved = {k: os.environ.pop(k, None) for k in env_keys}
+    try:
+        assert credentials_are_configured(empty) is False
+    finally:
+        for key, value in saved.items():
+            if value is not None:
+                os.environ[key] = value
+
+    mainmod.settings = None
+    not_ready = mainmod.ready()
+    assert isinstance(not_ready, JSONResponse)
+    assert not_ready.status_code == 503
+
+    mainmod.settings = _settings(tmp)
+    ready = mainmod.ready()
+    assert isinstance(ready, JSONResponse)
+    assert ready.status_code == 200
+    import json as _json
+
+    assert _json.loads(ready.body) == {
+        "status": "ready",
+        "version": mainmod.__version__,
+    }
+    assert mainmod.health()["status"] == "ok"
+
+
 if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
@@ -732,4 +833,6 @@ if __name__ == "__main__":
     test_drm_allow_keeps_learned_station_in_lineup()
     test_drm_deny_drops_station()
     test_drm_scan_persists_and_skips_when_fresh()
+    test_admin_token_gate()
+    test_ready_and_health()
     print("ok")

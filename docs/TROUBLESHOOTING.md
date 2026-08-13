@@ -164,7 +164,7 @@ Guide: [STATUS.md](STATUS.md).
 
 ## Emby or Jellyfin cannot reach the bridge
 
-- From that host: `curl -sS http://<bridge>:7777/health` (or `/status.json`)
+- From that host: `curl -sS http://<bridge>:7777/health` and `/ready` (or `/status.json`)
 - If Emby or Jellyfin is in Docker and the bridge is on the host, use `host.docker.internal` or the host LAN IP — not `localhost` inside the container
 - Check firewall / published ports (`7777:7777` or your `PORT`)
 
@@ -195,8 +195,10 @@ Delete `config/device.json` only as a last resort, then restart so a new device 
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/ready
 curl -sS http://127.0.0.1:7777/status.json
 curl -sS http://127.0.0.1:7777/admin/drm-scan
+# If ADMIN_TOKEN is set: -H "Authorization: Bearer $ADMIN_TOKEN"
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head

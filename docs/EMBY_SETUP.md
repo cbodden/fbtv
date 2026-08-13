@@ -7,7 +7,7 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 ## Prerequisites
 
 1. Bridge is running and reachable from the Emby Server host
-2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`
+2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`; `/ready` returns `{"status":"ready"}` when credentials are configured
 3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts after warming `/playlist.m3u` — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
 4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
 5. Prefer **same machine or same public egress IP** for Emby and the bridge
@@ -58,7 +58,7 @@ If `programme_count` stays `0`, keep Emby Guide Data as the guide source and tre
 
 ## Playback checklist
 
-1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on **1.0.6+** (paced; may take several minutes), then refresh M3U + guide
+1. Prefer a clean playlist first: `POST /admin/drm-scan?force=true` on **1.0.6+** (paced; may take several minutes; send `Authorization: Bearer …` or `X-Admin-Token` if `ADMIN_TOKEN` is set), then refresh M3U + guide
 2. From Emby, tune a non-DRM channel (news/sports basics usually work better than premium nets)
 3. If tune fails immediately, check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
 4. Refresh the M3U tuner after DRM learns so Emby drops dead entries. To keep a false-positive skip in the playlist, add an **allow** override ([CONFIGURATION.md](CONFIGURATION.md#drm-allow--deny-overrides)); real DRM still cannot play.

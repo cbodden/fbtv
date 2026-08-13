@@ -26,6 +26,7 @@
 | `DRM_ALLOW_IDS` | no | — | Comma-separated station ids kept despite learned/heuristic DRM skip (not decryption) |
 | `DRM_DENY_CALL_SIGNS` | no | — | Comma-separated call signs always dropped |
 | `DRM_ALLOW_CALL_SIGNS` | no | — | Comma-separated call signs kept despite skip heuristics |
+| `ADMIN_TOKEN` | no | — | When set, require `Authorization: Bearer <token>` or `X-Admin-Token` on `/admin/drm-scan` (empty = open) |
 
 Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, `FUBO_PASS_B64`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe). `FUBO_PASS_B64` wins over plain `FUBO_PASS` in the same source.
 
@@ -97,7 +98,7 @@ PORT=7788 EPG_CACHE_SECONDS=7200 EPG_EMPTY_CACHE_SECONDS=120 docker compose up -
 docker compose logs -f fbtv
 ```
 
-GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main`** and **`dev`** (see `.github/workflows/docker.yml`):
+GitHub Actions publishes `ghcr.io/cbodden/fbtv` on relevant pushes to **`main`** and **`dev`** (see `.github/workflows/docker.yml`) for **`linux/amd64`** and **`linux/arm64`**. Unit tests run via `.github/workflows/test.yml`.
 
 | Branch | Tags |
 | --- | --- |
@@ -174,6 +175,8 @@ No extra environment variables are required. When the process is running:
 | `/status.json` | JSON snapshot |
 | `/metrics` | Prometheus text |
 | `/health` | Liveness only |
+| `/ready` | Credentials resolvable (no live Fubo call) |
+| `/admin/drm-scan` | DRM sweep status/start; optional `ADMIN_TOKEN` |
 
 See [STATUS.md](STATUS.md).
 
@@ -189,11 +192,14 @@ STREAM_PROXY=true STREAM_PROXY_MAX=3 docker compose up -d
 
 ## DRM scan
 
-The bridge can probe each lineup station’s live asset for `drmProtected`, persist results, and keep `/playlist.m3u` + `/epg.xml` aligned (no DRM decryption).
+The bridge can probe each lineup station’s live asset for `drmProtected`, persist results, and keep `/playlist.m3u` + `/epg.xml` aligned (no DRM decryption). When `ADMIN_TOKEN` is set, pass auth headers:
 
 ```bash
 curl -sS http://127.0.0.1:7777/admin/drm-scan
 curl -sS -X POST 'http://127.0.0.1:7777/admin/drm-scan?force=true'
+# With ADMIN_TOKEN:
+# curl -sS -H "Authorization: Bearer $ADMIN_TOKEN" http://127.0.0.1:7777/admin/drm-scan
+# curl -sS -H "X-Admin-Token: $ADMIN_TOKEN" -X POST 'http://127.0.0.1:7777/admin/drm-scan?force=true'
 ```
 
 Defaults start a background sweep on boot and every 24h (one probe at a time, 750ms pacing, 429 backoff). A fresh `last_scan_at` skips non-forced runs. Tune-time DRM learns still apply immediately. If logs show many **429** responses, raise `DRM_SCAN_DELAY_MS` (e.g. `1500`) and keep `DRM_SCAN_CONCURRENCY=1`.

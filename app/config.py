@@ -38,6 +38,7 @@ class Settings:
     stream_proxy: bool
     stream_proxy_max: int
     ffmpeg_path: str
+    admin_token: str
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -169,6 +170,20 @@ def _load_credentials(config_dir: Path) -> tuple[str, str, str, bool]:
     return user, password, "environment", user_quoted or pass_quoted
 
 
+def credentials_are_configured(config_dir: Path | None = None) -> bool:
+    """True when user+password can be resolved (no live Fubo call)."""
+    try:
+        directory = (
+            config_dir
+            if config_dir is not None
+            else Path(os.environ.get("CONFIG_DIR", "./config")).expanduser()
+        )
+        user, password, _, _ = _load_credentials(directory)
+        return bool(user and password)
+    except Exception:
+        return False
+
+
 def load_settings() -> Settings:
     config_dir = Path(os.environ.get("CONFIG_DIR", "./config")).expanduser()
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -200,6 +215,7 @@ def load_settings() -> Settings:
         stream_proxy=_env_bool("STREAM_PROXY", False),
         stream_proxy_max=_env_int("STREAM_PROXY_MAX", 3, minimum=1),
         ffmpeg_path=os.environ.get("FFMPEG_PATH", "ffmpeg").strip() or "ffmpeg",
+        admin_token=os.environ.get("ADMIN_TOKEN", "").strip(),
     )
     logger.info(
         "Fubo credentials source=%s user=%s pass_len=%d pass_fp=%s "

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Docs: hygiene endpoints and multi-arch notes across README, setup guides, MEDIA_SERVERS, TROUBLESHOOTING, CONFIGURATION, SECURITY
+- GitHub Actions workflow runs `tests/test_builders.py` on push/PR (`main`/`dev`)
+- Multi-arch GHCR images: `linux/amd64` and `linux/arm64`
+- Optional `ADMIN_TOKEN`: when set, `GET`/`POST /admin/drm-scan` require `Authorization: Bearer …` or `X-Admin-Token`
+- `GET /ready` readiness probe (credentials resolvable, no live Fubo call); `/health` stays liveness-only
+
 ## [1.0.7] - 2026-08-13
 
 ### Added

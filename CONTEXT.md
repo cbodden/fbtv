@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.7** release to `main`: topologies, `STREAM_PROXY`, DRM allow/deny, HEAD watch, EPG join).
+**Synced from:** `docs/` + root docs on 2026-08-13 (hygiene on `dev`: CI tests, multi-arch, `ADMIN_TOKEN`, `/ready`).
 
 ## What this is
 
@@ -23,6 +23,8 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
   - `GET /status.json` → JSON status snapshot
   - `GET /metrics` → Prometheus metrics
   - `GET /health` → `{"status":"ok","version":"…"}` (liveness only; does not verify Fubo credentials)
+  - `GET /ready` → credentials resolvable (no live Fubo call); **503** if missing
+  - `GET`/`POST /admin/drm-scan` → DRM sweep status/start; optional `ADMIN_TOKEN` (Bearer or `X-Admin-Token`)
   - `GET /docs` / `/openapi.json` → FastAPI OpenAPI UI
 
 **Emby:** Premiere required for Live TV. **Jellyfin:** Live TV included. One bridge instance can feed either or both — see `docs/MEDIA_SERVERS.md`. Operator metrics: `docs/STATUS.md`.
@@ -51,7 +53,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 | Fubo HTTP | httpx |
 | Remux (opt-in) | ffmpeg (`STREAM_PROXY`) |
 | Config | python-dotenv (`interpolate=False`); credentials file / `FUBO_PASS_B64` / env |
-| Deploy | Docker Compose pulls GHCR; CI builds `:latest` from `main`, `:dev` from `dev` |
+| Deploy | Docker Compose pulls GHCR; CI builds multi-arch (`amd64`/`arm64`) `:latest` from `main`, `:dev` from `dev`; unit tests in Actions |
 
 ## Key paths
 
@@ -63,7 +65,8 @@ app/drm_overrides.py        # manual DRM allow/deny lists
 app/m3u.py / epg.py / status.py / config.py / set_credentials.py
 docs/                       # full documentation
 docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG empty
-.github/workflows/docker.yml   # GHCR on main + dev
+.github/workflows/docker.yml   # GHCR multi-arch on main + dev
+.github/workflows/test.yml     # unit tests
 ```
 
 ## Guide (from docs)
@@ -86,7 +89,7 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 ## Planned
 
-_None currently — next backlog is hygiene (CI tests, arm64, admin auth, `/ready`)._
+_None currently — hygiene C shipped on `dev` (CI tests, arm64, admin token, `/ready`). Next backlog is D (split client, pytest, tvg-chno, warm caches)._
 
 ## Agent guidance
 

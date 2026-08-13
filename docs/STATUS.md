@@ -13,6 +13,8 @@ The bridge exposes an **in-process** runtime snapshot in three forms:
 
 `/health` remains a **liveness-only** probe (`status` + `version`). It does not report channel counts or verify Fubo credentials.
 
+`/ready` is a **readiness** probe: **200** when credentials are resolvable (no live Fubo call); **503** when missing. Use `/ready` for load-balancer / Compose healthchecks that should wait for config; use `/health` for process liveness.
+
 Full field reference and examples: [API.md](API.md).
 
 ## What is reported
@@ -29,15 +31,19 @@ Channel, DRM, and EPG fields come from **caches** warmed by `/playlist.m3u`, `/e
 
 Snapshots **do not** include passwords, bearer tokens, or raw stream URLs.
 
-DRM sweep status is also at `GET /admin/drm-scan` (includes `settings.concurrency` / `settings.delay_ms` and last-result `rate_limited`); start with `POST /admin/drm-scan?force=true`. Scans are paced for Fubo rate limits — see [CONFIGURATION.md](CONFIGURATION.md#drm-scan).
+DRM sweep status is also at `GET /admin/drm-scan` (includes `settings.concurrency` / `settings.delay_ms` and last-result `rate_limited`); start with `POST /admin/drm-scan?force=true`. When `ADMIN_TOKEN` is set, pass `Authorization: Bearer …` or `X-Admin-Token`. Scans are paced for Fubo rate limits — see [CONFIGURATION.md](CONFIGURATION.md#drm-scan).
 
-`dev` image: `ghcr.io/cbodden/fbtv:dev`. Stable `:latest` from **`main`** (**1.0.7+**).
+`dev` image: `ghcr.io/cbodden/fbtv:dev` (multi-arch `amd64`/`arm64`). Stable `:latest` from **`main`** (**1.0.7+**).
 
 ## Quick checks
 
 ```bash
+curl -sS http://127.0.0.1:7777/health
+curl -sS http://127.0.0.1:7777/ready
 curl -sS http://127.0.0.1:7777/status.json | head
 curl -sS http://127.0.0.1:7777/metrics | head
+# If ADMIN_TOKEN is set:
+# curl -sS -H "Authorization: Bearer $ADMIN_TOKEN" http://127.0.0.1:7777/admin/drm-scan
 open http://127.0.0.1:7777/          # or browse /
 open http://127.0.0.1:7777/status
 ```

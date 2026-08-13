@@ -118,6 +118,7 @@ def render_index_html(base: str, version: str, snapshot: dict[str, Any]) -> str:
     <a href="{escape(base)}/status.json">Status (JSON)</a>
     <a href="{escape(base)}/metrics">Prometheus metrics</a>
     <a href="{escape(base)}/health">Health</a>
+    <a href="{escape(base)}/ready">Ready</a>
     <a href="{escape(base)}/docs">OpenAPI</a>
   </nav>
 </body>
@@ -199,6 +200,7 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
       <a href="{escape(base)}/status.json">JSON</a>
       <a href="{escape(base)}/metrics">Prometheus</a>
       <a href="{escape(base)}/health">Health</a>
+      <a href="{escape(base)}/ready">Ready</a>
     </nav>
   </p>
 </body>

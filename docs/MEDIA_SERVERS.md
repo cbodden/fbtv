@@ -26,6 +26,7 @@ Replace `<bridge-host>` and port as needed (`PORT`, default `7777`):
 | Status (JSON) | `http://<bridge-host>:7777/status.json` |
 | Prometheus metrics | `http://<bridge-host>:7777/metrics` |
 | Health (liveness) | `http://<bridge-host>:7777/health` |
+| Ready (credentials) | `http://<bridge-host>:7777/ready` |
 
 Status / metrics details: [STATUS.md](STATUS.md).
 
@@ -60,7 +61,7 @@ Split egress (optional remux)
 | --- | --- |
 | GitHub repo | [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) |
 | Compose service / container | `fbtv` (pulls GHCR `:latest` or `:dev`; credentials file or `FUBO_*` / `FUBO_PASS_B64`) |
-| GHCR image | `ghcr.io/cbodden/fbtv` (`:latest` from `main`, `:dev` from `dev`) |
+| GHCR image | `ghcr.io/cbodden/fbtv` (`:latest` from `main`, `:dev` from `dev`; multi-arch `amd64`/`arm64`) |
 | XMLTV `generator-info-name` | `fbtv` |
 
 Older labels (`fubo-emby`, `fubo_emby`, `fubotv_emby`, `fubotv-emby`) are historical only. Product copy treats **Emby and Jellyfin** equally; Live TV feeds stay shared. Operator endpoints (`/status`, `/metrics`, etc.) are documented in [STATUS.md](STATUS.md).

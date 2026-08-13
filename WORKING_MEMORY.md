@@ -2,29 +2,24 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (1.0.7 merged to `main`; `dev` Compose restored to `:dev`)  
-**Active version:** 1.0.7  
-**Phase:** Post-1.0.7 hygiene on `dev`  
-**Git:** `dev` (Compose `:dev`); `main` / `:latest` = 1.0.7
+**Last updated:** 2026-08-13 (hygiene C committed + pushed to `dev`)  
+**Active version:** 1.0.7 (+ Unreleased hygiene on `dev` → `:dev`)  
+**Phase:** Hygiene C complete  
+**Git:** `dev`
 
 ---
 
 ## Resume here (this session)
 
-**1.0.7** shipped to `main` (PR #1). Next: **C** hygiene when requested.
+**C** shipped on `dev`: CI tests, multi-arch GHCR, `ADMIN_TOKEN`, `/ready`.
+
+Next: field-check `:dev` image after GHCR rebuild, or **D** later items when requested.
 
 ---
 
 ## Backlog
 
-### A / B — done (1.0.7)
-
-### C. Hygiene — next
-
-6. Run `tests/test_builders.py` in GitHub Actions
-7. Multi-arch `linux/arm64` GHCR image
-8. Optional shared secret on `/admin/drm-scan`
-9. `/ready` vs `/health`
+### A / B / C — done
 
 ### D. Later
 
@@ -37,9 +32,9 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Current focus
 
-- Wait for GHCR `:latest` = 1.0.7; then hygiene C.
+- Hygiene C on `dev`; next backlog is D.
 
 ## Scratch
 
-_Deny wins over allow. Allow is not DRM decrypt._
-_STREAM_PROXY default false; ffmpeg -c copy -f mpegts._
+_ADMIN_TOKEN empty = open admin endpoints. /ready = creds only, no Fubo HTTP._
+_Multi-arch lengthens docker CI._

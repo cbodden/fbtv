@@ -91,6 +91,8 @@ Prometheus text exposition of key gauges/counters from the same snapshot.
 
 DRM sweep status (running flag, last result, learned/playable counts, settings). From **1.0.6**, settings include `delay_ms`; last result may include `rate_limited`.
 
+When `ADMIN_TOKEN` is set, send `Authorization: Bearer <token>` or `X-Admin-Token: <token>` (otherwise open). Missing/wrong token → **401**.
+
 **Response:** `200 application/json`
 
 ```json
@@ -123,11 +125,11 @@ DRM sweep status (running flag, last result, learned/playable counts, settings).
 
 ## `POST /admin/drm-scan`
 
-Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded.
+Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded. Same optional `ADMIN_TOKEN` auth as GET.
 
 **Response:** `200 application/json` with `{"status":"started",...}`
 
-**Errors:** `409` if a scan is already running; `503` if not initialized.
+**Errors:** `401` if `ADMIN_TOKEN` is set and missing/wrong; `409` if a scan is already running; `503` if not initialized.
 
 ## `GET /health`
 
@@ -138,6 +140,18 @@ Liveness probe. Does not verify Fubo credentials.
 ```json
 {"status": "ok", "version": "1.0.7"}
 ```
+
+## `GET /ready`
+
+Readiness probe: returns **200** when Fubo credentials can be resolved from the configured sources (file / env). Does **not** call Fubo. Use for orchestrator readiness; keep `/health` for liveness.
+
+**Response:** `200 application/json`
+
+```json
+{"status": "ready", "version": "1.0.7"}
+```
+
+**Errors:** `503` with `{"status":"not_ready","reason":"missing_credentials"}` or `not_initialized`.
 
 ## `GET /playlist.m3u`
 

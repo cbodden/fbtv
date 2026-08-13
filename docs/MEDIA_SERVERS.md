@@ -20,7 +20,7 @@ Replace `<bridge-host>` and port as needed (`PORT`, default `7777`):
 | --- | --- |
 | M3U tuner | `http://<bridge-host>:7777/playlist.m3u` |
 | XMLTV guide | `http://<bridge-host>:7777/epg.xml` |
-| Watch (in playlist) | `http://<bridge-host>:7777/watch/<stationId>` |
+| Watch (in playlist) | `http://<bridge-host>:7777/watch/<stationId>` (302 HLS default; `video/mp2t` if `STREAM_PROXY`) |
 | Copy-paste index + snapshot | `http://<bridge-host>:7777/` |
 | Status (HTML) | `http://<bridge-host>:7777/status` |
 | Status (JSON) | `http://<bridge-host>:7777/status.json` |
@@ -37,6 +37,14 @@ Supported. Each server imports channels independently.
 - Prefer the **same public egress IP** for the bridge and **every** server that will tune, **or** set `STREAM_PROXY=true` so the bridge remuxes HLS → MPEG-TS (CPU cost; see [CONFIGURATION.md](CONFIGURATION.md)).
 - Fetch the playlist via a hostname each server can resolve; avoid baking `localhost` into the M3U unless that loopback is shared.
 
+```text
+Same egress (default 302)
+  Emby and/or Jellyfin  ──LAN──►  fbtv:7777  ──302──►  Fubo CDN
+
+Split egress (optional remux)
+  Emby/Jellyfin elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  Fubo CDN
+```
+
 ## Quirks that differ
 
 | Quirk | Emby | Jellyfin |
@@ -44,7 +52,7 @@ Supported. Each server imports channels independently.
 | Sparse / empty Fubo EPG | **Prefer Emby Guide Data FuboTV** until `/status.json` shows `epg.programme_count` > 0; bridge XMLTV optional | Schedules Direct or third-party XMLTV + manual map; cannot combine Schedules Direct and XMLTV |
 | Channel → guide mapping UI | Live TV guide provider mapping | **Dashboard → Live TV → Channels** (edit EPG channel when auto-match fails) |
 | Docker reachability | LAN IP or `host.docker.internal` from the Emby container to a host-side bridge | LAN IP or `host.docker.internal` from the Jellyfin container to a host-side bridge |
-| Optional M3U User-Agent | Rarely needed for this bridge | Rarely needed for this bridge (streams are Fubo CDN after 302) |
+| Optional M3U User-Agent | Rarely needed for this bridge | Rarely needed (after 302 the client hits Fubo CDN; with `STREAM_PROXY` the client only talks to the bridge) |
 
 ## Naming
 

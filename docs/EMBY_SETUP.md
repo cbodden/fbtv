@@ -69,11 +69,13 @@ If `programme_count` stays `0`, keep Emby Guide Data as the guide source and tre
 ## Suggested topology
 
 ```text
-Same host (best for default 302 redirect)
-  Emby Server  ──LAN──►  fbtv:7777  ──►  api.fubo.tv / CDN
+Same host / same egress (best for default 302 redirect)
+  Emby Server  ──LAN──►  fbtv:7777  ──302──►  Fubo CDN
+                         │
+                         └── api.fubo.tv (auth / lineup / asset)
 
 Split egress (optional remux)
-  Emby elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  CDN
+  Emby elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  Fubo CDN
 ```
 
 Remote Emby over Tailscale/VPN with the bridge elsewhere often breaks **302** HLS redirects because the stream URL was minted for a different IP — use shared egress or `STREAM_PROXY`.

@@ -70,11 +70,13 @@ If programmes are missing or channels are unmatched:
 ## Suggested topology
 
 ```text
-Same host (best for default 302 redirect)
-  Jellyfin Server  ──LAN──►  fbtv:7777  ──►  api.fubo.tv / CDN
+Same host / same egress (best for default 302 redirect)
+  Jellyfin Server  ──LAN──►  fbtv:7777  ──302──►  Fubo CDN
+                            │
+                            └── api.fubo.tv (auth / lineup / asset)
 
 Split egress (optional remux)
-  Jellyfin elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  CDN
+  Jellyfin elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  Fubo CDN
 ```
 
 Remote Jellyfin over Tailscale/VPN with the bridge elsewhere often breaks **302** HLS redirects because the stream URL was minted for a different IP — use shared egress or `STREAM_PROXY`.

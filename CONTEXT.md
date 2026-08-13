@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: HEAD watch, empty EPG TTL, `/epg` join, `STREAM_PROXY`, DRM allow/deny).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: topologies include `STREAM_PROXY`; DRM allow/deny; HEAD watch; EPG join).
 
 ## What this is
 
@@ -16,7 +16,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
 - **Purpose:** Authenticate with a personal Fubo account; serve **Emby and Jellyfin** Live TV (equal first-class targets) via:
   - `GET /playlist.m3u` → M3U Tuner
   - `GET /epg.xml` → XMLTV guide
-  - `GET /watch/{id}` → 302 to live HLS
+  - `GET /watch/{id}` → 302 to live HLS (default) or MPEG-TS when `STREAM_PROXY=true`
   - `HEAD /watch/{id}` → 200 probe (no Fubo tune)
   - `GET /` → HTML index with copy-paste URLs + live snapshot
   - `GET /status` → HTML status table

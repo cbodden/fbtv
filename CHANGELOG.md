@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Docs: topology sketches (README, ARCHITECTURE, Emby/Jellyfin/MEDIA_SERVERS) cover default 302 and optional `STREAM_PROXY` remux paths
 - Configurable DRM allow/deny overrides via `config/drm_overrides.json` and/or `DRM_DENY_IDS` / `DRM_ALLOW_IDS` / `DRM_*_CALL_SIGNS` (deny wins; allow keeps false-positive skips in the lineup — does not decrypt DRM)
 - Optional MPEG-TS remux: `STREAM_PROXY=true` makes GET `/watch/{id}` stream `video/mp2t` via ffmpeg (`-c copy`) instead of 302; `STREAM_PROXY_MAX` (default 3), `FFMPEG_PATH`; Docker image installs ffmpeg; HEAD Content-Type follows mode
 - Compose on the **`dev`** branch defaults to `ghcr.io/cbodden/fbtv:dev` (not `:latest`); flip back to `:latest` when merging Compose to **`main`**

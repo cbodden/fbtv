@@ -18,10 +18,19 @@ The bridge authenticates to Fubo with the subscriber’s credentials and transla
        │                                                       │ sign-in, lineup,
        │  GET /watch/{id}                                      │ schedule, stream
        └───────────────────────────────────────────────────────┤
-              302 → HLS  (default)                             ▼
+              302 → HLS (default; client hits CDN)             ▼
               or video/mp2t remux (STREAM_PROXY)        ┌─────────────┐
                                                         │ api.fubo.tv │
+                                                        │ + CDN       │
                                                         └─────────────┘
+```
+
+```text
+Same egress (default 302)
+  Emby/Jellyfin  ──LAN──►  fbtv:7777  ──302──►  Fubo CDN
+
+Split egress (optional remux)
+  Emby/Jellyfin elsewhere  ──►  fbtv:7777 (STREAM_PROXY=true)  ──►  Fubo CDN
 ```
 
 ## Components

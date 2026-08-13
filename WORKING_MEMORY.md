@@ -2,7 +2,7 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (B2 DRM allow/deny docs + push to `dev`)  
+**Last updated:** 2026-08-13 (topology docs synced; push to `dev`)  
 **Active version:** 1.0.6 (Unreleased on `dev` → `:dev`)  
 **Phase:** Post-1.0.6 hardening on `dev`  
 **Git:** `dev`
@@ -11,13 +11,7 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Resume here (this session)
 
-Section **B** complete on `dev` (STREAM_PROXY + DRM allow/deny).
-
-Field-check overrides after `:dev` rebuild:
-
-1. Deny an id → missing from `/playlist.m3u` after refresh
-2. Allow a learned DRM id → back in playlist; real DRM still 502 on tune
-3. `/status.json` → `fubo.drm_overrides`
+Section **B** done. Topology sketches updated across README / ARCHITECTURE / setup guides.
 
 Next: **C** hygiene when requested.
 
@@ -45,8 +39,9 @@ Next: **C** hygiene when requested.
 
 ## Current focus
 
-- B2 pushed; ready for C or field override check.
+- Docs topologies current; ready for C.
 
 ## Scratch
 
 _Deny wins over allow. Allow is not DRM decrypt._
+_STREAM_PROXY default false; ffmpeg -c copy -f mpegts._

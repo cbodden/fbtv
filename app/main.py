@@ -184,8 +184,13 @@ def _base_url(request: Request) -> str:
     return str(request.base_url).rstrip("/")
 
 
-def _snapshot() -> dict[str, Any]:
+def _snapshot(*, warm_channels: bool = False) -> dict[str, Any]:
     cfg, fubo, cache = _require_client()
+    if warm_channels:
+        try:
+            fubo.channels()
+        except FuboError as exc:
+            logger.warning("Status channel warm failed: %s", exc)
     if stream_proxy is not None:
         proxy_stats = stream_proxy.runtime_stats()
     else:
@@ -210,7 +215,7 @@ def _snapshot() -> dict[str, Any]:
 def index(request: Request) -> str:
     base = _base_url(request)
     try:
-        snap = _snapshot()
+        snap = _snapshot(warm_channels=True)
     except HTTPException:
         snap = {
             "uptime_seconds": 0,
@@ -223,17 +228,18 @@ def index(request: Request) -> str:
 
 @app.get("/status", response_class=HTMLResponse)
 def status_page(request: Request) -> str:
-    return render_status_html(_base_url(request), _snapshot())
+    return render_status_html(_base_url(request), _snapshot(warm_channels=True))
 
 
 @app.get("/status.json")
 def status_json() -> dict[str, Any]:
-    return _snapshot()
+    return _snapshot(warm_channels=True)
 
 
 @app.get("/metrics")
 def metrics() -> PlainTextResponse:
-    body = render_prometheus(_snapshot())
+    # Cache-only: scrapers should not trigger Fubo channel fetches.
+    body = render_prometheus(_snapshot(warm_channels=False))
     return PlainTextResponse(body, media_type="text/plain; version=0.0.4; charset=utf-8")
 
 

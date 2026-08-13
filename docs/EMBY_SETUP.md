@@ -8,7 +8,7 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 
 1. Bridge is running and reachable from the Emby Server host
 2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`; `/ready` returns `{"status":"ready"}` when credentials are configured
-3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts after warming `/playlist.m3u` — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
+3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts (status endpoints warm the lineup) — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
 4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
 5. Prefer **same machine or same public egress IP** for Emby and the bridge
 
@@ -28,6 +28,7 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 | M3U attribute | Meaning |
 | --- | --- |
 | `tvg-id` | Joins to XMLTV `channel id` (Fubo call sign) |
+| `tvg-chno` | 1-based channel number in current lineup order |
 | `tvg-name` / display name | Channel label |
 | `tvg-logo` | Channel artwork when present |
 | `group-title` | Package / plan grouping (imported as tags) |

@@ -48,7 +48,17 @@ def test_build_m3u() -> None:
     m3u = build_m3u(channels, "http://localhost:7777")
     assert "#EXTM3U" in m3u
     assert 'tvg-id="ESPN"' in m3u
+    assert 'tvg-chno="1"' in m3u
     assert "http://localhost:7777/watch/123" in m3u
+
+    multi = build_m3u(
+        [
+            Channel(id="1", call_sign="A", name="Alpha"),
+            Channel(id="2", call_sign="B", name="Beta"),
+        ],
+        "http://x",
+    )
+    assert 'tvg-chno="1"' in multi and 'tvg-chno="2"' in multi
 
 
 def test_build_xmltv() -> None:
@@ -709,6 +719,28 @@ def test_drm_scan_persists_and_skips_when_fresh() -> None:
         client.close()
 
 
+def test_status_warms_channels() -> None:
+    from unittest.mock import MagicMock
+
+    from app import main as mainmod
+
+    fake = MagicMock()
+    fake.channels.return_value = []
+    fake.runtime_stats.return_value = {"channel_count": 0, "signed_in": False}
+    mainmod.settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+    mainmod.stream_proxy = None
+    mainmod.runtime = RuntimeState()
+
+    mainmod.status_json()
+    fake.channels.assert_called_once()
+
+    fake.channels.reset_mock()
+    mainmod.metrics()
+    fake.channels.assert_not_called()
+
+
 def test_admin_token_gate() -> None:
     from dataclasses import replace
     from unittest.mock import MagicMock
@@ -833,6 +865,7 @@ if __name__ == "__main__":
     test_drm_allow_keeps_learned_station_in_lineup()
     test_drm_deny_drops_station()
     test_drm_scan_persists_and_skips_when_fresh()
+    test_status_warms_channels()
     test_admin_token_gate()
     test_ready_and_health()
     print("ok")

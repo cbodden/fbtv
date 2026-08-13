@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (hygiene on `dev`: CI tests, multi-arch, `ADMIN_TOKEN`, `/ready`; README env table complete).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev`: `tvg-chno`; status warm; hygiene C).
 
 ## What this is
 
@@ -79,17 +79,18 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 ## Product decisions (locked)
 
 1. Sidecar over plugin
-2. `tvg-id` = Fubo call sign
+2. `tvg-id` = Fubo call sign; `tvg-chno` = 1-based lineup order
 3. Watch URLs local (`/watch/{id}`); GET default 302 (shared egress); optional `STREAM_PROXY` MPEG-TS remux; HEAD = probe (no Fubo call)
 4. Credentials file wins; `FUBO_PASS_B64` for `$`/`!`
 5. Emby and Jellyfin equal first-class targets
 6. Short name `fbtv`; GHCR `:latest` from `main`, `:dev` from `dev`
 7. EPG best-effort; Emby Guide Data as operator workaround when empty
 8. Credit prior art in `CREDITS.md`
+9. `/`, `/status`, `/status.json` warm channel lineup; `/metrics` cache-only
 
 ## Planned
 
-_None currently — hygiene C shipped on `dev` (CI tests, arm64, admin token, `/ready`). Next backlog is D (split client, pytest, tvg-chno, warm caches)._
+_None currently — D items remaining: split `fubo_client`, pytest conversion._
 
 ## Agent guidance
 

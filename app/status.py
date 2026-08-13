@@ -101,7 +101,7 @@ def render_index_html(base: str, version: str, snapshot: dict[str, Any]) -> str:
      <strong>Jellyfin:</strong> Live TV included (no Premiere equivalent).</p>
 
   <h2>Live snapshot</h2>
-  <p class="muted">From in-process caches (warmed by playlist/EPG/watch). Details: <a href="{escape(base)}/status">/status</a></p>
+  <p class="muted">Channel counts warm on this page / <code>/status</code> / <code>/status.json</code> (EPG still needs <code>/epg.xml</code> or playlist). Details: <a href="{escape(base)}/status">/status</a></p>
   <div class="stats">
     <div class="stat"><span class="muted">Channels</span><strong>{_fmt(fubo.get("channel_count"))}</strong></div>
     <div class="stat"><span class="muted">Signed in</span><strong>{"yes" if fubo.get("signed_in") else "no"}</strong></div>
@@ -190,7 +190,7 @@ def render_status_html(base: str, snapshot: dict[str, Any]) -> str:
 </head>
 <body>
   <h1>Bridge status</h1>
-  <p class="muted">In-process runtime snapshot. Does not verify Fubo credentials beyond current token/cache state.</p>
+  <p class="muted">Opens with a channel-lineup warm (same as <code>/</code> / <code>/status.json</code>). EPG programme counts still need <code>/epg.xml</code>. Metrics stay cache-only.</p>
   <table>
     {body_rows}
   </table>

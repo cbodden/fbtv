@@ -9,9 +9,11 @@ def build_m3u(channels: list[Channel], base_url: str) -> str:
     base = base_url.rstrip("/")
     lines = ["#EXTM3U", ""]
 
-    for channel in channels:
+    # tvg-chno is 1-based in current lineup order (OTA → RSN → other, then name).
+    for chno, channel in enumerate(channels, start=1):
         attrs = [
             f'tvg-id="{_escape_attr(channel.call_sign)}"',
+            f'tvg-chno="{chno}"',
             f'tvg-name="{_escape_attr(channel.name)}"',
             f'channel-id="{_escape_attr(channel.id)}"',
         ]

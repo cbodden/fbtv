@@ -62,7 +62,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 | Region / plan | Confirm the account still has live TV packages |
 | Logs | Look for `Sign-in failed` or channel path warnings |
 | API drift | Fubo may have changed endpoints; update `app/fubo_client.py` |
-| Status | `curl -sS http://127.0.0.1:7777/status.json` — look at `fubo.signed_in` / errors after a playlist attempt |
+| Status | `curl -sS http://127.0.0.1:7777/status.json` — warms channel lineup; look at `fubo.signed_in` / `channel_count` |
 
 ---
 

@@ -43,7 +43,7 @@ Fubo does not offer an official Emby or Jellyfin plugin. This bridge fills that 
 
 1. **Signs in** to `api.fubo.tv` with your email/password and a stable device id (`config/device.json`).
 2. **Discovers your lineup** from Fubo subscription / plan APIs and **skips DRM** (known packages, learned/scanned `drmProtected`, plus optional allow/deny overrides).
-3. **Serves an M3U** whose each channel points at this bridge (`/watch/<stationId>`), not at a raw CDN URL.
+3. **Serves an M3U** whose each channel points at this bridge (`/watch/<stationId>`), not at a raw CDN URL. Lines include `tvg-id` (call sign) and `tvg-chno` (1-based lineup order).
 4. **On tune**, resolves a live HLS URL from Fubo and either **HTTP 302 redirects** to that stream (default; shared egress) or **remuxes to MPEG-TS** when `STREAM_PROXY=true` (split egress).
 5. **Builds XMLTV** from Fubo guide data when available (prefers `/epg`, then `papi/v1/guide/epg`); otherwise still emits channel rows so Emby and Jellyfin can map by call sign (`tvg-id`). Emby operators can use **Guide Data FuboTV** when programmes are empty.
 
@@ -235,6 +235,7 @@ Use a hostname/IP Emby and Jellyfin can resolve (LAN IP or `host.docker.internal
 | M3U attribute | Meaning |
 | --- | --- |
 | `tvg-id` | Joins to XMLTV `channel id` (Fubo call sign) |
+| `tvg-chno` | 1-based channel number in current lineup order |
 | `tvg-name` / display name | Channel label |
 | `tvg-logo` | Artwork when present |
 | `group-title` | Package / plan grouping (tags) |
@@ -269,7 +270,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Unreleased on `:dev`: CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.7**). Pre-release: `:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Unreleased on `:dev`: CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`, M3U `tvg-chno`, status channel warm. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.7**). Pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -306,7 +307,7 @@ Operators can inspect runtime state without scraping logs:
 | `http://<host>:7777/health` | Liveness only (`status` + `version`) — does **not** verify Fubo |
 | `http://<host>:7777/ready` | Readiness — credentials resolvable (no live Fubo call) |
 
-Counts reflect **in-process caches**. After a restart, hit `/playlist.m3u` (or `/epg.xml`) once so channel/DRM/EPG fields populate. Snapshots do not include passwords or bearer tokens.
+Counts on `/`, `/status`, and `/status.json` **warm the channel lineup** (cached ~30 minutes). `/metrics` stays cache-only. EPG programme fields still need `/epg.xml`. Snapshots do not include passwords or bearer tokens.
 
 Guide: [docs/STATUS.md](docs/STATUS.md). API details: [docs/API.md](docs/API.md).
 
@@ -370,7 +371,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
 | Want to force-drop or un-skip a channel | `config/drm_overrides.json` deny/allow — [docs/CONFIGURATION.md](docs/CONFIGURATION.md#drm-allow--deny-overrides) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |
-| Status shows empty channel count after restart | Hit `/playlist.m3u` once to warm the cache; `/status` does not force a Fubo refresh |
+| Status shows empty channel count after restart | Open `/` or `/status.json` (they warm the lineup), or hit `/playlist.m3u` |
 | Playlist URLs say `localhost` but server is elsewhere | Fetch playlist via LAN IP Emby/Jellyfin can use, or set forwarded host headers |
 
 More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
@@ -385,9 +386,9 @@ More: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 | [docs/MEDIA_SERVERS.md](docs/MEDIA_SERVERS.md) | Emby & Jellyfin comparison; one bridge for both |
 | [docs/EMBY_SETUP.md](docs/EMBY_SETUP.md) | Emby Live TV wiring |
 | [docs/JELLYFIN_SETUP.md](docs/JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
-| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/`, `/status`, `/status.json`, `/metrics`, `/health`, `/ready`, `/admin/drm-scan`) |
+| [docs/STATUS.md](docs/STATUS.md) | Status / metrics (`/` `/status` `/status.json` warm channels; `/metrics` cache-only; `/health` `/ready`) |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and runtime files (incl. `ADMIN_TOKEN`, `STREAM_PROXY`) |
-| [docs/API.md](docs/API.md) | HTTP API reference |
+| [docs/API.md](docs/API.md) | HTTP API reference (incl. M3U `tvg-chno`) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design and data flow |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common failures and curl checks |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development guidelines |

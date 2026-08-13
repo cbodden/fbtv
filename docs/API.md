@@ -79,7 +79,7 @@ Machine-readable JSON status (same payload as the HTML page).
 }
 ```
 
-Channel / DRM / EPG fields reflect **cached** state (warmed by `/playlist.m3u`, `/epg.xml`, or `/watch/{id}`). They do not force a Fubo refresh.
+Channel / DRM fields on `/`, `/status`, and `/status.json` warm the channel lineup when needed. `/metrics` is cache-only. EPG programme counts still need `/epg.xml` (or a prior build).
 
 ## `GET /metrics`
 
@@ -162,9 +162,11 @@ Builds an M3U of non-DRM subscribed channels (known DRM packages plus stations l
 ```text
 #EXTM3U
 
-#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" channel-id="12345" tvg-logo="https://..." group-title="fubotv-basic",ESPN
+#EXTINF:-1 tvg-id="ESPN" tvg-chno="1" tvg-name="ESPN" channel-id="12345" tvg-logo="https://..." group-title="fubotv-basic",ESPN
 http://192.168.1.10:7777/watch/12345
 ```
+
+`tvg-chno` is **1-based** in current lineup order (OTA → RSN → other, then name). `tvg-id` remains the Fubo call sign for XMLTV join.
 
 **Errors**
 

@@ -54,7 +54,7 @@ curl -sS http://<bridge-host>:7777/epg.xml | grep -c '<programme'
 # "Loaded N programmes" appears in container logs, not in the XML body
 ```
 
-If `programme_count` stays `0`, keep Emby Guide Data as the guide source and treat bridge XMLTV as optional.
+If `programme_count` stays `0`, keep Emby Guide Data as the guide source and treat bridge XMLTV as optional. Empty (channel-only) XMLTV is cached only for `EPG_EMPTY_CACHE_SECONDS` (default 120), not the full hour — see [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Playback checklist
 
@@ -64,7 +64,7 @@ If `programme_count` stays `0`, keep Emby Guide Data as the guide source and tre
 4. Refresh the M3U tuner after DRM learns so Emby drops dead entries
 5. If logs show `vapi/asset` **429**, raise `DRM_SCAN_DELAY_MS` — see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 6. If tune starts then fails, suspect **IP binding** — move bridge onto Emby’s host/network egress
-7. Confirm `/watch/{id}` in a browser/VLC on the Emby host redirects to an `.m3u8` URL
+7. Confirm `/watch/{id}` in a browser/VLC on the Emby host (**GET**) redirects to an `.m3u8` URL. `HEAD` / `curl -I` on the bridge is a 200 probe and does not mint a stream.
 
 ## Suggested topology
 

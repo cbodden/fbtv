@@ -56,9 +56,10 @@ Channels from known DRM sources/call signs (and any `drmProtected` / `isDrm` fla
 ## Tune path
 
 1. Emby or Jellyfin opens `http://bridge/watch/{stationId}` from the M3U
-2. Bridge calls `vapi/asset/v1?channelId=…&type=live`
-3. If `drmProtected` is true → record station id, drop from channel cache, HTTP 502
-4. Otherwise **302** to the HLS URL
+2. **HEAD** returns 200 (`application/vnd.apple.mpegurl`) without calling Fubo (probe only)
+3. **GET** calls `vapi/asset/v1?channelId=…&type=live`
+4. If `drmProtected` is true → record station id, drop from channel cache, HTTP 502
+5. Otherwise **302** to the HLS URL
 
 Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin, and the bridge should share the same egress (typically same host / Docker network path).
 
@@ -67,7 +68,7 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin,
 1. Emby and/or Jellyfin fetch `/epg.xml`
 2. Bridge loads channels, then probes authenticated schedule endpoints — **primary:** `/epg` (`channelWithProgramAssets`), then chunked `papi/v1/guide/epg`, then older bulk/sample paths
 3. Listings are mapped to playlist `tvg-id` (= Fubo call sign)
-4. Result is cached for `EPG_CACHE_SECONDS`
+4. Result is cached for `EPG_CACHE_SECONDS`, or `EPG_EMPTY_CACHE_SECONDS` when no programmes mapped
 5. If no schedule payload is found, XMLTV still contains `<channel>` entries so mapping can proceed
 
 **Emby field workaround:** while `epg.programme_count` is `0`, use Emby Guide Data’s **FuboTV** lineup (see [EMBY_SETUP.md](EMBY_SETUP.md)).
@@ -78,7 +79,7 @@ Fubo often binds stream URLs to the **requester’s public IP**. Emby, Jellyfin,
 | --- | --- | --- |
 | Bearer token | ~4 hours | Process memory |
 | Channel list | 30 minutes | Process memory |
-| XMLTV body | `EPG_CACHE_SECONDS` (default 1h) | Process memory |
+| XMLTV body | `EPG_CACHE_SECONDS` (default 1h) when programmes exist; `EPG_EMPTY_CACHE_SECONDS` (default 120s, or no cache if `0`) when `programme_count` is 0 | Process memory |
 | Device id | Permanent until deleted | `CONFIG_DIR/device.json` |
 | Learned / scanned DRM station ids | Permanent until deleted | `CONFIG_DIR/drm_skipped.json` (`station_ids`, `playable`, `last_scan_at`) |
 | Request counters / uptime | Process lifetime | Process memory (`app/status.py` / `main`) |

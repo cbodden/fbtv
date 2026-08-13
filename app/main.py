@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
 from app import __version__
 from app.config import Settings, load_settings
@@ -93,7 +93,10 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global settings, client, epg_cache, runtime
     settings = load_settings()
     client = FuboClient(settings)
-    epg_cache = EpgCache(settings.epg_cache_seconds)
+    epg_cache = EpgCache(
+        settings.epg_cache_seconds,
+        empty_ttl_seconds=settings.epg_empty_cache_seconds,
+    )
     runtime = RuntimeState()
     _drm_stop.clear()
     logger.info(
@@ -215,8 +218,15 @@ def epg() -> PlainTextResponse:
     return PlainTextResponse(xml, media_type="application/xml")
 
 
-@app.get("/watch/{channel_id}")
-def watch(channel_id: str) -> RedirectResponse:
+@app.api_route("/watch/{channel_id}", methods=["GET", "HEAD"])
+def watch(channel_id: str, request: Request) -> Response:
+    """GET resolves HLS and 302s. HEAD is a cheap probe — no Fubo tune."""
+    if request.method == "HEAD":
+        return Response(
+            status_code=200,
+            media_type="application/vnd.apple.mpegurl",
+        )
+
     _, fubo, cache = _require_client()
     try:
         url = fubo.watch(channel_id)

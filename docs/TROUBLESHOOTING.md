@@ -71,7 +71,7 @@ If `pass_fp` matches but Fubo still returns 401, the unofficial API is rejecting
 1. Confirm the channel is not DRM-filtered (premium movie nets often are)
 2. If `/watch/{id}` returns `"Stream is DRM protected"`, the bridge learns that station id (`config/drm_skipped.json`) and drops it from the next `/playlist.m3u` — refresh the M3U tuner in Emby/Jellyfin to clear the dead entry
 3. Prefer a full DRM sweep so the playlist is clean before Emby imports: `POST /admin/drm-scan?force=true`, wait for `GET /admin/drm-scan` to show `running: false`, then refresh M3U + EPG
-4. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC (**GET**, not HEAD/`curl -I`)
+4. On the **Emby or Jellyfin host**, open the watch URL from the M3U in VLC (**GET**). `HEAD` / `curl -I` on the bridge now returns **200** without tuning; it does not prove CDN playback.
 5. If VLC works on that host but not through the media server, review Live TV transcoder / network settings
 6. If VLC fails with the redirected CDN URL, you likely hit **IP binding** or a Cloudflare 403 on the CDN (bridge already 302'd — not the DRM 502 path):
    - Run the bridge on the same machine as Emby/Jellyfin, or
@@ -106,7 +106,7 @@ Workarounds:
 - **Emby (recommended while programmes are empty):** Emby Guide Data **FuboTV** lineup + manual map — see [EMBY_SETUP.md](EMBY_SETUP.md)
 - **Jellyfin:** use Schedules Direct **or** another XMLTV source (not both with bridge XMLTV at once) and map under **Live TV → Channels**
 - After deploying 1.0.4+ (`:latest`, `:dev`, or a local build), refresh `/epg.xml` and check logs for `Loaded N programmes from epg` / `EPG schedule complete`
-- Lower `EPG_CACHE_SECONDS` temporarily after an API fix so a stale empty body is not reused
+- Lower `EPG_EMPTY_CACHE_SECONDS` (default 120) or set it to `0` so a stale empty body is not reused; `EPG_CACHE_SECONDS` only applies when programmes were mapped
 - Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
 - Remember: `"Loaded N programmes"` appears in **container logs**, not inside the XML body
 
@@ -125,7 +125,7 @@ curl -sS http://127.0.0.1:7777/metrics | head
 | --- | --- |
 | `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — check `credentials_source`, `pass_fp` in logs, then hit playlist |
 | `channel_count` set, `drm_skipped_count` / `drm_learned_count` high | Expected for DRM packages; those channels stay out of the M3U after learn/refresh |
-| `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (schedule probe empty) |
+| `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (empty-guide TTL, default 120s) |
 | `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |
 | Status routes return 404 | Process predates metrics — restart uvicorn / Compose |
 
@@ -171,6 +171,7 @@ curl -sS http://127.0.0.1:7777/admin/drm-scan
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head
-# Watch must be GET (not HEAD / curl -I) — HEAD often fails incorrectly
+# HEAD is a probe (200, no Fubo tune). GET still 302s to HLS.
+curl -sSI http://127.0.0.1:7777/watch/<stationId>
 curl -sS -D - -o /dev/null http://127.0.0.1:7777/watch/<stationId>
 ```

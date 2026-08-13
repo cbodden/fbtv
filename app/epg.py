@@ -12,17 +12,24 @@ from app.fubo_client import Channel, FuboClient, Programme
 
 
 class EpgCache:
-    def __init__(self, ttl_seconds: int) -> None:
+    def __init__(self, ttl_seconds: int, empty_ttl_seconds: int = 120) -> None:
         self.ttl_seconds = ttl_seconds
+        self.empty_ttl_seconds = max(0, empty_ttl_seconds)
         self._lock = Lock()
         self._xml: str | None = None
         self._built_at = 0.0
         self._programme_count: int | None = None
         self._channel_count: int | None = None
+        self._entry_ttl = ttl_seconds
+
+    def _ttl_for(self, programme_count: int | None) -> int:
+        if programme_count == 0:
+            return self.empty_ttl_seconds
+        return self.ttl_seconds
 
     def get(self) -> str | None:
         with self._lock:
-            if self._xml and (time.time() - self._built_at) < self.ttl_seconds:
+            if self._xml and (time.time() - self._built_at) < self._entry_ttl:
                 return self._xml
             return None
 
@@ -38,6 +45,7 @@ class EpgCache:
             self._built_at = time.time()
             self._programme_count = programme_count
             self._channel_count = channel_count
+            self._entry_ttl = self._ttl_for(programme_count)
 
     def clear(self) -> None:
         with self._lock:
@@ -45,18 +53,20 @@ class EpgCache:
             self._built_at = 0.0
             self._programme_count = None
             self._channel_count = None
+            self._entry_ttl = self.ttl_seconds
 
     def runtime_stats(self) -> dict[str, int | bool | None]:
         with self._lock:
             age: int | None = None
             cached = False
+            ttl = self._entry_ttl if self._xml is not None else self.ttl_seconds
             if self._xml is not None:
                 age = max(0, int(time.time() - self._built_at))
-                cached = age < self.ttl_seconds
+                cached = age < self._entry_ttl
             return {
                 "cached": cached,
                 "age_seconds": age if self._xml is not None else None,
-                "ttl_seconds": self.ttl_seconds,
+                "ttl_seconds": ttl,
                 "programme_count": self._programme_count,
                 "channel_count": self._channel_count,
             }

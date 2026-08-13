@@ -105,7 +105,7 @@ docker compose up -d
 
 Service/container name is **`fbtv`**. It maps host `${PORT:-7777}` → container `7777`, mounts `./config`, and sets `pull_policy: always`.
 
-Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_DAYS`. Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Optional overrides: `PORT`, `EPG_CACHE_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `EPG_DAYS`. Full detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 GitHub Actions: `.github/workflows/docker.yml` (tags: `latest`, `sha-<commit>`).
 
@@ -167,7 +167,8 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `HOST` | no | `0.0.0.0` | Bind address (local uvicorn) |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
 | `CONFIG_DIR` | no | `./config` | Writable dir for `device.json`, credentials files, `drm_skipped.json` |
-| `EPG_CACHE_SECONDS` | no | `3600` | How long to reuse generated `epg.xml` |
+| `EPG_CACHE_SECONDS` | no | `3600` | How long to reuse generated `epg.xml` when programmes exist |
+| `EPG_EMPTY_CACHE_SECONDS` | no | `120` | How long to reuse channel-only XMLTV (`0` = no cache) |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data exists |
 | `DRM_SCAN_ON_START` | no | `true` | Background DRM asset sweep after startup |
 | `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep at 1; Fubo **429**s) |
@@ -260,7 +261,7 @@ Once installed and wired:
 
 1. **Leave the bridge running** (Compose `restart: unless-stopped`, or a systemd/user service for uvicorn).
 2. Use **Emby** and/or **Jellyfin** Live TV as usual — channel change hits `/watch/{id}`, which redirects to Fubo HLS.
-3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS`.
+3. **Guide refresh** happens on each media server’s XMLTV schedule; the bridge may serve a cached `/epg.xml` for up to `EPG_CACHE_SECONDS` (or `EPG_EMPTY_CACHE_SECONDS` when programmes are empty).
 4. **Credential / device changes:** update `config/credentials.env` (or JSON / env) and restart. Only delete `config/device.json` as a last resort. Delete `config/drm_skipped.json` only if you want previously learned DRM stations back in the playlist.
 5. **After Fubo plan changes:** restart the bridge (or wait for the ~30 minute in-memory channel cache) and re-refresh tuners in Emby and Jellyfin if channel counts look wrong.
 6. **Status / metrics:** see [Status and metrics](#status-and-metrics) below.
@@ -298,7 +299,8 @@ curl -sS http://127.0.0.1:7777/status.json
 curl -sS http://127.0.0.1:7777/metrics | head
 curl -sS http://127.0.0.1:7777/playlist.m3u | head
 curl -sS http://127.0.0.1:7777/epg.xml | head
-curl -sSI http://127.0.0.1:7777/watch/<stationId>   # expect 302 + Location: …m3u8
+curl -sSI http://127.0.0.1:7777/watch/<stationId>              # HEAD probe: 200 (no tune)
+curl -sS -D - -o /dev/null http://127.0.0.1:7777/watch/<stationId>  # GET: 302 + Location: …m3u8
 ```
 
 `<stationId>` is the numeric id on the `channel-id=` attribute / watch path in the M3U.
@@ -311,8 +313,8 @@ curl -sSI http://127.0.0.1:7777/watch/<stationId>   # expect 302 + Location: …
 2. `PUT /signin` with Android TV–style client headers; cache bearer token ~4 hours.
 3. Build lineup via subscriptions APIs, with plan-manager + recurly packages as fallback; drop DRM sources and previously learned/scanned DRM station ids. Optional background DRM sweep probes assets and updates the skip list.
 4. Serve M3U with absolute `/watch/…` URLs (honors `X-Forwarded-Host` / `X-Forwarded-Proto`).
-5. On watch: call `vapi/asset/v1?channelId=…&type=live`; reject `drmProtected` (and remember the station for future playlists); otherwise **302** to HLS.
-6. On EPG: probe `/epg` (`channelWithProgramAssets`), then `papi/v1/guide/epg`, then older fallbacks; map to call signs; cache XMLTV body.
+5. On watch **GET**: call `vapi/asset/v1?channelId=…&type=live`; reject `drmProtected` (and remember the station for future playlists); otherwise **302** to HLS. **HEAD** returns 200 without calling Fubo (probe only).
+6. On EPG: probe `/epg` (`channelWithProgramAssets`, join by `id` / `stationId` / `callSign`), then `papi/v1/guide/epg`, then older fallbacks; map to call signs; cache XMLTV (`EPG_CACHE_SECONDS`, or `EPG_EMPTY_CACHE_SECONDS` when programmes are empty).
 
 Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/API.md](docs/API.md).
 
@@ -323,7 +325,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 - **Unofficial API** — Fubo does not document this for third-party use. Endpoints/headers can change without notice.
 - **DRM** — Protected packages are skipped; tune-time and background-scan `drmProtected` stations are remembered and dropped from later playlists/EPG (`config/drm_skipped.json`). Decryption is out of scope.
 - **IP binding** — Stream URLs are often tied to the requesting public IP. Same host / same egress as Emby and Jellyfin is strongly recommended.
-- **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse.
+- **EPG depth** — If schedule endpoints fail or change, `/epg.xml` still lists channels; programme rows may be empty or sparse. Empty guides are cached only briefly (`EPG_EMPTY_CACHE_SECONDS`).
 - **No remux in v1** — Redirect only (no streamlink/ffmpeg MPEG-TS proxy yet; see CHANGELOG Unreleased).
 
 > **Personal use — Your own paid account only.**
@@ -339,7 +341,7 @@ Design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). HTTP details: [docs/
 | Process exits mentioning credentials | Set `config/credentials.env` (`FUBO_PASS_B64` if the password has `$`), or env / local `.env` |
 | Sign-in 401 `INVALID_USERNAME_PASSWORD` | Use `FUBO_PASS_B64` or `python -m app.set_credentials`; do not quote passwords — [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Empty playlist or `502` on `/playlist.m3u` | Confirm credentials on fubo.tv; check logs for sign-in / API drift |
-| Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; test watch with GET (not HEAD); fix shared egress / Cloudflare 403 |
+| Channels import but will not play | Confirm non-DRM; run `/admin/drm-scan` then refresh M3U; GET `/watch/{id}` for 302 (HEAD is a 200 probe only); fix shared egress / Cloudflare 403 |
 | Logs show `vapi/asset` **429** during DRM scan | Use **1.0.6+** (`:latest` or `:dev`); keep `DRM_SCAN_CONCURRENCY=1`; raise `DRM_SCAN_DELAY_MS` (e.g. 1500) |
 | Guide has channels but no programmes | Emby: Guide Data FuboTV (recommended); Jellyfin: Schedules Direct; after 1.0.4+ check logs for `Loaded N programmes from epg` (log line, not XML) |
 | Emby or Jellyfin cannot reach bridge | `curl` health (or `/status.json`) from that host; fix Docker networking / firewall / published port |

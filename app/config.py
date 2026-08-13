@@ -27,6 +27,7 @@ class Settings:
     port: int
     config_dir: Path
     epg_cache_seconds: int
+    epg_empty_cache_seconds: int
     epg_days: int
     credentials_source: str
     drm_scan_on_start: bool
@@ -184,6 +185,7 @@ def load_settings() -> Settings:
         port=int(os.environ.get("PORT", "7777")),
         config_dir=config_dir,
         epg_cache_seconds=int(os.environ.get("EPG_CACHE_SECONDS", "3600")),
+        epg_empty_cache_seconds=_env_int("EPG_EMPTY_CACHE_SECONDS", 120, minimum=0),
         epg_days=int(os.environ.get("EPG_DAYS", "2")),
         credentials_source=source,
         drm_scan_on_start=_env_bool("DRM_SCAN_ON_START", True),

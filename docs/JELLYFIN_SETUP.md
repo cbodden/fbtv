@@ -53,7 +53,7 @@ When `tvg-id` matches XMLTV channel ids, Jellyfin often maps automatically.
 
 If programmes are missing or channels are unmatched:
 
-1. Keep the bridge XMLTV for identity (`tvg-id` = call sign)
+1. Keep the bridge XMLTV for identity (`tvg-id` = call sign). Empty (channel-only) XMLTV is cached only for `EPG_EMPTY_CACHE_SECONDS` (default 120) — see [CONFIGURATION.md](CONFIGURATION.md).
 2. Open **Dashboard → Live TV → Channels**, edit a channel, and set the EPG channel manually when auto-match fails
 3. Or use Schedules Direct / another XMLTV source and map by name/call sign (you will not keep bridge XMLTV active at the same time)
 
@@ -64,7 +64,7 @@ If programmes are missing or channels are unmatched:
 3. If tune fails immediately → check bridge logs for DRM or HTTP errors — a `drmProtected` station is learned into `config/drm_skipped.json` and dropped from the next playlist refresh
 4. Refresh the M3U tuner after DRM learns so Jellyfin drops dead entries
 5. If tune starts then fails → suspect **IP binding**; co-locate bridge and Jellyfin egress
-6. On the Jellyfin host, open a `/watch/<id>` URL from the M3U in VLC (**GET**, not HEAD) and confirm it redirects to an `.m3u8`
+6. On the Jellyfin host, open a `/watch/<id>` URL from the M3U in VLC (**GET**) and confirm it redirects to an `.m3u8`. `HEAD` / `curl -I` on the bridge is a 200 probe and does not mint a stream.
 7. Scan 429s → raise `DRM_SCAN_DELAY_MS`; see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) / [CONFIGURATION.md](CONFIGURATION.md#drm-scan)
 
 ## Suggested topology

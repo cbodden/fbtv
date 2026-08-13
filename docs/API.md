@@ -166,7 +166,7 @@ Returns XMLTV. Channel ids equal playlist `tvg-id` values (call signs). Programm
 </tv>
 ```
 
-Cached for `EPG_CACHE_SECONDS` after a successful build.
+Cached for `EPG_CACHE_SECONDS` when programmes were mapped; empty (channel-only) builds use `EPG_EMPTY_CACHE_SECONDS` (default 120).
 
 **Errors**
 
@@ -175,9 +175,11 @@ Cached for `EPG_CACHE_SECONDS` after a successful build.
 | `502` | Fubo channel fetch failed |
 | `503` | Service not initialized |
 
-## `GET /watch/{channel_id}`
+## `GET` / `HEAD /watch/{channel_id}`
 
-Resolves a live stream for the Fubo station id and redirects.
+**GET** resolves a live stream for the Fubo station id and redirects (302).
+
+**HEAD** is a probe only: **200** with `Content-Type: application/vnd.apple.mpegurl` and **no** Fubo `vapi/asset` call (does not mint a stream or count as `watch_ok`).
 
 **Parameters**
 
@@ -185,13 +187,15 @@ Resolves a live stream for the Fubo station id and redirects.
 | --- | --- | --- |
 | `channel_id` | path | Fubo station id from `channel-id` / watch URL in the M3U |
 
-**Response:** `302` with `Location` set to an HLS URL
+**GET response:** `302` with `Location` set to an HLS URL
 
-**Errors**
+**HEAD response:** `200` empty body, `Content-Type: application/vnd.apple.mpegurl`
+
+**Errors (GET)**
 
 | Status | When |
 | --- | --- |
 | `502` | DRM protected (station is learned and dropped from later playlists), missing URL, or Fubo API error |
 | `503` | Service not initialized |
 
-Emby, Jellyfin, or VLC must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream.
+Emby, Jellyfin, or VLC must then fetch the redirected URL. That fetch typically must originate from an IP Fubo accepts for the minted stream. `curl -I` / HEAD must not be used to judge CDN playback — use GET for the 302.

@@ -20,6 +20,7 @@ def _settings(config_dir: Path) -> Settings:
         port=7777,
         config_dir=config_dir,
         epg_cache_seconds=3600,
+        epg_empty_cache_seconds=120,
         epg_days=2,
         credentials_source="test",
         drm_scan_on_start=False,
@@ -72,6 +73,23 @@ def test_epg_cache_stats() -> None:
     assert stats["cached"] is True
     assert stats["programme_count"] == 3
     assert stats["channel_count"] == 2
+    assert stats["ttl_seconds"] == 60
+
+
+def test_epg_empty_cache_uses_short_ttl() -> None:
+    cache = EpgCache(ttl_seconds=3600, empty_ttl_seconds=0)
+    cache.set("<tv/>", programme_count=0, channel_count=2)
+    stats = cache.runtime_stats()
+    assert stats["programme_count"] == 0
+    assert stats["ttl_seconds"] == 0
+    assert stats["cached"] is False
+    assert cache.get() is None
+
+    cache.set("<tv/>", programme_count=4, channel_count=2)
+    stats = cache.runtime_stats()
+    assert stats["ttl_seconds"] == 3600
+    assert stats["cached"] is True
+    assert cache.get() == "<tv/>"
 
 
 def test_prometheus_snapshot() -> None:
@@ -308,6 +326,90 @@ def test_epg_assets_parsing() -> None:
         client.close()
 
 
+def test_epg_assets_match_station_id_and_call_sign() -> None:
+    from app.fubo_client import FuboClient
+
+    settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    client = FuboClient(settings)
+    try:
+        channels = [Channel(id="16689", call_sign="ESPN", name="ESPN")]
+        program_block = {
+            "program": {
+                "title": "SportsCenter",
+                "shortDescription": "Highlights",
+                "genres": [{"name": "Sports"}],
+            },
+            "assets": [
+                {
+                    "accessRights": {
+                        "startTime": "2026-08-12T18:00:00.000Z",
+                        "endTime": "2026-08-12T19:00:00.000Z",
+                    }
+                }
+            ],
+        }
+        by_station = {
+            "response": [
+                {
+                    "type": "channelWithProgramAssets",
+                    "data": {
+                        "channel": {"stationId": 16689},
+                        "programsWithAssets": [program_block],
+                    },
+                }
+            ]
+        }
+        by_call = {
+            "response": [
+                {
+                    "type": "channelWithProgramAssets",
+                    "data": {
+                        "channel": {"callSign": "ESPN"},
+                        "programsWithAssets": [program_block],
+                    },
+                }
+            ]
+        }
+        lookup = {ch.id: ch for ch in channels}
+        station_found = client._programmes_from_epg_assets(by_station, lookup)
+        call_found = client._programmes_from_epg_assets(by_call, lookup)
+        assert len(station_found) == 1 and station_found[0].channel_id == "ESPN"
+        assert len(call_found) == 1 and call_found[0].channel_id == "ESPN"
+    finally:
+        client.close()
+
+
+def test_watch_head_does_not_tune() -> None:
+    from unittest.mock import MagicMock
+
+    from starlette.requests import Request
+
+    from app import main as mainmod
+
+    fake = MagicMock()
+    mainmod.settings = _settings(Path(__import__("tempfile").mkdtemp()))
+    mainmod.client = fake
+    mainmod.epg_cache = EpgCache(ttl_seconds=60)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "HEAD",
+        "scheme": "http",
+        "path": "/watch/123",
+        "raw_path": b"/watch/123",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    response = mainmod.watch("123", Request(scope))
+    fake.watch.assert_not_called()
+    assert response.status_code == 200
+    assert response.media_type == "application/vnd.apple.mpegurl"
+
+
 def test_drm_scan_persists_and_skips_when_fresh() -> None:
     from app.fubo_client import FuboClient
 
@@ -348,6 +450,7 @@ if __name__ == "__main__":
     test_build_m3u()
     test_build_xmltv()
     test_epg_cache_stats()
+    test_epg_empty_cache_uses_short_ttl()
     test_prometheus_snapshot()
     test_strip_wrapping_quotes()
     test_credentials_file_beats_env()
@@ -357,5 +460,7 @@ if __name__ == "__main__":
     test_is_drm_channel_flags()
     test_papi_program_cell_parsing()
     test_epg_assets_parsing()
+    test_epg_assets_match_station_id_and_call_sign()
+    test_watch_head_does_not_tune()
     test_drm_scan_persists_and_skips_when_fresh()
     print("ok")

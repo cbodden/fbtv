@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-12 (1.0.6 released on `main`).
+**Synced from:** `docs/` + root docs on 2026-08-13 (`dev` Do-first: HEAD watch, empty EPG TTL, `/epg` join keys).
 
 ## What this is
 
@@ -17,6 +17,7 @@ Durable facts for humans and agents working on this repo. For ephemeral session 
   - `GET /playlist.m3u` → M3U Tuner
   - `GET /epg.xml` → XMLTV guide
   - `GET /watch/{id}` → 302 to live HLS
+  - `HEAD /watch/{id}` → 200 probe (no Fubo tune)
   - `GET /` → HTML index with copy-paste URLs + live snapshot
   - `GET /status` → HTML status table
   - `GET /status.json` → JSON status snapshot
@@ -67,14 +68,14 @@ docs/EMBY_SETUP.md          # Guide Data FuboTV recommended while bridge EPG emp
 
 1. Prefer `/epg` → parse `channelWithProgramAssets` (field-confirmed 200)
 2. Fall back to chunked `papi/v1/guide/epg`, then older sample paths
-3. Map to `tvg-id` (= call sign); cache `EPG_CACHE_SECONDS`
+3. Map to `tvg-id` (= call sign); join `/epg` rows by `id` / `stationId` / `callSign`; cache `EPG_CACHE_SECONDS` (populated) or `EPG_EMPTY_CACHE_SECONDS` (0 programmes)
 4. Empty programmes → channel-only XMLTV; Emby: Guide Data FuboTV
 
 ## Product decisions (locked)
 
 1. Sidecar over plugin
 2. `tvg-id` = Fubo call sign
-3. Watch URLs local (`/watch/{id}`); tune = 302 (shared egress)
+3. Watch URLs local (`/watch/{id}`); GET tune = 302 (shared egress); HEAD = probe (no Fubo call)
 4. Credentials file wins; `FUBO_PASS_B64` for `$`/`!`
 5. Emby and Jellyfin equal first-class targets
 6. Short name `fbtv`; GHCR `:latest` from `main`, `:dev` from `dev`

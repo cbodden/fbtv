@@ -1126,9 +1126,13 @@ class FuboClient:
     ) -> list[Programme]:
         """Parse ``/epg`` ``channelWithProgramAssets`` payloads (live-confirmed 200 OK)."""
         programmes: list[Programme] = []
+        unmatched_ids: list[str] = []
+        incomplete = 0
         rows = (payload or {}).get("response") if isinstance(payload, dict) else None
         if not isinstance(rows, list):
             return programmes
+
+        channels_by_call = {ch.call_sign: ch for ch in channels_by_id.values()}
 
         for ch in rows:
             if not isinstance(ch, dict):
@@ -1139,9 +1143,22 @@ class FuboClient:
             if not isinstance(ch_data, dict):
                 continue
             channel_meta = ch_data.get("channel") or {}
-            station_id = str(channel_meta.get("id") or "").strip()
-            channel = channels_by_id.get(station_id) if station_id else None
+            if not isinstance(channel_meta, dict):
+                channel_meta = {}
+            channel = self._match_epg_channel(
+                channel_meta, channels_by_id, channels_by_call
+            )
             if channel is None:
+                unmatched_ids.append(
+                    str(
+                        channel_meta.get("id")
+                        or channel_meta.get("stationId")
+                        or channel_meta.get("station_id")
+                        or channel_meta.get("callSign")
+                        or channel_meta.get("call_sign")
+                        or "?"
+                    )
+                )
                 continue
 
             for item in ch_data.get("programsWithAssets") or []:
@@ -1194,6 +1211,7 @@ class FuboClient:
                     or self._text_field(item.get("title"))
                 )
                 if not (title and start and stop):
+                    incomplete += 1
                     continue
 
                 desc = (
@@ -1222,7 +1240,37 @@ class FuboClient:
                     )
                 )
 
+        if rows and not programmes:
+            sample = ", ".join(unmatched_ids[:8]) or "(none)"
+            logger.info(
+                "EPG /epg mapped 0 programmes (rows=%s unmatched_channels=%s "
+                "incomplete_items=%s sample_unmatched=%s)",
+                len(rows),
+                len(unmatched_ids),
+                incomplete,
+                sample,
+            )
         return programmes
+
+    def _match_epg_channel(
+        self,
+        meta: dict[str, Any],
+        channels_by_id: dict[str, Channel],
+        channels_by_call: dict[str, Channel],
+    ) -> Channel | None:
+        """Join an ``/epg`` channel object to the lineup by station id or call sign."""
+        for key in ("id", "stationId", "station_id", "channelId", "channel_id"):
+            value = meta.get(key)
+            if value is None:
+                continue
+            sid = str(value).strip()
+            if sid and sid in channels_by_id:
+                return channels_by_id[sid]
+        for key in ("callSign", "call_sign", "stationCallSign"):
+            value = meta.get(key)
+            if value and str(value) in channels_by_call:
+                return channels_by_call[str(value)]
+        return None
 
     def _fetch_epg_assets_programmes(
         self,

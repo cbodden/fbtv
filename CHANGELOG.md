@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `HEAD /watch/{id}` returns 200 (`application/vnd.apple.mpegurl`) without calling Fubo; GET still 302s to live HLS
+- `EPG_EMPTY_CACHE_SECONDS` (default 120): channel-only XMLTV is not held for the full `EPG_CACHE_SECONDS` hour
+- `/epg` programme mapping also joins on `stationId` / `callSign` (not only `channel.id`); unmatched samples logged when 0 programmes map
+
 ### Planned
 
 - Optional MPEG-TS remux / stream proxy for clients that do not share egress IP with the bridge

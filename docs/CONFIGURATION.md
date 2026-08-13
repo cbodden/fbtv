@@ -11,7 +11,8 @@
 | `HOST` | no | `0.0.0.0` | Bind address for uvicorn |
 | `PORT` | no | `7777` | Listen port (Compose maps host `PORT` → container `7777`) |
 | `CONFIG_DIR` | no | `./config` | Writable directory for device id, credentials file, and learned DRM skip list |
-| `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` |
+| `EPG_CACHE_SECONDS` | no | `3600` | Seconds to reuse generated `epg.xml` when programmes were found |
+| `EPG_EMPTY_CACHE_SECONDS` | no | `120` | Seconds to reuse **channel-only** XMLTV (`programme_count` 0). `0` = do not cache empty guides |
 | `EPG_DAYS` | no | `2` | Desired guide window when schedule data is available |
 | `DRM_SCAN_ON_START` | no | `true` | Run a background DRM asset sweep after startup (skipped if last full scan is fresh) |
 | `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep low — Fubo returns **429** when pressed) |
@@ -85,7 +86,7 @@ services:
 Useful overrides:
 
 ```bash
-PORT=7788 EPG_CACHE_SECONDS=7200 docker compose up -d
+PORT=7788 EPG_CACHE_SECONDS=7200 EPG_EMPTY_CACHE_SECONDS=120 docker compose up -d
 docker compose logs -f fbtv
 ```
 

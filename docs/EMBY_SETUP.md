@@ -45,7 +45,7 @@ Fubo’s private schedule APIs have been unreliable (many paths 404). **Until br
 
 ### Optional: bridge XMLTV
 
-You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:dev` (**1.0.7**) while ahead of `main`, or `:latest` (**1.0.6+**) for stable. Check after a refresh:
+You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:latest` (**1.0.7+**) or `:dev` for pre-release. Check after a refresh:
 
 ```bash
 curl -sS http://<bridge-host>:7777/health          # 1.0.6+ paced DRM; 1.0.7+ remux / HEAD watch / DRM overrides

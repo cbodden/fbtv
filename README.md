@@ -94,7 +94,7 @@ Personal / home-LAN use only. Respect Fubo’s terms of service. Do not redistri
 
 ### Option A — Docker (recommended)
 
-Compose **pulls** `ghcr.io/cbodden/fbtv:dev` on this **`dev`** branch (no local build) and does **not** load a project `.env` file. GHCR publishes on pushes to **`main`** (`:latest`) and **`dev`** (`:dev`). The **`main`** branch Compose should use `:latest` for stable.
+Compose **pulls** `ghcr.io/cbodden/fbtv:latest` on **`main`** (no local build) and does **not** load a project `.env` file. GHCR publishes on pushes to **`main`** (`:latest`) and **`dev`** (`:dev`). The **`dev`** branch Compose should use `:dev` for pre-release.
 
 **Credentials (pick one; file wins over env):**
 
@@ -265,7 +265,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.6** until merge); current `dev` image: `:dev` (**1.0.7**).
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.7**). Pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 
@@ -404,7 +404,7 @@ docs/                 # Deep-dive documentation
 tests/                # Unit checks (no live Fubo calls)
 credentials.env.example
 .github/workflows/docker.yml  # Build + push ghcr.io/cbodden/fbtv (main → :latest, dev → :dev)
-docker-compose.yml            # On `dev` pulls ghcr.io/cbodden/fbtv:dev (main uses :latest)
+docker-compose.yml            # On `main` pulls ghcr.io/cbodden/fbtv:latest (`dev` branch uses :dev)
 ```
 
 ```bash

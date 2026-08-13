@@ -2,13 +2,13 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.7** on `dev`: topologies, `STREAM_PROXY`, DRM allow/deny, HEAD watch, EPG join).
+**Synced from:** `docs/` + root docs on 2026-08-13 (v**1.0.7** release to `main`: topologies, `STREAM_PROXY`, DRM allow/deny, HEAD watch, EPG join).
 
 ## What this is
 
 - **Name:** Fubo → Emby & Jellyfin Bridge — short name **`fbtv`**
 - **GitHub:** https://github.com/cbodden/fbtv (public)
-- **Docker:** Compose service/container `fbtv` — on the **`dev`** branch the file pulls `ghcr.io/cbodden/fbtv:dev` (`pull_policy: always`); on **`main`** it should pull `:latest`. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
+- **Docker:** Compose service/container `fbtv` — on **`main`** pulls `ghcr.io/cbodden/fbtv:latest` (`pull_policy: always`); on **`dev`** use `:dev`. No Compose `env_file`. Credentials: `config/credentials.env` (`FUBO_PASS_B64` preferred) or `credentials.json` (file wins); else host env. CI publishes GHCR from **`main`** (`:latest`) and **`dev`** (`:dev`) — `.github/workflows/docker.yml`.
 - **Workspace:** `/home/cbodden/git/mine/fbtv` (also historically `/home/cbodden/git/mine/fubo_emby`)
 - **Historical names:** `fubo_emby`, `fubo-emby`, `fubotv_emby`, `fubotv-emby` (docs only)
 - **Version:** 1.0.7 (`app/__version__`; see `CHANGELOG.md`)
@@ -33,7 +33,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** **v1.0.7** on `dev` / GHCR `:dev` (field-verified: EPG + playlist + 302 tune). **v1.0.6** remains on `main` / `:latest` until merge.
+**Status:** **v1.0.7** on `main` / GHCR `:latest` (field-verified: EPG + playlist + 302 tune). Pre-release work continues on `dev` / `:dev`.
 
 ## Non-goals (v1)
 

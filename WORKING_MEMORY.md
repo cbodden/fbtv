@@ -2,24 +2,22 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-08-13 (v1.0.7 bumped; Emby field-verified; push to `dev`)  
-**Active version:** 1.0.7 (`dev` → `:dev`)  
-**Phase:** Post-1.0.7 hygiene on `dev`  
-**Git:** `dev`
+**Last updated:** 2026-08-13 (release/1.0.7 → main PR; Compose `:latest`)  
+**Active version:** 1.0.7  
+**Phase:** Release 1.0.7 to `main`  
+**Git:** `release/1.0.7` (PR into `main`); keep `dev` Compose on `:dev` after merge
 
 ---
 
 ## Resume here (this session)
 
-**1.0.7** cut on `dev` after Emby verification (playlist, ~7600 programmes, 302 tune).
-
-Next: **C** hygiene when requested.
+Ship **1.0.7** to `main` / `:latest`. After merge: restore `dev` Compose to `:dev` if needed, then **C** hygiene.
 
 ---
 
 ## Backlog
 
-### A / B — done (shipped in 1.0.7)
+### A / B — done (1.0.7)
 
 ### C. Hygiene — next
 
@@ -39,10 +37,9 @@ Next: **C** hygiene when requested.
 
 ## Current focus
 
-- Version **1.0.7**; ready for C.
+- Merge release PR; wait for GHCR `:latest`.
 
 ## Scratch
 
 _Deny wins over allow. Allow is not DRM decrypt._
 _STREAM_PROXY default false; ffmpeg -c copy -f mpegts._
-_main / :latest still 1.0.6 until merge; flip Compose image back to :latest on that merge._

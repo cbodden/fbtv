@@ -40,7 +40,7 @@ Split egress (optional remux)
 | `app/main.py` | HTTP routes, lifespan wiring, base URL detection |
 | `app/config.py` | Credentials file / `FUBO_PASS_B64` / env → `Settings` (no `$` interpolation) |
 | `app/set_credentials.py` | Write `config/credentials.json` from stdin |
-| `app/fubo/` (+ `fubo_client.py` re-exports) | Device id, `PUT /signin` (client **5.40.0**), channel list, watch URL, schedule probe, DRM scan |
+| `app/fubo/` (+ `fubo_client.py` re-exports) | Device id, session persist + cool-down, `PUT /signin` (client **5.40.0**), channel list, watch URL, schedule probe, DRM scan |
 | `app/m3u.py` | EXTINF playlist generation |
 | `app/epg.py` | XMLTV generation + TTL cache |
 | `app/stream_proxy.py` | Optional ffmpeg HLS → MPEG-TS remux (`STREAM_PROXY`) |
@@ -51,9 +51,10 @@ Split egress (optional remux)
 
 1. Load credentials from `config/credentials.env` or `credentials.json` (file wins), else `FUBO_PASS_B64` / `FUBO_USER`+`FUBO_PASS`
 2. Load or create `CONFIG_DIR/device.json` (`x-device-id`)
-3. `PUT /signin` with JSON `email`/`password` and Android TV-style headers (`x-client-version` 5.40.0)
-4. Cache `access_token` for about four hours
-5. Send `Authorization: Bearer …` on subsequent API calls
+3. Prefer a still-valid bearer from `CONFIG_DIR/session.json` (same email/`pass_fp`); otherwise `PUT /signin` with JSON `email`/`password` and Android TV-style headers (`x-client-version` 5.40.0)
+4. Persist `access_token` (+ `expires_in` when present; default ~4h) to `session.json`; renew ~5 minutes early
+5. On sign-in failure, record cool-down in `session.json` (`AUTH_COOLDOWN_SECONDS`, default 1800) and **do not** retry password login until it expires — prevents Emby/status poll lockout spirals
+6. Send `Authorization: Bearer …` on subsequent API calls
 
 ## Channel lineup
 
@@ -89,7 +90,8 @@ Fubo often binds stream URLs to the **requester’s public IP**. Prefer shared e
 
 | Data | TTL | Storage |
 | --- | --- | --- |
-| Bearer token | ~4 hours | Process memory |
+| Bearer token | Until `expires_in` (~4h default); renews ~5 min early | Process memory **and** `CONFIG_DIR/session.json` |
+| Sign-in cool-down | `AUTH_COOLDOWN_SECONDS` (default 1800) after failed password login | `CONFIG_DIR/session.json` |
 | Channel list | 30 minutes | Process memory |
 | XMLTV body | `EPG_CACHE_SECONDS` (default 1h) when programmes exist; `EPG_EMPTY_CACHE_SECONDS` (default 120s, or no cache if `0`) when `programme_count` is 0 | Process memory |
 | Device id | Permanent until deleted | `CONFIG_DIR/device.json` |

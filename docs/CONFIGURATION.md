@@ -27,6 +27,7 @@
 | `DRM_DENY_CALL_SIGNS` | no | — | Comma-separated call signs always dropped |
 | `DRM_ALLOW_CALL_SIGNS` | no | — | Comma-separated call signs kept despite skip heuristics |
 | `ADMIN_TOKEN` | no | — | When set, require `Authorization: Bearer <token>` or `X-Admin-Token` on `/admin/drm-scan` (empty = open) |
+| `AUTH_COOLDOWN_SECONDS` | no | `1800` | After a failed Fubo sign-in, skip further password attempts for this many seconds (stops Emby/status poll lockout spirals). `0` = no cool-down |
 
 Credentials must come from **one** of: `config/credentials.env`, `config/credentials.json`, `FUBO_*_FILE`, `FUBO_PASS_B64`, or `FUBO_USER`/`FUBO_PASS`. A credentials file **wins** over environment variables (Portainer-safe). `FUBO_PASS_B64` wins over plain `FUBO_PASS` in the same source.
 
@@ -123,11 +124,12 @@ pull_policy: always
 | `config/credentials.env` | `FUBO_USER=` plus `FUBO_PASS_B64=` (preferred) or `FUBO_PASS=` |
 | `config/credentials.json` | Same secrets as JSON (`python -m app.set_credentials`) |
 | `config/device.json` | Stable Fubo `x-device-id` |
+| `config/session.json` | Persisted bearer session + sign-in cool-down state (gitignored; treat as secret) |
 | `config/drm_skipped.json` | Learned/scanned DRM station ids (+ playable records, `last_scan_at`) excluded from M3U/EPG |
 | `config/drm_overrides.json` | Optional manual allow/deny station ids and call signs (see below) |
 | `config/.gitkeep` | Keeps empty config dir in git |
 
-Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction). Delete `config/drm_skipped.json` only if you want previously learned DRM stations to reappear in the M3U until they fail again.
+Delete `config/device.json` only if you intentionally want a new device identity (may trigger extra sign-in friction). Delete `config/session.json` to force a fresh password sign-in (also clears cool-down). Delete `config/drm_skipped.json` only if you want previously learned DRM stations to reappear in the M3U until they fail again.
 
 ## DRM allow / deny overrides
 

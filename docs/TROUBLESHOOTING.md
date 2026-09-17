@@ -14,6 +14,17 @@ Fubo rejected the email/password the container sent. The bridge is up; auth fail
 
 **Do not wrap the password in quotes** in Portainer. Quotes become part of the value (`'secret'` ≠ `secret`). `$$` in the Portainer UI is also unreliable.
 
+### Recurring every few days (lockout spiral)
+
+From **1.0.10**, the bridge:
+
+1. Persists a valid bearer to `config/session.json` so restarts within the token TTL do **not** force another password login
+2. After any failed sign-in, enters an **auth cool-down** (`AUTH_COOLDOWN_SECONDS`, default 30 minutes) and refuses further password attempts so Emby/Jellyfin/`/status` polls cannot hammer Fubo into a soft lock
+
+If you are mid-cool-down, `/status.json` shows `fubo.auth_cooldown_active` and `auth_cooldown_remaining_seconds`. Wait it out, or delete `config/session.json` only when you intentionally want to retry immediately (after confirming credentials / finishing a password reset).
+
+Password reset clears Fubo-side locks but is **not** the long-term fix — keep one bridge instance and avoid deleting `session.json` on every restart.
+
 ### Portainer — use a credentials file (recommended)
 
 Compose never interpolates files on the `config` volume. Image **1.0.2+** prefers **base64** so `$` cannot be eaten:
@@ -116,7 +127,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.9`+ (`ghcr.io/cbodden/fbtv:latest` or `:dev`) |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.10`+ on `:dev` (`1.0.9`+ on `:latest` until merge) |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
@@ -198,7 +209,7 @@ Each server has its own “simultaneous streams” setting. Cap them so the **su
 
 ## Device / sign-in loops
 
-Delete `config/device.json` only as a last resort, then restart so a new device id is created. Prefer fixing credentials first.
+Prefer fixing credentials and waiting out `AUTH_COOLDOWN_SECONDS` (see `/status.json` → `fubo.auth_cooldown_*`). Delete `config/session.json` only when you intentionally want an immediate password retry after a reset. Delete `config/device.json` only as a last resort, then restart so a new device id is created.
 
 ---
 

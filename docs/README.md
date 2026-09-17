@@ -7,13 +7,13 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 | [../README.md](../README.md) | **Primary guide:** what it does, install (Compose + GHCR), Emby & Jellyfin setup, status/metrics, day-to-day use |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, caching, metrics, DRM scan/overrides, optional `STREAM_PROXY` remux |
-| [CONFIGURATION.md](CONFIGURATION.md) | Env vars, `FUBO_PASS_B64`, `EPG_EMPTY_CACHE_SECONDS`, `STREAM_PROXY*`, `ADMIN_TOKEN`, DRM allow/deny, `DRM_SCAN_*`, Compose GHCR `:latest` / `:dev`, Portainer credentials file |
+| [CONFIGURATION.md](CONFIGURATION.md) | Env vars, `FUBO_PASS_B64`, `AUTH_COOLDOWN_SECONDS`, `EPG_EMPTY_CACHE_SECONDS`, `STREAM_PROXY*`, `ADMIN_TOKEN`, DRM allow/deny, `DRM_SCAN_*`, Compose GHCR `:latest` / `:dev`, Portainer credentials file |
 | [MEDIA_SERVERS.md](MEDIA_SERVERS.md) | Emby & Jellyfin as equal targets; one bridge for both; naming |
 | [EMBY_SETUP.md](EMBY_SETUP.md) | Emby Live TV wiring |
 | [JELLYFIN_SETUP.md](JELLYFIN_SETUP.md) | Jellyfin Live TV wiring |
-| [STATUS.md](STATUS.md) | Status / metrics (`/`, `/status`, `/status.json` warm channels; `/metrics` cache-only; `/health`, `/ready`, `/admin/drm-scan`) |
-| [API.md](API.md) | HTTP endpoints and example payloads (incl. DRM scan admin, `/ready`) |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common failures, status diagnostics, curl checks |
+| [STATUS.md](STATUS.md) | Status / metrics (`/`, `/status`, `/status.json` warm channels; auth session/cool-down fields; `/metrics` cache-only; `/health`, `/ready`, `/admin/drm-scan`) |
+| [API.md](API.md) | HTTP endpoints and example payloads (incl. DRM scan admin, `/ready`, auth cool-down fields) |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common failures, recurring sign-in lockouts, status diagnostics, curl checks |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup and contribution guidelines |
 | [../SECURITY.md](../SECURITY.md) | Credentials and threat model |
 | [../CREDITS.md](../CREDITS.md) | Attribution for prior art and dependencies |
@@ -22,4 +22,4 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 
 ## Version
 
-App version **1.0.9** on `main` / `:latest` (see `CHANGELOG.md`). Pre-release: `:dev` from the `dev` branch.
+App version **1.0.10** on `dev` / `:dev` (session persist + auth cool-down; see `CHANGELOG.md`). Stable **1.0.9** remains on `main` / `:latest` until merge.

@@ -39,6 +39,7 @@ class Settings:
     stream_proxy_max: int
     ffmpeg_path: str
     admin_token: str
+    auth_cooldown_seconds: int
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -216,6 +217,9 @@ def load_settings() -> Settings:
         stream_proxy_max=_env_int("STREAM_PROXY_MAX", 3, minimum=1),
         ffmpeg_path=os.environ.get("FFMPEG_PATH", "ffmpeg").strip() or "ffmpeg",
         admin_token=os.environ.get("ADMIN_TOKEN", "").strip(),
+        # After a failed PUT /signin, skip further password attempts for this long
+        # so Emby/status polls cannot lock the account into a reset cycle.
+        auth_cooldown_seconds=_env_int("AUTH_COOLDOWN_SECONDS", 1800, minimum=0),
     )
     logger.info(
         "Fubo credentials source=%s user=%s pass_len=%d pass_fp=%s "

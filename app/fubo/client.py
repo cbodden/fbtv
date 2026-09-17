@@ -12,12 +12,20 @@ from typing import Any
 
 import httpx
 
-from app.config import Settings
+from app.config import Settings, password_fingerprint
 from app.drm_overrides import load_drm_overrides
 from app.fubo.drm import DrmMixin
 from app.fubo.lineup import LineupMixin
 from app.fubo.models import API_BASE, Channel, FuboError
 from app.fubo.schedule import ScheduleMixin
+from app.fubo.session import (
+    DEFAULT_EXPIRES_IN,
+    apply_signin_failure,
+    apply_signin_success,
+    credentials_match,
+    load_session,
+    save_session,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +34,12 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._lock = Lock()
+        self._pass_fp = password_fingerprint(settings.fubo_pass)[0]
+        self._session = load_session(settings.config_dir)
         self._token: str | None = None
         self._token_at = 0.0
+        self._expires_in = DEFAULT_EXPIRES_IN
+        self._hydrate_token_from_session()
         self._device_id = self._load_device_id()
         self._http = httpx.Client(timeout=30.0, follow_redirects=True)
         self._channels_cache: list[Channel] | None = None
@@ -50,6 +62,34 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
 
     def close(self) -> None:
         self._http.close()
+
+    def _hydrate_token_from_session(self) -> None:
+        session = self._session
+        now = time.time()
+        if not credentials_match(
+            session, user=self.settings.fubo_user, pass_fp=self._pass_fp
+        ):
+            # Credential change: drop prior token but keep cooldown if still active.
+            if session.access_token or session.user or session.pass_fp:
+                logger.info("Auth session credentials changed; clearing persisted token")
+            session.access_token = None
+            session.refresh_token = None
+            session.token_at = 0.0
+            session.user = self.settings.fubo_user
+            session.pass_fp = self._pass_fp
+            self._session = session
+            return
+        if session.token_valid(now):
+            self._token = session.access_token
+            self._token_at = session.token_at
+            self._expires_in = session.expires_in or DEFAULT_EXPIRES_IN
+            logger.info(
+                "Restored Fubo session from disk (ttl_remaining=%ss)",
+                int(session.token_ttl_remaining(now)),
+            )
+
+    def _persist_session(self) -> None:
+        save_session(self.settings.config_dir, self._session)
 
     def _load_device_id(self) -> str:
         path = self.settings.config_dir / "device.json"
@@ -98,10 +138,50 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
             headers["authorization"] = f"Bearer {self._token}"
         return headers
 
+    def _token_still_valid(self, now: float) -> bool:
+        if not self._token:
+            return False
+        ttl = (self._token_at + max(0, self._expires_in)) - now
+        return ttl > 300  # same skew as disk session
+
     def token(self) -> str:
         with self._lock:
-            if self._token and (time.time() - self._token_at) < 4 * 60 * 60:
-                return self._token
+            now = time.time()
+            if self._token_still_valid(now):
+                return self._token  # type: ignore[return-value]
+
+            # Re-check disk in case another process refreshed (rare) or we restarted.
+            disk = load_session(self.settings.config_dir)
+            if credentials_match(
+                disk, user=self.settings.fubo_user, pass_fp=self._pass_fp
+            ) and disk.token_valid(now):
+                self._session = disk
+                self._token = disk.access_token
+                self._token_at = disk.token_at
+                self._expires_in = disk.expires_in or DEFAULT_EXPIRES_IN
+                logger.info(
+                    "Using persisted Fubo session (ttl_remaining=%ss)",
+                    int(disk.token_ttl_remaining(now)),
+                )
+                return self._token  # type: ignore[return-value]
+
+            # Preserve cooldown from disk even when token is gone.
+            if disk.cooldown_until or disk.last_error:
+                self._session.cooldown_until = disk.cooldown_until
+                self._session.last_error = disk.last_error
+                self._session.last_error_at = disk.last_error_at
+
+            if self._session.in_cooldown(now):
+                remaining = self._session.cooldown_remaining(now)
+                detail = self._session.last_error or "previous sign-in failed"
+                logger.warning(
+                    "Sign-in cool-down active (%ss left); not retrying password login (%s)",
+                    remaining,
+                    detail[:160],
+                )
+                raise FuboError(
+                    f"Sign-in cool-down active ({remaining}s left): {detail}"
+                )
 
             body = json.dumps(
                 {"email": self.settings.fubo_user, "password": self.settings.fubo_pass},
@@ -113,24 +193,47 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
                 headers=self._headers(authorized=False),
             )
             if response.status_code != 200:
+                err_text = response.text
                 logger.warning(
-                    "Sign-in rejected (%s) user=%s pass_len=%s source=%s",
+                    "Sign-in rejected (%s) user=%s pass_len=%s source=%s; "
+                    "starting %ss cool-down",
                     response.status_code,
                     self.settings.fubo_user,
                     len(self.settings.fubo_pass),
                     self.settings.credentials_source,
+                    self.settings.auth_cooldown_seconds,
                 )
-                raise FuboError(f"Sign-in failed ({response.status_code}): {response.text}")
+                self._session = apply_signin_failure(
+                    self._session,
+                    error=f"{response.status_code}: {err_text}",
+                    now=now,
+                    cooldown_seconds=self.settings.auth_cooldown_seconds,
+                )
+                self._token = None
+                self._token_at = 0.0
+                self._persist_session()
+                raise FuboError(f"Sign-in failed ({response.status_code}): {err_text}")
 
             payload = response.json()
-            token = payload.get("access_token")
-            if not token:
+            if not isinstance(payload, dict) or not payload.get("access_token"):
                 raise FuboError("Sign-in response missing access_token")
 
-            self._token = token
-            self._token_at = time.time()
-            logger.info("Signed in to Fubo")
-            return token
+            self._session = apply_signin_success(
+                self._session,
+                payload=payload,
+                user=self.settings.fubo_user,
+                pass_fp=self._pass_fp,
+                now=now,
+            )
+            self._token = self._session.access_token
+            self._token_at = self._session.token_at
+            self._expires_in = self._session.expires_in
+            self._persist_session()
+            logger.info(
+                "Signed in to Fubo (expires_in=%ss, session persisted)",
+                self._expires_in,
+            )
+            return self._token  # type: ignore[return-value]
 
     def api_get(
         self,
@@ -151,7 +254,6 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
             raise FuboError(f"GET {path} failed ({response.status_code}): {response.text[:500]}")
         return response.json()
 
-
     def runtime_stats(self) -> dict[str, Any]:
         with self._lock:
             now = time.time()
@@ -159,16 +261,24 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
             token_ttl: int | None = None
             if self._token:
                 token_age = max(0, int(now - self._token_at))
-                token_ttl = max(0, int(4 * 60 * 60 - (now - self._token_at)))
+                token_ttl = max(
+                    0, int((self._token_at + max(0, self._expires_in)) - now)
+                )
             channels_age: int | None = None
             channel_count: int | None = None
             if self._channels_cache is not None:
                 channel_count = len(self._channels_cache)
                 channels_age = max(0, int(now - self._channels_cache_at))
+            cooldown_remaining = self._session.cooldown_remaining(now)
             return {
                 "signed_in": bool(self._token),
                 "token_age_seconds": token_age,
                 "token_ttl_remaining_seconds": token_ttl,
+                "session_persisted": bool(self._session.access_token),
+                "auth_cooldown_active": cooldown_remaining > 0,
+                "auth_cooldown_remaining_seconds": cooldown_remaining or None,
+                "auth_last_error": self._session.last_error,
+                "auth_cooldown_seconds": self.settings.auth_cooldown_seconds,
                 "channel_count": channel_count,
                 "channels_cache_age_seconds": channels_age,
                 "channels_source": self._channels_source,
@@ -224,4 +334,3 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
         if not url:
             raise FuboError("Stream response missing URL")
         return url
-

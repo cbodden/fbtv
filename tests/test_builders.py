@@ -32,6 +32,7 @@ def _settings(config_dir: Path) -> Settings:
         stream_proxy_max=3,
         ffmpeg_path="ffmpeg",
         admin_token="",
+        auth_cooldown_seconds=1800,
     )
 
 

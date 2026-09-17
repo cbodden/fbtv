@@ -8,7 +8,7 @@ This bridge (**fbtv**) is not an Emby .NET plugin. Emby and Jellyfin are equal c
 
 1. Bridge is running and reachable from the Emby Server host
 2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`; `/ready` returns `{"status":"ready"}` when credentials are configured
-3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts (status endpoints warm the lineup) — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
+3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `session_persisted` / `auth_cooldown_*` / `credentials_source` / channel counts (status endpoints warm the lineup) — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` and check cool-down — [CONFIGURATION.md](CONFIGURATION.md) / [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
 5. Prefer **same machine or same public egress IP** for Emby and the bridge
 
@@ -45,11 +45,11 @@ Fubo’s private schedule APIs have been unreliable (many paths 404). **Until br
 
 ### Optional: bridge XMLTV
 
-You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:latest` (**1.0.9+**) or `:dev` for pre-release. Check after a refresh:
+You may still add **XMLTV** → `http://<bridge-host>:7777/epg.xml` for call-sign identity. From **1.0.4**, the bridge prefers `/epg` (parsed as `channelWithProgramAssets`; live field logs showed **200** here while many other schedule URLs **404**), then `papi/v1/guide/epg`. Prefer `ghcr.io/cbodden/fbtv:dev` while testing **1.0.10** (session persist + auth cool-down), or `:latest` (**1.0.9+**) from `main`. Check after a refresh:
 
 ```bash
-curl -sS http://<bridge-host>:7777/health          # 1.0.9+ fubo package / pytest era; 1.0.8+ hygiene / ready / admin token
-curl -sS http://<bridge-host>:7777/status.json      # epg.programme_count
+curl -sS http://<bridge-host>:7777/health          # 1.0.10+ on :dev; 1.0.9+ on :latest
+curl -sS http://<bridge-host>:7777/status.json      # epg.programme_count; fubo.session_persisted / auth_cooldown_*
 curl -sS http://<bridge-host>:7777/epg.xml | grep -c '<programme'
 # "Loaded N programmes" appears in container logs, not in the XML body
 ```

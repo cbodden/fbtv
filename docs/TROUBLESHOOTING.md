@@ -159,6 +159,7 @@ Workarounds:
 - Lower `EPG_EMPTY_CACHE_SECONDS` (default 120) or set it to `0` so a stale empty body is not reused; `EPG_CACHE_SECONDS` only applies when programmes were mapped
 - Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
 - Remember: `"Loaded N programmes"` appears in **container logs**, not inside the XML body
+- **Low-memory hosts (1.0.10 and earlier):** the single ~49h `/epg` request could push the bridge past ~650 MB and get it OOM-killed mid-build. Check `docker inspect fbtv --format '{{.State.OOMKilled}} {{.RestartCount}}'`. Newer builds fetch `/epg` in 6h chunks (~250 MB peak); lowering `EPG_DAYS` also reduces memory
 
 ---
 

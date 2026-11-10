@@ -80,7 +80,7 @@ Fubo often binds stream URLs to the **requester’s public IP**. Prefer shared e
 ## Guide path
 
 1. Emby and/or Jellyfin fetch `/epg.xml`
-2. Bridge loads channels, then probes authenticated schedule endpoints — **primary:** `/epg` (`channelWithProgramAssets`), then chunked `papi/v1/guide/epg`, then older bulk/sample paths
+2. Bridge loads channels, then probes authenticated schedule endpoints — **primary:** `/epg` (`channelWithProgramAssets`) in 6-hour chunks, then chunked `papi/v1/guide/epg`, then older bulk/sample paths
 3. Listings are mapped to playlist `tvg-id` (= Fubo call sign)
 4. Result is cached for `EPG_CACHE_SECONDS`, or `EPG_EMPTY_CACHE_SECONDS` when no programmes mapped
 5. If no schedule payload is found, XMLTV still contains `<channel>` entries so mapping can proceed

@@ -17,7 +17,7 @@
 | `DRM_SCAN_ON_START` | no | `true` | Run a background DRM asset sweep after startup (skipped if last full scan is fresh) |
 | `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep low — Fubo returns **429** when pressed) |
 | `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes (global pace lock) |
-| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is newer than this (0 = always scan) |
+| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is newer than this, and re-check learned DRM stations whose last check is older than this (0 = always scan and re-check) |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan interval (0 = disabled) |
 | `STREAM_PROXY` | no | `false` | When `true`, GET `/watch/{id}` remuxes Fubo HLS to MPEG-TS via ffmpeg (for split-egress). Default keeps HTTP 302 |
 | `STREAM_PROXY_MAX` | no | `3` | Max concurrent ffmpeg remux processes; further tunes return `503` |

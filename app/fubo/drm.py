@@ -16,6 +16,21 @@ from app.fubo.models import Channel, FuboError
 logger = logging.getLogger(__name__)
 
 
+def _parse_iso_ts(raw: Any) -> float | None:
+    """Epoch seconds from a number or ISO-8601 string (``Z`` allowed); else None."""
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    if isinstance(raw, str) and raw.strip():
+        text = raw.strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(text).timestamp()
+        except ValueError:
+            return None
+    return None
+
+
 class DrmMixin:
     def _drm_skipped_path(self) -> Path:
         return self.settings.config_dir / "drm_skipped.json"
@@ -36,19 +51,6 @@ class DrmMixin:
         updated_at: float | None = None
         last_scan_at: float | None = None
 
-        def _parse_ts(raw: Any) -> float | None:
-            if isinstance(raw, (int, float)):
-                return float(raw)
-            if isinstance(raw, str) and raw.strip():
-                try:
-                    text = raw.strip()
-                    if text.endswith("Z"):
-                        text = text[:-1] + "+00:00"
-                    return datetime.fromisoformat(text).timestamp()
-                except ValueError:
-                    return None
-            return None
-
         if isinstance(data, list):
             learned = {str(item) for item in data if item}
         elif isinstance(data, dict):
@@ -65,8 +67,8 @@ class DrmMixin:
                 for sid, meta in raw_playable.items():
                     if isinstance(meta, dict):
                         playable[str(sid)] = dict(meta)
-            updated_at = _parse_ts(data.get("updated_at"))
-            last_scan_at = _parse_ts(data.get("last_scan_at"))
+            updated_at = _parse_iso_ts(data.get("updated_at"))
+            last_scan_at = _parse_iso_ts(data.get("last_scan_at"))
         else:
             return
 
@@ -211,6 +213,18 @@ class DrmMixin:
                 logger.info("Station %s reclassified as playable via=%s", sid, via)
                 self._channels_cache = None
 
+    def _drm_recheck_due(self, station_id: str, *, now: float) -> bool:
+        """True unless the station is learned-DRM and was checked within max age."""
+        sid = str(station_id)
+        with self._lock:
+            if sid not in self._drm_learned_ids:
+                return True
+            checked = _parse_iso_ts((self._drm_records.get(sid) or {}).get("checked_at"))
+        max_age_h = self.settings.drm_scan_max_age_hours
+        if max_age_h <= 0 or checked is None:
+            return True
+        return (now - checked) >= max_age_h * 3600
+
     def drm_scan_is_fresh(self) -> bool:
         max_age_h = self.settings.drm_scan_max_age_hours
         if max_age_h <= 0:
@@ -306,14 +320,23 @@ class DrmMixin:
                 )
                 return result
 
-            # Lineup without learned filter so we can re-check prior DRM ids when forced.
-            channels = self._lineup_channels(include_learned_drm=force)
-            if not channels and force:
-                channels = self._lineup_channels(include_learned_drm=True)
+            # Fubo turns DRM on and off per channel over time (e.g. BTN went from
+            # DRM to clear between sweeps), so learned DRM stations are re-probed
+            # once their last check is older than DRM_SCAN_MAX_AGE_HOURS. Forced
+            # scans re-probe every learned station.
+            channels = self._lineup_channels(include_learned_drm=True)
+            if not force:
+                channels = [ch for ch in channels if self._drm_recheck_due(ch.id, now=started)]
+            with self._lock:
+                learned_now = set(self._drm_learned_ids)
+            rechecking = sum(1 for ch in channels if ch.id in learned_now)
+            result["rechecked_drm"] = rechecking
             delay_s = max(0.0, self.settings.drm_scan_delay_ms / 1000.0)
             logger.info(
-                "DRM scan starting (%s stations, concurrency=%s, delay_ms=%s, force=%s)",
+                "DRM scan starting (%s stations incl. %s learned-DRM re-checks, "
+                "concurrency=%s, delay_ms=%s, force=%s)",
                 len(channels),
+                rechecking,
                 self.settings.drm_scan_concurrency,
                 self.settings.drm_scan_delay_ms,
                 force,

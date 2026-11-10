@@ -26,12 +26,12 @@ Short-lived project state for the current effort. Agents and humans should **upd
 - Fubo web guide uses `papi/v1/guide/epg` in 5h windows
 - Live `schedule()` (sign-in stubbed): one 49h `/epg` call = ~80 MB JSON, **645 MB** peak RSS; 6h chunks = **245 MB**, same 3,963 programmes on 83/85 channels
 - Local `session.json` last sign-in: `401 INVALID_USERNAME_PASSWORD` (Sep 17)
+- DRM header test (8 stations, user's web session): without `x-drm-scheme: widevine`, DRM channels → HTTP 400 (no clear fallback); clear channels unchanged. DRM status drifts: BTN learned DRM 2026-08-13 is clear now, BTN2 went DRM. Fix: scheduled sweeps re-check stale learned DRM (`fix/drm-recheck`)
 
 ---
 
 ## Backlog
 
-- **DRM sweep:** 2026-08-13 local scan learned 296 DRM vs 85 playable (incl. BTN, CBSSN, BET). Test whether `x-drm-scheme: widevine` makes Fubo serve DRM variants; learned ids are only re-checked with `force=true`
 - `token()` holds the shared lock during network sign-in (status/metrics can stall up to 30s)
 
 ---

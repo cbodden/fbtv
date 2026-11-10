@@ -130,7 +130,7 @@ When `ADMIN_TOKEN` is set, send `Authorization: Bearer <token>` or `X-Admin-Toke
 
 ## `POST /admin/drm-scan`
 
-Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded. Same optional `ADMIN_TOKEN` auth as GET.
+Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check every previously learned station (scheduled sweeps re-check learned stations only once their last check is older than `DRM_SCAN_MAX_AGE_HOURS`). Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded. Same optional `ADMIN_TOKEN` auth as GET.
 
 **Response:** `200 application/json` with `{"status":"started",...}`
 

@@ -26,7 +26,7 @@ class ScheduleMixin:
             if not text:
                 return None
             if text.isdigit():
-                return FuboClient._parse_dt(int(text))
+                return ScheduleMixin._parse_dt(int(text))
             try:
                 if text.endswith("Z"):
                     text = text[:-1] + "+00:00"

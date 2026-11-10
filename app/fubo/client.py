@@ -22,12 +22,16 @@ from app.fubo.session import (
     DEFAULT_EXPIRES_IN,
     apply_signin_failure,
     apply_signin_success,
+    clear_access_token,
     credentials_match,
     load_session,
     save_session,
 )
 
 logger = logging.getLogger(__name__)
+
+# A token this fresh that still gets 401 isn't stale; don't re-sign-in for it.
+REAUTH_MIN_TOKEN_AGE_SECONDS = 300
 
 
 class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
@@ -187,11 +191,15 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
                 {"email": self.settings.fubo_user, "password": self.settings.fubo_pass},
                 ensure_ascii=False,
             ).encode("utf-8")
-            response = self._http.put(
-                f"{API_BASE}/signin",
-                content=body,
-                headers=self._headers(authorized=False),
-            )
+            try:
+                response = self._http.put(
+                    f"{API_BASE}/signin",
+                    content=body,
+                    headers=self._headers(authorized=False),
+                )
+            except httpx.HTTPError as exc:
+                # Transport failure: Fubo never judged the password, so no cool-down.
+                raise FuboError(f"Sign-in request failed: {exc}") from exc
             if response.status_code != 200:
                 err_text = response.text
                 logger.warning(
@@ -214,8 +222,27 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
                 self._persist_session()
                 raise FuboError(f"Sign-in failed ({response.status_code}): {err_text}")
 
-            payload = response.json()
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = None
             if not isinstance(payload, dict) or not payload.get("access_token"):
+                # Fubo accepted the request but gave no usable token. Cool down
+                # like any other failed sign-in so polls can't hammer /signin.
+                error = "200: sign-in response missing access_token"
+                logger.warning(
+                    "Sign-in returned no access_token; starting %ss cool-down",
+                    self.settings.auth_cooldown_seconds,
+                )
+                self._session = apply_signin_failure(
+                    self._session,
+                    error=error,
+                    now=now,
+                    cooldown_seconds=self.settings.auth_cooldown_seconds,
+                )
+                self._token = None
+                self._token_at = 0.0
+                self._persist_session()
                 raise FuboError("Sign-in response missing access_token")
 
             self._session = apply_signin_success(
@@ -242,17 +269,58 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
         *,
         timeout: float | None = None,
     ) -> Any:
-        self.token()
-        url = f"{API_BASE}/{path.lstrip('/')}"
-        response = self._http.get(
-            url,
-            headers=self._headers(),
-            params=params,
-            timeout=timeout if timeout is not None else self._http.timeout,
-        )
+        response = self._get(path, params=params, timeout=timeout)
+        if response.status_code == 401 and self._invalidate_token(_request_of(response)):
+            # Token revoked before its TTL: sign in once (cool-down still applies).
+            response = self._get(path, params=params, timeout=timeout)
         if response.status_code != 200:
             raise FuboError(f"GET {path} failed ({response.status_code}): {response.text[:500]}")
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise FuboError(f"GET {path} returned invalid JSON: {exc}") from exc
+
+    def _get(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None,
+        timeout: float | None,
+    ) -> httpx.Response:
+        self.token()
+        url = f"{API_BASE}/{path.lstrip('/')}"
+        try:
+            return self._http.get(
+                url,
+                headers=self._headers(),
+                params=params,
+                timeout=timeout if timeout is not None else self._http.timeout,
+            )
+        except httpx.HTTPError as exc:
+            raise FuboError(f"GET {path} request failed: {exc}") from exc
+
+    def _invalidate_token(self, request: httpx.Request | None) -> bool:
+        """Drop a bearer that Fubo rejected with 401. Returns True if a retry makes sense.
+
+        Only tokens older than ``REAUTH_MIN_TOKEN_AGE_SECONDS`` are dropped, so an
+        endpoint that 401s for reasons other than a stale token can trigger at most
+        one password sign-in per that interval.
+        """
+        sent = request.headers.get("authorization", "") if request is not None else ""
+        with self._lock:
+            if not self._token:
+                return False
+            if sent and sent != f"Bearer {self._token}":
+                # Another thread already replaced the token; just retry with it.
+                return True
+            if time.time() - self._token_at < REAUTH_MIN_TOKEN_AGE_SECONDS:
+                return False
+            logger.warning("Fubo rejected the bearer token (401); signing in again")
+            self._token = None
+            self._token_at = 0.0
+            clear_access_token(self._session)
+            self._persist_session()
+            return True
 
     def runtime_stats(self) -> dict[str, Any]:
         with self._lock:
@@ -334,3 +402,10 @@ class FuboClient(DrmMixin, LineupMixin, ScheduleMixin):
         if not url:
             raise FuboError("Stream response missing URL")
         return url
+
+
+def _request_of(response: httpx.Response) -> httpx.Request | None:
+    try:
+        return response.request
+    except RuntimeError:  # Response built without a request (tests / mocks)
+        return None

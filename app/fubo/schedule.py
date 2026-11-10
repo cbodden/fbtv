@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -12,6 +14,62 @@ logger = logging.getLogger(__name__)
 
 # Window per /epg request. Fubo's own clients page the guide in 5-6h windows.
 EPG_CHUNK_HOURS = 6
+
+# An older listing trimmed around newer ones is kept only if this much remains.
+MIN_TRIMMED_PROGRAMME = timedelta(minutes=5)
+
+_ASSET_REVISION = re.compile(r"(\d+)$")
+
+
+def _asset_revision(asset_id: Any) -> int:
+    match = _ASSET_REVISION.search(str(asset_id or ""))
+    return int(match.group(1)) if match else 0
+
+
+def resolve_overlaps(programmes: list[Programme]) -> list[Programme]:
+    """Return one non-overlapping timeline per channel, sorted by channel + start.
+
+    Fubo's ``/epg`` can carry two versions of a channel's schedule in a single
+    response (e.g. stale "Paid Programming" placeholders under the real shows, or
+    the same episodes re-published a few seconds off). XMLTV consumers render
+    those as overlapping or doubled guide cells. Newer listings (higher
+    ``revision``) win; an older listing is trimmed to its longest stretch not
+    covered by a newer one, or dropped if less than ``MIN_TRIMMED_PROGRAMME``
+    would remain. Exact repeats (same channel/start/title, e.g. the same airing
+    returned by two chunks) collapse to one.
+    """
+    by_channel: dict[str, dict[tuple[datetime, str], Programme]] = {}
+    for prog in programmes:
+        if prog.stop <= prog.start:
+            continue
+        slot = by_channel.setdefault(prog.channel_id, {})
+        key = (prog.start, prog.title)
+        if key not in slot or prog.revision > slot[key].revision:
+            slot[key] = prog
+
+    result: list[Programme] = []
+    for channel_id in sorted(by_channel):
+        placed: list[Programme] = []
+        # Newest first; ties keep the earlier start (stable, deterministic).
+        for prog in sorted(by_channel[channel_id].values(), key=lambda p: (-p.revision, p.start)):
+            free = [(prog.start, prog.stop)]
+            for other in placed:
+                free = [
+                    piece
+                    for lo, hi in free
+                    for piece in ((lo, min(hi, other.start)), (max(lo, other.stop), hi))
+                    if piece[1] > piece[0]
+                ]
+            if not free:
+                continue
+            lo, hi = max(free, key=lambda span: span[1] - span[0])
+            if (lo, hi) != (prog.start, prog.stop):
+                if hi - lo < MIN_TRIMMED_PROGRAMME:
+                    continue
+                prog = replace(prog, start=lo, stop=hi)
+            placed.append(prog)
+        result.extend(sorted(placed, key=lambda p: p.start))
+    return result
 
 
 class ScheduleMixin:
@@ -320,6 +378,7 @@ class ScheduleMixin:
                         stop=stop,
                         description=str(desc) if desc else None,
                         categories=categories,
+                        revision=_asset_revision(asset.get("assetId")),
                     )
                 )
 
@@ -713,13 +772,7 @@ class ScheduleMixin:
                         programmes.extend(found)
                         source = path
 
-        # De-dupe by channel + start + title
-        unique: dict[tuple[str, str, str], Programme] = {}
-        for prog in programmes:
-            key = (prog.channel_id, prog.start.isoformat(), prog.title)
-            unique[key] = prog
-
-        result = sorted(unique.values(), key=lambda p: (p.channel_id, p.start))
+        result = resolve_overlaps(programmes)
         if result:
             logger.info(
                 "EPG schedule complete: %s programmes (source=%s)",

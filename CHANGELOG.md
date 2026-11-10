@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Overlapping guide entries on one channel. Fubo's `/epg` can carry two versions of a channel's schedule in one response (stale "Paid Programming" placeholders under the real shows on AMTEVE; FUBOCRM episodes re-published a few seconds off), which Emby/Jellyfin showed as doubled or overlapping cells. Each channel now gets a single timeline: the newer listing (higher `LIVE_<n>` asset id) wins, an older one is trimmed to the time it doesn't share, or dropped if under 5 minutes would remain. Live check: 258 overlapping pairs → 0; only the two affected channels change
+
 ## [1.0.11] - 2026-11-10
 
 ### Changed

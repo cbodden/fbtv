@@ -5,10 +5,11 @@ Public repository: [cbodden/fbtv](https://github.com/cbodden/fbtv). Treat the tr
 ## Credentials
 
 - Store Fubo credentials in `config/credentials.env` (`FUBO_PASS_B64` preferred), `config/credentials.json`, process env, or a local-Python `.env` — never in the image
-- Never commit `.env`, `config/credentials.*`, `config/device.json`, `config/drm_skipped.json`, `config/drm_overrides.json` (if it encodes your private lineup choices), or logs containing access tokens
+- Never commit `.env`, `config/credentials.*`, `config/device.json`, `config/session.json`, `config/drm_skipped.json`, `config/drm_overrides.json` (if it encodes your private lineup choices), or logs containing access tokens
 - `.gitignore` excludes `.env` and `config/` runtime files (keeps `config/.gitkeep`)
 - Compose does **not** use `env_file`; Portainer should use the credentials file (base64 the password if it contains `$`)
 - Logs may include `pass_fp` (SHA-256 prefix) and `pass_len`, never the password itself
+- Bearer tokens may be written to `config/session.json` (gitignored); protect the config volume like credentials
 
 ## Threat model (personal LAN tool)
 
@@ -18,7 +19,7 @@ This bridge is intended for a trusted home network:
 | --- | --- |
 | Credential leakage via git | Prefer `config/credentials.env` on the volume (gitignored); never commit secrets (repo is public) |
 | Open HTTP on the LAN | Bind to trusted interfaces; put behind a reverse proxy / VPN if exposed remotely |
-| Token theft from memory/logs | Tokens live in process memory only; avoid debug-logging Authorization headers |
+| Token theft from memory/logs | Tokens live in process memory and optionally `config/session.json`; avoid debug-logging Authorization headers; protect the config volume |
 | Status / metrics exposure | `/`, `/status`, `/status.json`, `/metrics` are unauthenticated and show operational counts (not passwords or bearer tokens); `/admin/drm-scan` is open unless `ADMIN_TOKEN` is set — do not expose them on the public internet without additional controls |
 | Admin DRM scan | Set `ADMIN_TOKEN` and call with `Authorization: Bearer …` or `X-Admin-Token` if the bridge is reachable beyond a trusted LAN |
 | Unofficial API breakage | Treat as best-effort; pin your own deploy and watch Fubo client changes |

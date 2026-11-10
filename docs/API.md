@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -38,6 +38,11 @@ Machine-readable JSON status (same payload as the HTML page).
     "signed_in": true,
     "token_age_seconds": 30,
     "token_ttl_remaining_seconds": 14370,
+    "session_persisted": true,
+    "auth_cooldown_active": false,
+    "auth_cooldown_remaining_seconds": null,
+    "auth_last_error": null,
+    "auth_cooldown_seconds": 1800,
     "channel_count": 198,
     "channels_cache_age_seconds": 20,
     "channels_source": "subscriptions",
@@ -79,7 +84,7 @@ Machine-readable JSON status (same payload as the HTML page).
 }
 ```
 
-Channel / DRM fields on `/`, `/status`, and `/status.json` warm the channel lineup when needed. `/metrics` is cache-only. EPG programme counts still need `/epg.xml` (or a prior build).
+Channel / DRM fields on `/`, `/status`, and `/status.json` warm the channel lineup when needed. `/metrics` is cache-only. EPG programme counts still need `/epg.xml` (or a prior build). From **1.0.10**, `fubo.session_persisted` / `auth_cooldown_*` / `auth_last_error` report persisted bearer state and sign-in cool-down (no tokens or passwords in the payload).
 
 ## `GET /metrics`
 
@@ -138,7 +143,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.9"}
+{"status": "ok", "version": "1.0.10"}
 ```
 
 ## `GET /ready`
@@ -148,7 +153,7 @@ Readiness probe: returns **200** when Fubo credentials can be resolved from the 
 **Response:** `200 application/json`
 
 ```json
-{"status": "ready", "version": "1.0.9"}
+{"status": "ready", "version": "1.0.10"}
 ```
 
 **Errors:** `503` with `{"status":"not_ready","reason":"missing_credentials"}` or `not_initialized`.

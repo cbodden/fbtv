@@ -8,7 +8,7 @@ This bridge (**fbtv**) is not a Jellyfin plugin. Jellyfin and Emby are equal con
 
 1. Bridge is running and reachable from the **Jellyfin Server** host
 2. `http://<bridge-host>:7777/health` returns `{"status":"ok"}`; `/ready` returns `{"status":"ready"}` when credentials are configured
-3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `credentials_source` / channel counts (status endpoints warm the lineup) — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` — [CONFIGURATION.md](CONFIGURATION.md).
+3. Optional: `http://<bridge-host>:7777/status.json` shows `fubo.signed_in` / `session_persisted` / `auth_cooldown_*` / `credentials_source` / channel counts (status endpoints warm the lineup) — see [STATUS.md](STATUS.md). If sign-in fails, use `FUBO_PASS_B64` and check cool-down — [CONFIGURATION.md](CONFIGURATION.md) / [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 4. `http://<bridge-host>:7777/playlist.m3u` downloads a non-empty playlist
 5. Prefer **same machine or same public egress IP** for Jellyfin and the bridge
 

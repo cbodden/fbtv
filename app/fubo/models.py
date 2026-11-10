@@ -39,6 +39,9 @@ class Programme:
     stop: datetime
     description: str | None = None
     categories: list[str] = field(default_factory=list)
+    # Publish order of the Fubo listing (numeric part of ``LIVE_<n>`` asset ids;
+    # higher = newer). Used to pick a winner when listings overlap. 0 = unknown.
+    revision: int = 0
 
 
 class FuboError(Exception):

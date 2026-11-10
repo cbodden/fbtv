@@ -11,7 +11,7 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Resume here (this session)
 
-**1.0.12** shipped (PR #8 overlap fix, PR #9 release; tag `v1.0.12` + GitHub release). 1.0.11 = chunked `/epg` (PR #6/#7); 1.0.10 = session persist + client hardening (PR #4/#5).
+**1.0.13** shipped (PR #10 DRM re-checks, PR #11 release; tag `v1.0.13` + GitHub release). 1.0.12 = overlap-free guide (PR #8/#9). 1.0.11 = chunked `/epg` (PR #6/#7); 1.0.10 = session persist + client hardening (PR #4/#5).
 
 ### Next actions
 1. Get from the deployed host: `docker inspect fbtv --format 'oom={{.State.OOMKilled}} restarts={{.RestartCount}} memlimit={{.HostConfig.Memory}}'` and `/status.json` auth + `epg.programme_count` to confirm OOM vs sign-in as the field cause

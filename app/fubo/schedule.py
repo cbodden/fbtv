@@ -10,6 +10,9 @@ from app.fubo.models import Channel, FuboError, Programme
 
 logger = logging.getLogger(__name__)
 
+# Window per /epg request. Fubo's own clients page the guide in 5-6h windows.
+EPG_CHUNK_HOURS = 6
+
 
 class ScheduleMixin:
     @staticmethod
@@ -133,7 +136,7 @@ class ScheduleMixin:
         start: datetime,
         end: datetime,
         *,
-        chunk_hours: int = 6,
+        chunk_hours: int = EPG_CHUNK_HOURS,
     ) -> list[dict[str, Any]]:
         """Fetch and merge ``papi/v1/guide/epg`` channel-cells across time chunks."""
         channels_by_id: dict[str, dict[str, Any]] = {}
@@ -357,44 +360,61 @@ class ScheduleMixin:
         start: datetime,
         end: datetime,
         channels_by_id: dict[str, Channel],
+        *,
+        chunk_hours: int = EPG_CHUNK_HOURS,
     ) -> list[Programme]:
-        """Fetch listings from ``/epg`` (optionally enriched). Known live 200 path."""
-        start_str = start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        end_str = end.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        attempts: list[tuple[str, dict[str, Any]]] = [
-            (
-                "epg?enrichments=follow",
-                {
-                    "startTime": start_str,
-                    "endTime": end_str,
-                    "enrichments": "follow",
-                },
-            ),
-            (
-                "epg",
-                {
-                    "startTime": start_str,
-                    "endTime": end_str,
-                },
-            ),
-        ]
-        for label, params in attempts:
-            try:
-                payload = self.api_get("epg", params=params, timeout=120.0)
-            except FuboError as exc:
-                logger.info("EPG endpoint %s unavailable: %s", label, exc)
-                continue
-            found = self._programmes_from_epg_assets(payload, channels_by_id)
-            if found:
-                logger.info("Loaded %s programmes from %s", len(found), label)
-                return found
-            response_len = len((payload or {}).get("response") or []) if isinstance(payload, dict) else 0
+        """Fetch listings from ``/epg`` one time window at a time.
+
+        A single 49h ``/epg`` response is ~80 MB of JSON (~650 MB peak RSS once
+        parsed), enough to get the bridge OOM-killed on small hosts. Each chunk is
+        parsed and dropped before the next is fetched. Programmes spanning a chunk
+        boundary appear in both chunks; ``schedule()`` de-duplicates them.
+        """
+        programmes: list[Programme] = []
+        current = start.astimezone(timezone.utc)
+        end_utc = end.astimezone(timezone.utc)
+        chunks = ok_chunks = 0
+
+        while current < end_utc:
+            chunk_end = min(current + timedelta(hours=chunk_hours), end_utc)
+            start_str = current.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            end_str = chunk_end.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            chunks += 1
+            # Enriched first (descriptions/genres); plain /epg if that call fails.
+            for label, extra in (("epg?enrichments=follow", {"enrichments": "follow"}), ("epg", {})):
+                try:
+                    payload = self.api_get(
+                        "epg",
+                        params={"startTime": start_str, "endTime": end_str, **extra},
+                        timeout=120.0,
+                    )
+                except FuboError as exc:
+                    logger.info(
+                        "EPG endpoint %s unavailable (%s → %s): %s", label, start_str, end_str, exc
+                    )
+                    continue
+                found = self._programmes_from_epg_assets(payload, channels_by_id)
+                del payload
+                ok_chunks += 1
+                programmes.extend(found)
+                break
+            current = chunk_end
+
+        if programmes:
             logger.info(
-                "EPG endpoint %s responded (response rows=%s) but mapped 0 programmes",
-                label,
-                response_len,
+                "Loaded %s programmes from epg (%s/%s chunks of %sh)",
+                len(programmes),
+                ok_chunks,
+                chunks,
+                chunk_hours,
             )
-        return []
+        else:
+            logger.info(
+                "EPG endpoint epg mapped 0 programmes (%s/%s chunks responded)",
+                ok_chunks,
+                chunks,
+            )
+        return programmes
 
     def _fetch_epg_enrichment(
         self,

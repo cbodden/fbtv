@@ -2,34 +2,44 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-11-10  
-**Active version:** 1.0.10  
-**Phase:** 1.0.10 release to `main`  
-**Git:** `release/1.0.10` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
+**Last updated:** 2026-11-10 (v1.0.11 release to `main`)  
+**Active version:** 1.0.11  
+**Phase:** Release 1.0.11  
+**Git:** `release/1.0.11` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
 
 ---
 
 ## Resume here (this session)
 
-**1.0.10** on `dev`: session persist (`config/session.json`) + `AUTH_COOLDOWN_SECONDS` cool-down; docs aligned; tests green.
+**1.0.10** shipped (PR #4 client hardening, PR #5 release). Tag `v1.0.10` + GitHub release published.
 
 ### Next actions
-1. Deploy `:dev` after push; confirm `/status.json` auth fields after a successful sign-in
-2. One clean sign-in after any remaining lockout (reset once if needed), then leave `session.json` alone
-3. Optional: `DRM_SCAN_ON_START=false` until first successful session is stable
-4. Merge to `main` when ready for `:latest`
+1. Get from the deployed host: `docker inspect fbtv --format 'oom={{.State.OOMKilled}} restarts={{.RestartCount}} memlimit={{.HostConfig.Memory}}'` and `/status.json` auth + `epg.programme_count` to confirm OOM vs sign-in as the field cause
+2. After 1.0.11 is on `:latest`, re-check the guide on the host
+
+---
+
+## Field notes (2026-11-10, browser + live probe)
+
+- Parser is **not** the bug: live `/epg` and `papi/v1/guide/epg` responses match fbtv's parsers; station ids join the lineup (e.g. `16689` = WCBS)
+- Both guide endpoints answer **anonymously** with fbtv's android_tv headers; without device headers `papi` returns 528 `cannot MatchDevicePageManagerWithDeviceAgent`
+- Fubo web guide uses `papi/v1/guide/epg` in 5h windows
+- Live `schedule()` (sign-in stubbed): one 49h `/epg` call = ~80 MB JSON, **645 MB** peak RSS; 6h chunks = **245 MB**, same 3,963 programmes on 83/85 channels
+- Local `session.json` last sign-in: `401 INVALID_USERNAME_PASSWORD` (Sep 17)
 
 ---
 
 ## Backlog
 
-_(None beyond merge 1.0.10 to main when ready.)_
+- Overlapping same-start programmes on one channel (e.g. AMTEVE 14:00 ×2) survive de-dupe because the key includes the title → overlapping XMLTV entries
+- **DRM sweep:** 2026-08-13 local scan learned 296 DRM vs 85 playable (incl. BTN, CBSSN, BET). Test whether `x-drm-scheme: widevine` makes Fubo serve DRM variants; learned ids are only re-checked with `force=true`
+- `token()` holds the shared lock during network sign-in (status/metrics can stall up to 30s)
 
 ---
 
 ## Current focus
 
-- Auth session persistence + cool-down on `dev`.
+- Empty guide: chunked `/epg` to fix memory; confirm field cause (OOM vs sign-in).
 
 ## Scratch
 

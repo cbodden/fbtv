@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-11-10
+
+### Changed
+
+- Image/app version **1.0.11**
+- `/epg` guide listings are fetched in **6-hour chunks** (parsed and released one at a time) instead of one ~49h request. The single request was ~80 MB of JSON and peaked around **650 MB** RSS while building the guide, enough to get the bridge OOM-killed on small hosts and leave XMLTV channel-only; chunked builds peak around **250 MB** with the same programmes. A failed chunk is skipped (enriched call first, plain `/epg` fallback) instead of failing the whole guide
+
+### Added
+
+- Real-shape `/epg` test fixture (`tests/fixtures/epg_assets_wcbs.json`) and chunking tests
+
 ## [1.0.10] - 2026-11-10
 
 ### Added

@@ -127,7 +127,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.10`+ on `:latest` and `:dev` |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.11`+ on `:latest` and `:dev` |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
@@ -159,6 +159,7 @@ Workarounds:
 - Lower `EPG_EMPTY_CACHE_SECONDS` (default 120) or set it to `0` so a stale empty body is not reused; `EPG_CACHE_SECONDS` only applies when programmes were mapped
 - Confirm via status: `epg.programme_count` may be `0` while `epg.cached` is true
 - Remember: `"Loaded N programmes"` appears in **container logs**, not inside the XML body
+- **Low-memory hosts (1.0.10 and earlier):** the single ~49h `/epg` request could push the bridge past ~650 MB and get it OOM-killed mid-build. Check `docker inspect fbtv --format '{{.State.OOMKilled}} {{.RestartCount}}'`. Newer builds fetch `/epg` in 6h chunks (~250 MB peak); lowering `EPG_DAYS` also reduces memory
 
 ---
 

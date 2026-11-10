@@ -55,6 +55,7 @@ Split egress (optional remux)
 4. Persist `access_token` (+ `expires_in` when present; default ~4h) to `session.json`; renew ~5 minutes early
 5. On sign-in failure, record cool-down in `session.json` (`AUTH_COOLDOWN_SECONDS`, default 1800) and **do not** retry password login until it expires — prevents Emby/status poll lockout spirals
 6. Send `Authorization: Bearer …` on subsequent API calls
+7. If Fubo answers **401** to a token older than 5 minutes, drop it (memory + `session.json`) and sign in once more, still subject to the cool-down
 
 ## Channel lineup
 

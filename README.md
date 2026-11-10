@@ -189,7 +189,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `DRM_SCAN_ON_START` | no | `true` | Background DRM asset sweep after startup |
 | `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep at 1; Fubo **429**s) |
 | `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes |
-| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is fresh |
+| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is fresh; re-check learned DRM stations older than this |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan (0 = off) |
 | `STREAM_PROXY` | no | `false` | Remux HLS→MPEG-TS via ffmpeg on `/watch` (split egress) |
 | `STREAM_PROXY_MAX` | no | `3` | Max concurrent remuxes |

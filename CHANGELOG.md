@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Channels that Fubo stops DRM-protecting now come back on their own. Scheduled DRM sweeps re-probe learned DRM stations once their last check (`checked_at`) is older than `DRM_SCAN_MAX_AGE_HOURS` (default 24h); before, only `POST /admin/drm-scan?force=true` re-checked them, so one DRM result hid a channel indefinitely. Live check: BTN, learned DRM on 2026-08-13, is clear again (and BTN2 went the other way). Sweep results report `rechecked_drm`
+- Confirmed `x-drm-scheme: widevine` is required: without it Fubo answers **400** for DRM channels instead of a clear stream, and clear channels are unaffected
+
 ## [1.0.12] - 2026-11-10
 
 ### Changed

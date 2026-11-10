@@ -2,10 +2,10 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-11-10 (v1.0.11 release to `main`)  
+**Last updated:** 2026-11-10 (v1.0.11 on `main`; `dev` Compose `:dev`)  
 **Active version:** 1.0.11  
-**Phase:** Release 1.0.11  
-**Git:** `release/1.0.11` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
+**Phase:** Post-1.0.11  
+**Git:** `dev` (Compose `:dev`); `main` / `:latest` = 1.0.11
 
 ---
 
@@ -15,7 +15,8 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ### Next actions
 1. Get from the deployed host: `docker inspect fbtv --format 'oom={{.State.OOMKilled}} restarts={{.RestartCount}} memlimit={{.HostConfig.Memory}}'` and `/status.json` auth + `epg.programme_count` to confirm OOM vs sign-in as the field cause
-2. After 1.0.11 is on `:latest`, re-check the guide on the host
+2. Pull `:latest` (1.0.11) on the host, request `/epg.xml`, re-check `epg.programme_count`
+3. Tag `v1.0.11` + GitHub release (pending owner OK)
 
 ---
 

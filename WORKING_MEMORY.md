@@ -26,6 +26,7 @@ Short-lived project state for the current effort. Agents and humans should **upd
 - Fubo web guide uses `papi/v1/guide/epg` in 5h windows
 - Live `schedule()` (sign-in stubbed): one 49h `/epg` call = ~80 MB JSON, **645 MB** peak RSS; 6h chunks = **245 MB**, same 3,963 programmes on 83/85 channels
 - Local `session.json` last sign-in: `401 INVALID_USERNAME_PASSWORD` (Sep 17)
+- Local test of 1.0.13 (2026-11-10, venv, sign-in stubbed, 85 playable stations): all endpoints 200; valid XMLTV 3,787 programmes on 83/85 channels (MBLC, NFLNRZD empty upstream), 0 overlaps, tvg-id ↔ XMLTV ids match. Fubo Radio FM001–FM010 carry one week-long listing (upstream, fine). Docker Desktop was not running, so the image itself wasn't run locally. Not covered without sign-in: lineup API, `GET /watch`, DRM re-check
 - DRM header test (8 stations, user's web session): without `x-drm-scheme: widevine`, DRM channels → HTTP 400 (no clear fallback); clear channels unchanged. DRM status drifts: BTN learned DRM 2026-08-13 is clear now, BTN2 went DRM. Fix: scheduled sweeps re-check stale learned DRM (`fix/drm-recheck`)
 
 ---

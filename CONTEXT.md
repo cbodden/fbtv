@@ -2,7 +2,7 @@
 
 Durable facts for humans and agents working on this repo. For ephemeral session state, see [WORKING_MEMORY.md](WORKING_MEMORY.md). Update this file when architecture or product decisions change.
 
-**Synced from:** `docs/` + root docs on 2026-09-17 (v**1.0.10**: session persist + auth cool-down).
+**Synced from:** `docs/` + root docs on 2026-11-10 (v**1.0.10**: session persist, auth cool-down, client error hardening).
 
 ## What this is
 
@@ -35,7 +35,7 @@ Built from an empty workspace (2026-08-06) after the user chose sidecar + Python
 
 **2026-08-11:** Emby and Jellyfin equal first-class; metrics; GHCR; repo renamed `fbtv`.
 
-**Status:** **v1.0.10** on `dev` / GHCR `:dev` (session persist + auth cool-down). **v1.0.9** remains on `main` / `:latest` until merge.
+**Status:** **v1.0.10** on `main` / GHCR `:latest` (session persist, auth cool-down, 401 re-auth, client error hardening).
 
 ## Non-goals (v1)
 

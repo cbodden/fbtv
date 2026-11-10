@@ -127,7 +127,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.10`+ on `:dev` (`1.0.9`+ on `:latest` until merge) |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.10`+ on `:latest` and `:dev` |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |

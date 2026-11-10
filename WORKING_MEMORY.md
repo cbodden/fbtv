@@ -2,10 +2,10 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-09-17  
+**Last updated:** 2026-11-10  
 **Active version:** 1.0.10  
-**Phase:** Auth hardening on `dev`  
-**Git:** `dev` (Compose `:dev`); `main` / `:latest` = 1.0.9 until merge
+**Phase:** 1.0.10 release to `main`  
+**Git:** `release/1.0.10` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
 
 ---
 

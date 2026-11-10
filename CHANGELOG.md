@@ -7,14 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Guide timestamps sent as digit strings (epoch s/ms) no longer crash the schedule build with `NameError`
-- Fubo HTTP timeouts, connection errors, and non-JSON bodies now surface as `FuboError`, so `/epg.xml` falls back to channel-only XMLTV (and `/playlist.m3u` / `/watch` return 502) instead of an unhandled 500
-- A bearer token Fubo rejects with **401** before its TTL is dropped from memory and `session.json`, followed by one fresh sign-in (cool-down still applies). Tokens younger than 5 minutes are not re-signed, which caps password logins if an endpoint 401s for other reasons
-- A `200` sign-in response without `access_token` (or with a non-JSON body) now starts the `AUTH_COOLDOWN_SECONDS` cool-down like any other failed sign-in
-
-## [1.0.10] - 2026-09-17
+## [1.0.10] - 2026-11-10
 
 ### Added
 
@@ -27,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Image/app version **1.0.10**
 - Token TTL uses sign-in `expires_in` when present (fallback 4h); renews ~5 minutes early
+
+### Fixed
+
+- Guide timestamps sent as digit strings (epoch s/ms) no longer crash the schedule build with `NameError`
+- Fubo HTTP timeouts, connection errors, and non-JSON bodies now surface as `FuboError`, so `/epg.xml` falls back to channel-only XMLTV (and `/playlist.m3u` / `/watch` return 502) instead of an unhandled 500
+- A bearer token Fubo rejects with **401** before its TTL is dropped from memory and `session.json`, followed by one fresh sign-in (cool-down still applies). Tokens younger than 5 minutes are not re-signed, which caps password logins if an endpoint 401s for other reasons
+- A `200` sign-in response without `access_token` (or with a non-JSON body) now starts the `AUTH_COOLDOWN_SECONDS` cool-down like any other failed sign-in
 
 ## [1.0.9] - 2026-08-13
 

@@ -11,11 +11,10 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Resume here (this session)
 
-**1.0.10** shipped (PR #4 client hardening, PR #5 release). Tag `v1.0.10` / GitHub release not created yet.
+**1.0.10** shipped (PR #4 client hardening, PR #5 release). Tag `v1.0.10` + GitHub release published.
 
 ### Next actions
-1. Tag `v1.0.10` on the merge commit and publish the GitHub release (pending owner OK)
-2. Pull `:latest`; confirm `/health` = 1.0.10 and `/status.json` `session_persisted: true` after a clean sign-in
+1. Pull `:latest`; confirm `/health` = 1.0.10 and `/status.json` `session_persisted: true` after a clean sign-in
 
 ---
 

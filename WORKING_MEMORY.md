@@ -2,20 +2,20 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-11-10 (v1.0.12 release to `main`)  
-**Active version:** 1.0.12  
-**Phase:** Release 1.0.12  
-**Git:** `release/1.0.12` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
+**Last updated:** 2026-11-10 (v1.0.13 release to `main`)  
+**Active version:** 1.0.13  
+**Phase:** Release 1.0.13  
+**Git:** `release/1.0.13` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
 
 ---
 
 ## Resume here (this session)
 
-**1.0.10** shipped (PR #4 client hardening, PR #5 release). Tag `v1.0.10` + GitHub release published.
+**1.0.12** shipped (PR #8 overlap fix, PR #9 release; tag `v1.0.12` + GitHub release). 1.0.11 = chunked `/epg` (PR #6/#7); 1.0.10 = session persist + client hardening (PR #4/#5).
 
 ### Next actions
 1. Get from the deployed host: `docker inspect fbtv --format 'oom={{.State.OOMKilled}} restarts={{.RestartCount}} memlimit={{.HostConfig.Memory}}'` and `/status.json` auth + `epg.programme_count` to confirm OOM vs sign-in as the field cause
-2. Pull `:latest` (1.0.12) on the host, request `/epg.xml`, re-check `epg.programme_count` and AMTEVE / FUBOCRM in the guide
+2. Pull `:latest` (1.0.13) on the host, request `/epg.xml`, re-check `epg.programme_count` and AMTEVE / FUBOCRM in the guide; after the first sweep (~5 min) confirm `rechecked_drm` > 0 and BTN back in the M3U
 
 ---
 
@@ -26,12 +26,12 @@ Short-lived project state for the current effort. Agents and humans should **upd
 - Fubo web guide uses `papi/v1/guide/epg` in 5h windows
 - Live `schedule()` (sign-in stubbed): one 49h `/epg` call = ~80 MB JSON, **645 MB** peak RSS; 6h chunks = **245 MB**, same 3,963 programmes on 83/85 channels
 - Local `session.json` last sign-in: `401 INVALID_USERNAME_PASSWORD` (Sep 17)
+- DRM header test (8 stations, user's web session): without `x-drm-scheme: widevine`, DRM channels → HTTP 400 (no clear fallback); clear channels unchanged. DRM status drifts: BTN learned DRM 2026-08-13 is clear now, BTN2 went DRM. Fix: scheduled sweeps re-check stale learned DRM (`fix/drm-recheck`)
 
 ---
 
 ## Backlog
 
-- **DRM sweep:** 2026-08-13 local scan learned 296 DRM vs 85 playable (incl. BTN, CBSSN, BET). Test whether `x-drm-scheme: widevine` makes Fubo serve DRM variants; learned ids are only re-checked with `force=true`
 - `token()` holds the shared lock during network sign-in (status/metrics can stall up to 30s)
 
 ---

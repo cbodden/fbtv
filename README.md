@@ -1,6 +1,6 @@
 # Fubo → Emby & Jellyfin Bridge (`fbtv`)
 
-**Version 1.0.12** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
+**Version 1.0.13** — Python sidecar that signs into your personal Fubo account and exposes Live TV feeds for **Emby** and **Jellyfin** (M3U playlist + XMLTV guide + per-channel watch resolve).
 
 **Project:** [`cbodden/fbtv`](https://github.com/cbodden/fbtv) (public) · **Docker image:** `fbtv` / [`ghcr.io/cbodden/fbtv`](https://github.com/cbodden/fbtv/pkgs/container/fbtv)
 
@@ -128,9 +128,9 @@ Check it:
 
 ```bash
 curl -sS http://127.0.0.1:7777/health
-# → {"status":"ok","version":"1.0.12"}
+# → {"status":"ok","version":"1.0.13"}
 curl -sS http://127.0.0.1:7777/ready
-# → {"status":"ready","version":"1.0.12"}
+# → {"status":"ready","version":"1.0.13"}
 ```
 
 Open `http://localhost:7777/` in a browser for copy-paste URLs and a live status snapshot (also `/status`, `/status.json`, `/metrics`).
@@ -189,7 +189,7 @@ Copy `.env.example` → `.env` and edit. Never commit `.env`. Loaded with `inter
 | `DRM_SCAN_ON_START` | no | `true` | Background DRM asset sweep after startup |
 | `DRM_SCAN_CONCURRENCY` | no | `1` | Parallel `vapi/asset` probes (keep at 1; Fubo **429**s) |
 | `DRM_SCAN_DELAY_MS` | no | `750` | Minimum gap between probes |
-| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is fresh |
+| `DRM_SCAN_MAX_AGE_HOURS` | no | `24` | Skip non-forced scans when `last_scan_at` is fresh; re-check learned DRM stations older than this |
 | `DRM_SCAN_INTERVAL_HOURS` | no | `24` | Periodic rescan (0 = off) |
 | `STREAM_PROXY` | no | `false` | Remux HLS→MPEG-TS via ffmpeg on `/watch` (split egress) |
 | `STREAM_PROXY_MAX` | no | `3` | Max concurrent remuxes |
@@ -271,7 +271,7 @@ When `tvg-id` matches XMLTV channel ids, mapping is often automatic. If `/status
 | Emby | **Emby Guide Data FuboTV** lineup + manual map (primary guide until bridge EPG is populated) |
 | Jellyfin | Schedules Direct **or** another XMLTV source (**not** together with bridge XMLTV) + manual map |
 
-From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. **1.0.8** adds CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`, status channel warm, and omits sequential `tvg-chno` (Emby Guide Data safe). **1.0.9** splits the Fubo client into `app/fubo/` and runs **pytest** in CI. **1.0.10** persists the Fubo session and adds sign-in cool-down to stop lockout spirals. **1.0.11** fetches `/epg` in 6-hour chunks (~250 MB peak instead of ~650 MB) so guide builds don't get OOM-killed on small hosts. **1.0.12** resolves overlapping guide entries to one timeline per channel (newest Fubo listing wins). Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.12**). Pre-release: `:dev`.
+From **1.0.4+** the bridge probes `/epg` first (with a dedicated parser), then `papi/v1/guide/epg`. **1.0.5+** adds a background DRM asset sweep (paced for Fubo **429** limits in **1.0.6+**) so DRM stations are dropped from M3U/EPG without waiting for a failed tune. **1.0.7** adds HEAD `/watch`, empty-EPG short TTL, stronger `/epg` joins, optional `STREAM_PROXY` remux, and DRM allow/deny. **1.0.8** adds CI unit tests, multi-arch images, `ADMIN_TOKEN`, `/ready`, status channel warm, and omits sequential `tvg-chno` (Emby Guide Data safe). **1.0.9** splits the Fubo client into `app/fubo/` and runs **pytest** in CI. **1.0.10** persists the Fubo session and adds sign-in cool-down to stop lockout spirals. **1.0.11** fetches `/epg` in 6-hour chunks (~250 MB peak instead of ~650 MB) so guide builds don't get OOM-killed on small hosts. **1.0.12** resolves overlapping guide entries to one timeline per channel (newest Fubo listing wins). **1.0.13** re-checks learned DRM stations every `DRM_SCAN_MAX_AGE_HOURS` so channels Fubo stops protecting come back. Stable image: `ghcr.io/cbodden/fbtv:latest` (**1.0.13**). Pre-release: `:dev`.
 
 ### Using Emby and Jellyfin together
 

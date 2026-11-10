@@ -127,7 +127,7 @@ Fubo rate-limits parallel / rapid `vapi/asset` probes. Image **1.0.6+** defaults
 
 | Check | Action |
 | --- | --- |
-| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.12`+ on `:latest` and `:dev` |
+| Image version | `curl -sS http://127.0.0.1:7777/health` → `1.0.13`+ on `:latest` and `:dev` |
 | Still 429-heavy | Raise `DRM_SCAN_DELAY_MS` (e.g. `1500` or `2000`); keep concurrency at `1` |
 | Scan progress | Logs: `DRM scan progress… rate_limited=N`; `GET /admin/drm-scan` → `last_result.rate_limited` |
 | Incomplete skip list | Re-run `POST /admin/drm-scan?force=true` after pacing is raised; tune-time learns still apply |
@@ -175,7 +175,7 @@ curl -sS http://127.0.0.1:7777/metrics | head
 | Observation | Likely meaning |
 | --- | --- |
 | `fubo.signed_in` false and `channel_count` null | No successful Fubo call since start — check `credentials_source`, `pass_fp` in logs, then hit playlist |
-| `channel_count` set, `drm_skipped_count` / `drm_learned_count` high | Expected for DRM packages; those channels stay out of the M3U after learn/refresh |
+| `channel_count` set, `drm_skipped_count` / `drm_learned_count` high | Expected for DRM packages; those channels stay out of the M3U after learn/refresh. Fubo toggles DRM per channel over time, so learned stations are re-checked every `DRM_SCAN_MAX_AGE_HOURS` (default 24h) and return when clear |
 | `drm_overrides` counts non-zero | Manual allow/deny file or env is active |
 | `epg.programme_count` is 0 but `epg.cached` true | Channel-only XMLTV (empty-guide TTL, default 120s) |
 | `watch_error` climbing | DRM rejects, missing URLs, or Fubo API errors on tune |

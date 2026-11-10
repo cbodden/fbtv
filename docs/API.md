@@ -30,7 +30,7 @@ Machine-readable JSON status (same payload as the HTML page).
 ```json
 {
   "status": "ok",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "uptime_seconds": 120,
   "started_at": "2026-08-11T19:00:00Z",
   "listen": {"host": "0.0.0.0", "port": 7777},
@@ -130,7 +130,7 @@ When `ADMIN_TOKEN` is set, send `Authorization: Bearer <token>` or `X-Admin-Toke
 
 ## `POST /admin/drm-scan`
 
-Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check previously learned stations. Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded. Same optional `ADMIN_TOKEN` auth as GET.
+Start a background DRM asset sweep. Query `force=true` to ignore `DRM_SCAN_MAX_AGE_HOURS` freshness and re-check every previously learned station (scheduled sweeps re-check learned stations only once their last check is older than `DRM_SCAN_MAX_AGE_HOURS`). Probes are paced (`DRM_SCAN_DELAY_MS`) with **429** backoff so Fubo is not flooded. Same optional `ADMIN_TOKEN` auth as GET.
 
 **Response:** `200 application/json` with `{"status":"started",...}`
 
@@ -143,7 +143,7 @@ Liveness probe. Does not verify Fubo credentials.
 **Response:** `200 application/json`
 
 ```json
-{"status": "ok", "version": "1.0.12"}
+{"status": "ok", "version": "1.0.13"}
 ```
 
 ## `GET /ready`
@@ -153,7 +153,7 @@ Readiness probe: returns **200** when Fubo credentials can be resolved from the 
 **Response:** `200 application/json`
 
 ```json
-{"status": "ready", "version": "1.0.12"}
+{"status": "ready", "version": "1.0.13"}
 ```
 
 **Errors:** `503` with `{"status":"not_ready","reason":"missing_credentials"}` or `not_initialized`.

@@ -2,10 +2,10 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-11-10 (v1.0.13 release to `main`)  
+**Last updated:** 2026-11-10 (v1.0.13 on `main`; `dev` Compose `:dev`)  
 **Active version:** 1.0.13  
-**Phase:** Release 1.0.13  
-**Git:** `release/1.0.13` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
+**Phase:** Post-1.0.13  
+**Git:** `dev` (Compose `:dev`); `main` / `:latest` = 1.0.13
 
 ---
 

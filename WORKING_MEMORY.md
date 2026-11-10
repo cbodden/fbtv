@@ -14,13 +14,24 @@ Short-lived project state for the current effort. Agents and humans should **upd
 **1.0.10** shipped (PR #4 client hardening, PR #5 release). Tag `v1.0.10` + GitHub release published.
 
 ### Next actions
-1. Pull `:latest`; confirm `/health` = 1.0.10 and `/status.json` `session_persisted: true` after a clean sign-in
+1. Get from the deployed host: `docker inspect fbtv --format 'oom={{.State.OOMKilled}} restarts={{.RestartCount}} memlimit={{.HostConfig.Memory}}'` and `/status.json` auth + `epg.programme_count` to confirm OOM vs sign-in as the field cause
+2. Ship chunked `/epg` (branch `feat/epg-chunked`) and re-check the guide on the host
+
+---
+
+## Field notes (2026-11-10, browser + live probe)
+
+- Parser is **not** the bug: live `/epg` and `papi/v1/guide/epg` responses match fbtv's parsers; station ids join the lineup (e.g. `16689` = WCBS)
+- Both guide endpoints answer **anonymously** with fbtv's android_tv headers; without device headers `papi` returns 528 `cannot MatchDevicePageManagerWithDeviceAgent`
+- Fubo web guide uses `papi/v1/guide/epg` in 5h windows
+- Live `schedule()` (sign-in stubbed): one 49h `/epg` call = ~80 MB JSON, **645 MB** peak RSS; 6h chunks = **245 MB**, same 3,963 programmes on 83/85 channels
+- Local `session.json` last sign-in: `401 INVALID_USERNAME_PASSWORD` (Sep 17)
 
 ---
 
 ## Backlog
 
-- **Empty guide:** the `/epg` parser was never validated against a real response (the vlc-bridge references don't fetch a Fubo EPG; they map Gracenote ids). Need field logs (`docker logs fbtv 2>&1 | grep -E "EPG|Loaded .* programmes"`) or a redacted raw `/epg` payload; `/epg` is requested as one ~49h window
+- Overlapping same-start programmes on one channel (e.g. AMTEVE 14:00 ×2) survive de-dupe because the key includes the title → overlapping XMLTV entries
 - **DRM sweep:** 2026-08-13 local scan learned 296 DRM vs 85 playable (incl. BTN, CBSSN, BET). Test whether `x-drm-scheme: widevine` makes Fubo serve DRM variants; learned ids are only re-checked with `force=true`
 - `token()` holds the shared lock during network sign-in (status/metrics can stall up to 30s)
 
@@ -28,7 +39,7 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Current focus
 
-- Idle; guide investigation blocked on field data.
+- Empty guide: chunked `/epg` to fix memory; confirm field cause (OOM vs sign-in).
 
 ## Scratch
 

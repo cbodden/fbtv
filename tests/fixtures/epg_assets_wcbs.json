@@ -1,0 +1,42 @@
+{
+  "_note": "Trimmed from a live GET /epg response (2026-11-10, x-device-app android_tv). Only fields fbtv reads are kept.",
+  "response": [
+    {
+      "type": "channelWithProgramAssets",
+      "data": {
+        "channel": {
+          "id": "16689",
+          "name": "CBS (WCBS – New York, NY)",
+          "displayName": "CBS",
+          "callSign": "WCBS"
+        },
+        "programsWithAssets": [
+          {
+            "program": {
+              "programId": "EP011761322755",
+              "title": "Let's Make a Deal",
+              "heading": "Let's Make a Deal",
+              "subheading": "S18, EP37 \"Let's Make a Deal\"",
+              "type": "episode",
+              "metadataType": "episode",
+              "rating": "TVPG",
+              "shortDescription": "Contestants in quirky costumes bargain with host Wayne Brady, trading for cash o"
+            },
+            "assets": [
+              {
+                "assetId": "LIVE_284549026",
+                "type": "stream",
+                "duration": 60,
+                "playbackDurationSec": 3600,
+                "accessRights": {
+                  "startTime": "2026-11-10T15:00:00Z",
+                  "endTime": "2026-11-10T16:00:00Z"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -2,10 +2,10 @@
 
 Short-lived project state for the current effort. Agents and humans should **update this file** as work progresses. Durable facts belong in [CONTEXT.md](CONTEXT.md).
 
-**Last updated:** 2026-11-10 (v1.0.11 release to `main`)  
-**Active version:** 1.0.11  
-**Phase:** Release 1.0.11  
-**Git:** `release/1.0.11` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
+**Last updated:** 2026-11-10 (v1.0.12 release to `main`)  
+**Active version:** 1.0.12  
+**Phase:** Release 1.0.12  
+**Git:** `release/1.0.12` → `main` (`:latest`); `dev` returns to Compose `:dev` after merge
 
 ---
 
@@ -15,7 +15,7 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ### Next actions
 1. Get from the deployed host: `docker inspect fbtv --format 'oom={{.State.OOMKilled}} restarts={{.RestartCount}} memlimit={{.HostConfig.Memory}}'` and `/status.json` auth + `epg.programme_count` to confirm OOM vs sign-in as the field cause
-2. After 1.0.11 is on `:latest`, re-check the guide on the host
+2. Pull `:latest` (1.0.12) on the host, request `/epg.xml`, re-check `epg.programme_count` and AMTEVE / FUBOCRM in the guide
 
 ---
 
@@ -31,7 +31,6 @@ Short-lived project state for the current effort. Agents and humans should **upd
 
 ## Backlog
 
-- Overlapping same-start programmes on one channel (e.g. AMTEVE 14:00 ×2) survive de-dupe because the key includes the title → overlapping XMLTV entries
 - **DRM sweep:** 2026-08-13 local scan learned 296 DRM vs 85 playable (incl. BTN, CBSSN, BET). Test whether `x-drm-scheme: widevine` makes Fubo serve DRM variants; learned ids are only re-checked with `force=true`
 - `token()` holds the shared lock during network sign-in (status/metrics can stall up to 30s)
 

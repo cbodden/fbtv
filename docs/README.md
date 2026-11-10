@@ -22,4 +22,4 @@ Public repository: [`cbodden/fbtv`](https://github.com/cbodden/fbtv) · Docker i
 
 ## Version
 
-App version **1.0.11** on `main` / `:latest` (chunked `/epg` guide fetch, session persist, auth cool-down; see `CHANGELOG.md`). Pre-release builds on `dev` / `:dev`.
+App version **1.0.12** on `main` / `:latest` (overlap-free guide timelines, chunked `/epg` fetch, session persist, auth cool-down; see `CHANGELOG.md`). Pre-release builds on `dev` / `:dev`.
